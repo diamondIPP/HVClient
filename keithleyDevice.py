@@ -12,10 +12,10 @@ class keithleyDevice(keithleyInterface.keithleyInterface):
 
         self.port       = self.config.get(self.name,'address')
         self.ramp       = float(self.config.get(self.name,'ramp'))
-        self.bias       = float(self.config.get(self.name,'bias'))
-        
+        self.bias       = float(self.config.get(self.name,'bias'))        
         # last time the actual voltage was changed 
         self.lastUChange = time.time()
+        self.lastBias    = 0
 
         self.isBusy   = False
         self.maxTime  = 20

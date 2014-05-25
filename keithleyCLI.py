@@ -119,6 +119,28 @@ class CLI(cmd.Cmd,Thread):
         except Exception:
             print Exception
 
+
+    #######################################
+    # do_BIAS
+    #######################################
+
+    def do_BIAS(self,line):
+        """ Set target bias voltage on device """
+        try:
+            name = line.split()[0]
+            target_bias = float(line.split()[1])
+            
+            if self.keithleys.has_key(name):
+                keithley = self.keithleys[name]
+                keithley.wait_for_device()
+                keithley.isBusy = True
+                keithley.bias = target_bias
+                keithley.lastUChange = time.time()
+                keithley.isBusy = False
+
+        except Exception:
+            print Exception
+
     #######################################
     # do_COMMAND
     #######################################

@@ -110,23 +110,35 @@ while myCLI.running:
         #v.serial.flushInput()
 
         if status:
-            # First read and display
-            value = datetime.datetime.fromtimestamp(time.time())
-            [voltage, current] = [float(x) for x in v.readIV().split(" ")][:2]            
-            di_vars[k].set( k +": U: {0:7.1f} V      I: {1:10.4e} A    ".format(voltage, current)+value.strftime('%H:%M:%S'))  
 
-            # Then maybe update
+            # Maybe update voltage (we remember the measurement from the last loop)
             # (the step we can make in voltage is the ramp-speed times 
             # how many seconds passed since last change)
-            deltaU = v.bias - voltage
+            deltaU = v.bias - v.lastBias
             Ustep = abs(v.ramp * (time.time() - v.lastUChange))
             if abs(deltaU) > 0.1:
                 if abs(deltaU) <= Ustep:
                     v.setVoltage( v.bias )
-                    v.lastUChage = time.time()
+                    v.lastUChange = time.time()
                 else:
-                    v.setVoltage( voltage + math.copysign( Ustep, deltaU ))
-                    v.lastUChage = time.time()
+                    v.setVoltage( v.lastBias + math.copysign( Ustep, deltaU ))
+                    v.lastUChange = time.time()
+                
+            # Then updaye U/I and display
+            value = datetime.datetime.fromtimestamp(time.time())
+            [voltage, current] = [float(x) for x in v.readIV().split(" ")][:2]            
+
+            # Build display string
+            display_string = k
+            display_string+= ": U: {0:7.1f} V      I: {1:10.2e} A    ".format(voltage, current)
+            display_string+= value.strftime('%H:%M:%S')
+            
+            if abs( v.bias - voltage) > 0.1:
+                display_string += " ramping"
+            
+            di_vars[k].set( display_string)  
+            
+            v.lastBias = voltage
 
         else:
             di_vars[k].set( k+": OFF")
