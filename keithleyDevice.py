@@ -4,19 +4,31 @@ import time
 
 class keithleyDevice(keithleyInterface.keithleyInterface):
     def __init__(self,name,config):
-        self.name = name
-        self.config = config
-        self.keithley = None
-        port = self.config.get(self.name,'address')
-        bias = self.config.get(self.name,'bias')
+        self.name       = name
+        self.config     = config
+        self.keithley   = None
+        
         compliance = self.config.get(self.name,'compliance')
-        self.isBusy =False
-        self.maxTime = 20
+
+        self.port       = self.config.get(self.name,'address')
+        self.ramp       = float(self.config.get(self.name,'ramp'))
+        self.bias       = float(self.config.get(self.name,'bias'))
+        
+        # last time the actual voltage was changed 
+        self.lastUChange = time.time()
+
+        self.isBusy   = False
+        self.maxTime  = 20
         if self.config.has_option(self.name,'baudrate'):
             baudrate = self.config.get_option(self.name,'baudrate')
         else:
             baudrate = 57600
-        keithleyInterface.keithleyInterface.__init__(self,port,immidiateVoltage=bias,baudrate=baudrate)
+
+        # Start with an intial voltage of 0
+        keithleyInterface.keithleyInterface.__init__(self,
+                                                     self.port,
+                                                     immidiateVoltage=0,
+                                                     baudrate=baudrate)
 
 
     def wait_for_device(self):

@@ -17,6 +17,7 @@ import ConfigParser
 import argparse
 import datetime
 import Tkinter
+import math
 from threading import Thread
 
 # Command Line Interface
@@ -108,11 +109,25 @@ while myCLI.running:
         status = v.getOutputStatus()
         #v.serial.flushInput()
 
-        value = datetime.datetime.fromtimestamp(time.time())
-
         if status:
-            IV = v.readIV()
-            di_vars[k].set( k+": "+str(IV)+ "   " +value.strftime('%H:%M:%S'))
+            # First read and display
+            value = datetime.datetime.fromtimestamp(time.time())
+            [voltage, current] = [float(x) for x in v.readIV().split(" ")][:2]            
+            di_vars[k].set( k +": U: {0:7.1f} V      I: {1:10.4e} A    ".format(voltage, current)+value.strftime('%H:%M:%S'))  
+
+            # Then maybe update
+            # (the step we can make in voltage is the ramp-speed times 
+            # how many seconds passed since last change)
+            deltaU = v.bias - voltage
+            Ustep = abs(v.ramp * (time.time() - v.lastUChange))
+            if abs(deltaU) > 0.1:
+                if abs(deltaU) <= Ustep:
+                    v.setVoltage( v.bias )
+                    v.lastUChage = time.time()
+                else:
+                    v.setVoltage( voltage + math.copysign( Ustep, deltaU ))
+                    v.lastUChage = time.time()
+
         else:
             di_vars[k].set( k+": OFF")
         v.isBusy=False

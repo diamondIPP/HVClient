@@ -73,6 +73,7 @@ class CLI(cmd.Cmd,Thread):
             keithley.isBusy=True
             try:
                 keithley.setOutput(status)
+                keithley.lastUChange = time.time()
             except Exception:
                 print Exception
             keithley.isBusy=False
