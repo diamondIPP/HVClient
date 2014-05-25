@@ -11,9 +11,8 @@
 import sys
 import cmd
 import time
+import datetime
 from threading import Thread
-
-
 
 #######################################
 # Class CLI
@@ -30,6 +29,10 @@ class CLI(cmd.Cmd,Thread):
         #super(CLI,self).__init__()
         self.keithleys={}
 
+        # Init logging file
+        value = datetime.datetime.fromtimestamp(time.time())
+        logfile_name = "keithleyLog_" + value.strftime('%Y_%m_%d_%H_%M') + ".txt"
+        self.logfile = open(logfile_name, "w")
 
     def run(self):
         self.cmdloop()
@@ -46,8 +49,10 @@ class CLI(cmd.Cmd,Thread):
         # Turn off the devices
         for keithley in self.keithleys.keys():
             self.setOutput(keithley,False)
-
+            
+        self.logfile.close()
         self.running = False
+
         return True
 
     def do_names(self,line):

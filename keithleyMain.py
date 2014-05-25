@@ -137,7 +137,8 @@ while myCLI.running:
                 display_string += " ramping"
             
             di_vars[k].set( display_string)  
-            
+            myCLI.logfile.write( display_string + "\n") 
+
             v.lastBias = voltage
 
         else:
