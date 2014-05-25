@@ -45,6 +45,7 @@ class CLI(cmd.Cmd,Thread):
             print name,keithleys[name].name
 
     def do_exit(self,line):
+        """Quit CLI"""
 
         # Turn off the devices
         for keithley in self.keithleys.keys():
@@ -56,6 +57,8 @@ class CLI(cmd.Cmd,Thread):
         return True
 
     def do_names(self,line):
+        """Print connected Keithley devices"""
+
         print 'There are %d Keithleys connected:'%len(self.keithleys)
         k = 1
         for i in self.keithleys:
@@ -86,12 +89,18 @@ class CLI(cmd.Cmd,Thread):
             print 'cannot find %s'%name
 
     def do_ON(self,line):
-        """ Set output of device to ON """
+        """ Set output of device to ON.
+        Usage: ON KeithleyName 
+        (ON ALL to turn on all devices)
+        """
         self.setOutput(line,True)
 
     def do_OFF(self,line):
-        """ Set output of device to OFF """
-        self.setOutput(line,False)
+        """ Set output of device to OFF.
+        Usage: OFF KeithleyName 
+        (OFF ALL to turn off all devices)
+        """
+        self.setOutput(line,True)
 
     #######################################
     # do_FILTER
@@ -115,7 +124,10 @@ class CLI(cmd.Cmd,Thread):
             print 'cannot find %s'%name
 
     def do_FILTER(self,line):
-        """ Set Filter of device """
+        """ Set filter of device.
+        FILTER KeithleyName status
+        status should be 0/1
+        ('FILTER ALL 0/1' sets all devices)"""
         try:
             name = line.split()[0]
             status = int(line.split()[1])
@@ -130,7 +142,10 @@ class CLI(cmd.Cmd,Thread):
     #######################################
 
     def do_BIAS(self,line):
-        """ Set target bias voltage on device """
+        """ Set target voltage of device.
+        Usage: 
+        BIAS KeithleyName voltage"""
+
         try:
             name = line.split()[0]
             target_bias = float(line.split()[1])
@@ -175,6 +190,7 @@ class CLI(cmd.Cmd,Thread):
             print Exception
 
     def do_read(self,line):
+        """Call read for device"""
         try:
             name = line
             keithley = self.keithleys[name]
