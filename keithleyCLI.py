@@ -137,6 +137,11 @@ class CLI(cmd.Cmd,Thread):
             
             if self.keithleys.has_key(name):
                 keithley = self.keithleys[name]
+
+                if (target_bias < keithley.minBias) or (target_bias > keithley.maxBias):
+                    print "This bias voltage", target_bias, "is not allowed! Boundaries are: ", keithley.minBias, keithley.maxBias
+                    return
+
                 keithley.wait_for_device()
                 keithley.isBusy = True
                 keithley.bias = target_bias

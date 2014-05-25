@@ -110,27 +110,17 @@ while myCLI.running:
         #v.serial.flushInput()
 
         if status:
-
-            # Maybe update voltage (we remember the measurement from the last loop)
-            # (the step we can make in voltage is the ramp-speed times 
-            # how many seconds passed since last change)
-            deltaU = v.bias - v.lastBias
-            Ustep = abs(v.ramp * (time.time() - v.lastUChange))
-            if abs(deltaU) > 0.1:
-                if abs(deltaU) <= Ustep:
-                    v.setVoltage( v.bias )
-                    v.lastUChange = time.time()
-                else:
-                    v.setVoltage( v.lastBias + math.copysign( Ustep, deltaU ))
-                    v.lastUChange = time.time()
+            
+            # First try to change the voltage
+            v.doRamp()
                 
-            # Then updaye U/I and display
+            # Then update GUI and display
             value = datetime.datetime.fromtimestamp(time.time())
             [voltage, current] = [float(x) for x in v.readIV().split(" ")][:2]            
 
             # Build display string
             display_string = k
-            display_string+= ": U: {0:7.1f} V      I: {1:10.2e} muA    ".format(voltage, current/1e6)
+            display_string+= ": U: {0:7.1f} V      I: {1:10.2e} muA    ".format(voltage, current/1e-6)
             display_string+= value.strftime('%H:%M:%S')            
             if abs( v.bias - voltage) > 0.1:
                 display_string += " ramping"
