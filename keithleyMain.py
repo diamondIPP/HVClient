@@ -131,8 +131,7 @@ while myCLI.running:
             # Build display string
             display_string = k
             display_string+= ": U: {0:7.1f} V      I: {1:10.2e} A    ".format(voltage, current)
-            display_string+= value.strftime('%H:%M:%S')
-            
+            display_string+= value.strftime('%H:%M:%S')            
             if abs( v.bias - voltage) > 0.1:
                 display_string += " ramping"
             
@@ -142,7 +141,11 @@ while myCLI.running:
             v.lastBias = voltage
 
         else:
-            di_vars[k].set( k+": OFF")
+            value = datetime.datetime.fromtimestamp(time.time())
+            display_string = k+": OFF " + value.strftime('%H:%M:%S')
+            di_vars[k].set( display_string )
+            myCLI.logfile.write( display_string + "\n") 
+
         v.isBusy=False
         root.update()
     # end of Keithley loop        
