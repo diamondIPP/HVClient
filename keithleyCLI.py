@@ -32,7 +32,7 @@ class CLI(cmd.Cmd,Thread):
         # Init logging file
         value = datetime.datetime.fromtimestamp(time.time())
         logfile_name = "keithleyLog_" + value.strftime('%Y_%m_%d_%H_%M') + ".txt"
-        self.logfile = open(logfile_name, "w")
+        self.logfile = open(logfile_name, "w", 1)
 
     def run(self):
         self.cmdloop()
@@ -183,6 +183,21 @@ class CLI(cmd.Cmd,Thread):
         except Exception:
             print Exception
 
+
+    #######################################
+    # do_NEWLOG
+    #######################################
+
+    def do_NEWLOG(self,line):
+        """ Closes the current logfile and opens a new one"""
+
+        # Close old and open new logging file
+        value = datetime.datetime.fromtimestamp(time.time())
+        logfile_name = "keithleyLog_" + value.strftime('%Y_%m_%d_%H_%M') + ".txt"
+        self.logfile.close()
+        self.logfile = open(logfile_name, "w",1)
+
+        
 
 
 # End of Class CLI

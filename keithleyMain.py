@@ -130,21 +130,28 @@ while myCLI.running:
 
             # Build display string
             display_string = k
-            display_string+= ": U: {0:7.1f} V      I: {1:10.2e} A    ".format(voltage, current)
+            display_string+= ": U: {0:7.1f} V      I: {1:10.2e} muA    ".format(voltage, current/1e6)
             display_string+= value.strftime('%H:%M:%S')            
             if abs( v.bias - voltage) > 0.1:
                 display_string += " ramping"
-            
+                
+            # Build logging string
+            logging_string = k
+            logging_string += value.strftime(' %H:%M:%S ')
+            logging_string += "{0:10.3e} {1:10.3e}".format(voltage, current)
+
+            # Display and log...
             di_vars[k].set( display_string)  
-            myCLI.logfile.write( display_string + "\n") 
+            myCLI.logfile.write( logging_string + "\n") 
 
             v.lastBias = voltage
 
         else:
             value = datetime.datetime.fromtimestamp(time.time())
             display_string = k+": OFF " + value.strftime('%H:%M:%S')
+            logging_string = k+" "+value.strftime('%H:%M:%S')+" OFF"
             di_vars[k].set( display_string )
-            myCLI.logfile.write( display_string + "\n") 
+            myCLI.logfile.write( logging_string + "\n") 
 
         v.isBusy=False
         root.update()
