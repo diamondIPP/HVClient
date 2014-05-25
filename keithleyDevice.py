@@ -49,7 +49,6 @@ class keithleyDevice(keithleyInterface.keithleyInterface):
     def wait_for_device(self):
         now = time.time()
         while time.time()-now < self.maxTime and self.isBusy:
-            print "waiting for", self.name
             time.sleep(.1)
 
     def doRamp(self):

@@ -104,6 +104,10 @@ while myCLI.running:
 
     # Loop over the keithleys, get the voltages and update the display
     for k,v in sorted(keithleys.iteritems(), key = lambda x:x[0]):
+
+        if not myCLI.running:
+            break
+
         v.wait_for_device()
         v.isBusy=True
         status = v.getOutputStatus()
@@ -123,7 +127,7 @@ while myCLI.running:
             display_string+= ": U: {0:7.1f} V      I: {1:10.2e} muA    ".format(voltage, current/1e-6)
             display_string+= value.strftime('%H:%M:%S')            
             if abs( v.bias - voltage) > 0.1:
-                display_string += " ramping"
+                display_string += " ramping to " + str(v.bias)
                 
             # Build logging string
             logging_string = k
@@ -132,7 +136,9 @@ while myCLI.running:
 
             # Display and log...
             di_vars[k].set( display_string)  
-            myCLI.logfile.write( logging_string + "\n") 
+            # (the logfile only exists while we are running)
+            if myCLI.running:
+                myCLI.logfile.write( logging_string + "\n") 
 
             v.lastBias = voltage
 
@@ -141,7 +147,9 @@ while myCLI.running:
             display_string = k+": OFF " + value.strftime('%H:%M:%S')
             logging_string = k+" "+value.strftime('%H:%M:%S')+" OFF"
             di_vars[k].set( display_string )
-            myCLI.logfile.write( logging_string + "\n") 
+            # (the logfile only exists while we are running)
+            if myCLI.running:
+                myCLI.logfile.write( logging_string + "\n") 
 
         v.isBusy=False
         root.update()
