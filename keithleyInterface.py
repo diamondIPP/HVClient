@@ -55,6 +55,15 @@ class keithleyInterface:
 
     def readIV(self):
         answer = self.getAnswerForQuery(':READ?',20)
+        try:
+            answer = answer.split()
+            voltage = float(answer[0])
+            current = float(answer[1])
+            rest = answer[2:]
+            return voltage,current,rest
+        except:
+            raise Exception('Could not perform valid IV Measurement, received "%s"'%answer)
+
         return answer
 
     def write(self,data):
@@ -224,6 +233,17 @@ class keithleyInterface:
             print 'invalid Voltage: %s'%value
             return -1
         return self.write(':SOUR:VOLT %s'%value)
+
+    def getSetVoltage(self):
+        print 'getSetVoltage'
+        answer = self.getAnswerForQuery(':SOUR:VOLT?')
+        try:
+            print answer
+            volt = float(answer)
+            return volt
+        except Exception as inst:
+            print answer, type(inst),inst
+            raise inst
 
     def setStandardOutputForm(self):
         return self.write(':FORM:ELEM VOLT,CURR,RES,TIME,STAT')

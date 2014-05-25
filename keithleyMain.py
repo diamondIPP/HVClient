@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-"""  
+"""
 Main program for Keithley Power Supply steering and readout.
 """
 
@@ -47,6 +47,8 @@ config.read(args.config)
 # main thread.
 
 keithleys = keithleyReader.get_keithleys(config)
+for k in keithleys:
+    keithleys[k].start()
 myCLI = CLI()
 myCLI.set_keithleys(keithleys)
 myCLI.start()
@@ -61,6 +63,8 @@ myCLI.start()
 def signal_handler(signal, frame):
     print 'Received SIGINT'
     myCLI.stop()
+    for k in keithleys:
+        keithleys[k].isKilled=True
     sys.exit(0)
 
 signal.signal(signal.SIGINT, signal_handler)
@@ -96,7 +100,7 @@ for k in sorted(di_labels.keys()):
 
 now = time.time()
 while myCLI.running:
-    
+
     # Make sure enough time has passed before we poll again
     while time.time()-now < 1:
         time.sleep(.05)
@@ -108,39 +112,38 @@ while myCLI.running:
         if not myCLI.running:
             break
 
-        v.wait_for_device()
-        v.isBusy=True
-        status = v.getOutputStatus()
+        status = v.get_status()
         #v.serial.flushInput()
 
         if status:
-            
+
             # First try to change the voltage
-            v.doRamp()
-                
+            #v.doRamp()
+
             # Then update GUI and display
-            value = datetime.datetime.fromtimestamp(time.time())
-            [voltage, current] = [float(x) for x in v.readIV().split(" ")][:2]            
+            value = datetime.datetime.fromtimestamp(v.get_update_time())
+            voltage = v.get_bias()
+            current = v.get_current()
 
             # Build display string
             display_string = k
             display_string+= ": U: {0:7.1f} V      I: {1:10.2e} muA    ".format(voltage, current/1e-6)
-            display_string+= value.strftime('%H:%M:%S')            
-            if abs( v.bias - voltage) > 0.1:
-                display_string += " ramping to " + str(v.bias)
-                
+            display_string+= value.strftime('%H:%M:%S')
+            setBias = v.get_target_bias()
+            if v.is_ramping():
+                display_string += " ramping to " + str(setBias)
+
             # Build logging string
             logging_string = k
             logging_string += value.strftime(' %H:%M:%S ')
             logging_string += "{0:10.3e} {1:10.3e}".format(voltage, current)
 
             # Display and log...
-            di_vars[k].set( display_string)  
+            di_vars[k].set( display_string)
             # (the logfile only exists while we are running)
             if myCLI.running:
-                myCLI.logfile.write( logging_string + "\n") 
+                myCLI.logfile.write( logging_string + "\n")
 
-            v.lastBias = voltage
 
         else:
             value = datetime.datetime.fromtimestamp(time.time())
@@ -149,9 +152,9 @@ while myCLI.running:
             di_vars[k].set( display_string )
             # (the logfile only exists while we are running)
             if myCLI.running:
-                myCLI.logfile.write( logging_string + "\n") 
+                myCLI.logfile.write( logging_string + "\n")
 
         v.isBusy=False
         root.update()
-    # end of Keithley loop        
+    # end of Keithley loop
 # End of Main GUI loop

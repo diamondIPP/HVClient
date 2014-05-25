@@ -48,9 +48,9 @@ class CLI(cmd.Cmd,Thread):
         """Quit CLI"""
 
         # Turn off the devices
-        for keithley in self.keithleys.keys():
-            self.setOutput(keithley,False)
-            
+        for k in self.keithleys.keys():
+            self.keithleys[k].isKilled=True
+
         self.logfile.close()
         self.running = False
 
@@ -82,25 +82,46 @@ class CLI(cmd.Cmd,Thread):
             try:
                 keithley.setOutput(status)
                 keithley.lastUChange = time.time()
-            except Exception:
-                print Exception
+                keithley.powering_down = False
+            except Exception as inst:
+                print type(inst),inst
             keithley.isBusy=False
         else:
             print 'cannot find %s'%name
 
     def do_ON(self,line):
         """ Set output of device to ON.
-        Usage: ON KeithleyName 
+        Usage: ON KeithleyName
         (ON ALL to turn on all devices)
         """
         self.setOutput(line,True)
 
+
+    def do_OFF_FAST(self,line):
+        """ Set output of device to OFF.
+        Usage: OFF_FAST KeithleyName
+        (OFF_FAST ALL to turn on all devices)
+        """
+        self.setOutput(line,False)
+
+
     def do_OFF(self,line):
         """ Set output of device to OFF.
-        Usage: OFF KeithleyName 
+        Usage: OFF KeithleyName
         (OFF ALL to turn off all devices)
         """
-        self.setOutput(line,True)
+
+        try:
+            name = line.split()[0]
+            if name.upper() == 'ALL':
+                for k in self.keithleys:
+                    self.do_OFF(k)
+            else:
+                self.keithleys[name].power_down()
+
+        except Exception as inst:
+            print type(inst),inst
+
 
     #######################################
     # do_FILTER
@@ -117,8 +138,8 @@ class CLI(cmd.Cmd,Thread):
             keithley.isBusy=True
             try:
                 keithley.setAverageFiltering(status)
-            except Exception:
-                print Exception
+            except Exception as inst:
+                print type(inst),inst
             keithley.isBusy=False
         else:
             print 'cannot find %s'%name
@@ -133,38 +154,75 @@ class CLI(cmd.Cmd,Thread):
             status = int(line.split()[1])
             print 'do_FILTER',line,name,status
             self.setFilter(name,status)
-        except Exception:
-            print Exception
+        except Exception as inst:
+            print type(inst),inst
 
+
+    #######################################
+    # do_MANUAL
+    #######################################
+
+    def set_manual(self,name,status):
+        try:
+            keithley = self.keithleys[name]
+        except Exception as inst:
+            print 'cannot find keithley with name "%s"'%name
+        try:
+            keithley.set_manual(status)
+        except Exception as inst:
+            print 'Cannot set manual'
+            print type(inst),inst
+
+    def do_MANUAL(self,line):
+        try:
+            [name,status] = line.split()
+            status = int(status)
+        except:
+            print 'Wrong input for MANUAL',line
+            return
+        if name.upper() == 'ALL':
+            for k in self.keithleys:
+                self.set_manual(k,status)
+        else:
+            try:
+                keithley = self.keithleys[name]
+                keithley.set_manual(status)
+            except:
+                print 'cannot find keithley with name "%s"'%name
 
     #######################################
     # do_BIAS
     #######################################
 
-    def do_BIAS(self,line):
-        """ Set target voltage of device.
-        Usage: 
-        BIAS KeithleyName voltage"""
+    def setBias(self, name, target_bias ):
 
         try:
-            name = line.split()[0]
-            target_bias = float(line.split()[1])
-            
             if self.keithleys.has_key(name):
                 keithley = self.keithleys[name]
 
-                if (target_bias < keithley.minBias) or (target_bias > keithley.maxBias):
+                if (   (target_bias < keithley.minBias)
+                    or (target_bias > keithley.maxBias)):
                     print "This bias voltage", target_bias, "is not allowed! Boundaries are: ", keithley.minBias, keithley.maxBias
                     return
 
-                keithley.wait_for_device()
-                keithley.isBusy = True
-                keithley.bias = target_bias
-                keithley.lastUChange = time.time()
-                keithley.isBusy = False
+                keithley.set_target_bias(target_bias)
 
-        except Exception:
-            print Exception
+        except Exception as inst:
+            print type(inst),inst
+
+
+    def do_BIAS(self,line):
+        """ Set target voltage of device.
+        Usage:
+        BIAS KeithleyName voltage"""
+
+        try:
+            name        = line.split()[0]
+            target_bias = float(line.split()[1])
+            self.setBias( name, target_bias )
+
+        except Exception as inst:
+            print type(inst),inst
 
     #######################################
     # do_COMMAND
@@ -186,8 +244,8 @@ class CLI(cmd.Cmd,Thread):
                 keithley.isBusy = False
             else:
                 print 'cannot find %s'%name
-        except Exception:
-            print Exception
+        except Exception as inst:
+            print type(inst),inst
 
     def do_read(self,line):
         """Call read for device"""
@@ -201,7 +259,8 @@ class CLI(cmd.Cmd,Thread):
             except:
                 pass
             keithley.isBusy = False
-        except Exception:
+        except Exception as inst:
+            print type(inst),inst
             print Exception
 
 
@@ -218,7 +277,7 @@ class CLI(cmd.Cmd,Thread):
         self.logfile.close()
         self.logfile = open(logfile_name, "w",1)
 
-        
+
 
 
 # End of Class CLI
