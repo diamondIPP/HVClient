@@ -54,7 +54,7 @@ class keithleyInterface:
         self.setOutput(0)
 
     def readIV(self):
-        answer = self.getAnswerForQuery(':MEAS?',20)
+        answer = self.getAnswerForQuery(':READ?',20)
         return answer
 
     def write(self,data):
