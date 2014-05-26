@@ -87,11 +87,13 @@ di_labels = {}
 for name in keithleys.keys():
     tmp = Tkinter.StringVar()
     di_vars[name] = tmp
-    di_labels[name] = Tkinter.Label(root, textvariable = tmp)
+    di_labels[name] = Tkinter.Label(root, textvariable = tmp,font=("Courier"),justify=Tkinter.LEFT)
+    #if di_labels[name]:
+    #    di_labels[name].pack(side='left')
 
 # add the labels to the output window
 for k in sorted(di_labels.keys()):
-    di_labels[k].pack()
+    di_labels[k].pack(padx=10)
 
 
 #######################################
