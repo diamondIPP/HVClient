@@ -57,10 +57,14 @@ class keithleyDevice(keithleyInterface.keithleyInterface, Thread):
 
     def set_manual(self,status):
         if status == False:
-            target = self.getSetVoltage()
+            self.write(':SYST:REM')
+            target = self.getAnswerForQuery(':SOUR:VOLT?')
+            target = float(target)
             self.set_target_bias(target)
+        else:
+            self.write(':SYST:LOCAL')
+
         self.manual = status
-        print 'set Mode of keithley %s to %b'%(self.name,self.manual)
 
 
     def get_current(self):
@@ -92,7 +96,7 @@ class keithleyDevice(keithleyInterface.keithleyInterface, Thread):
     def run(self):
         now = time.time()
         while not self.isKilled:
-            time.sleep(.1)
+            time.sleep(.5)
             if time.time()-now>1 and not self.manual:
                 self.updateVoltageCurrent()
                 self.doRamp()
@@ -105,7 +109,7 @@ class keithleyDevice(keithleyInterface.keithleyInterface, Thread):
     def wait_for_device(self):
         now = time.time()
         while time.time()-now < self.maxTime and self.isBusy:
-            time.sleep(.1)
+            time.sleep(.2)
 
     def updateVoltageCurrent(self):
         self.wait_for_device()
@@ -149,11 +153,14 @@ class keithleyDevice(keithleyInterface.keithleyInterface, Thread):
 
             self.isBusy=True
             self.setVoltage(newBias)
+            if newBias == self.targetBias and not self.powering_down:
+                print '%s is done with ramping to %d'%(self.name,self.targetBias)
             self.lastUChange = newtime
             self.isBusy=False
         if self.powering_down and abs(self.biasNow) <.1:
             self.setOutput(0)
             self.powering_down = False
+            print '%s has ramped down and turned off'%self.name
     # End of ramp
 
 
