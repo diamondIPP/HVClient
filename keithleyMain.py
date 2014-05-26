@@ -103,7 +103,7 @@ while myCLI.running:
 
     # Make sure enough time has passed before we poll again
     while time.time()-now < 1:
-        time.sleep(.05)
+        time.sleep(.2)
     now = time.time()
 
     # Loop over the keithleys, get the voltages and update the display
@@ -129,6 +129,8 @@ while myCLI.running:
             display_string = k
             display_string+= ": U: {0:7.1f} V      I: {1:10.2e} muA    ".format(voltage, current/1e-6)
             display_string+= value.strftime('%H:%M:%S')
+            if v.manual:
+                display_string = ' MANUAL'
             setBias = v.get_target_bias()
             if v.is_ramping():
                 display_string += " ramping to " + str(setBias)
@@ -148,6 +150,8 @@ while myCLI.running:
         else:
             value = datetime.datetime.fromtimestamp(time.time())
             display_string = k+": OFF " + value.strftime('%H:%M:%S')
+            if v.manual:
+                display_string = ' MANUAL'
             logging_string = k+" "+value.strftime('%H:%M:%S')+" OFF"
             di_vars[k].set( display_string )
             # (the logfile only exists while we are running)
