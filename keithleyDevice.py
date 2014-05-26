@@ -145,7 +145,7 @@ class keithleyDevice(keithleyInterface.keithleyInterface, Thread):
                 newBias =  self.targetBias
             else:
                 newBias = self.biasNow + math.copysign( Ustep, deltaU )
-                print self.biasNow, Ustep,deltaU
+                #print self.biasNow, Ustep,deltaU
 
             self.isBusy=True
             self.setVoltage(newBias)
