@@ -163,6 +163,10 @@ class CLI(cmd.Cmd,Thread):
     #######################################
 
     def set_manual(self,name,status):
+        """ (De-)Activates manual control mode.
+        MANUAL KeithleyName status
+        status should be 0/1
+        ('MANUAL ALL 0/1' sets all devices)"""
         try:
             keithley = self.keithleys[name]
         except Exception as inst:
@@ -170,7 +174,6 @@ class CLI(cmd.Cmd,Thread):
         try:
             keithley.set_manual(status)
         except Exception as inst:
-            print 'Cannot set manual'
             print type(inst),inst
 
     def do_MANUAL(self,line):
