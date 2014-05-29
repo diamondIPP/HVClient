@@ -38,6 +38,7 @@ class keithleyDevice(keithleyInterface.keithleyInterface, Thread):
             self.status = 1
             self.updateVoltageCurrent()
             u = self.get_bias()
+            print u
             self.immidiateVoltage = u
             self.targetBias       = u
             self.biasNow          = u
@@ -141,7 +142,7 @@ class keithleyDevice(keithleyInterface.keithleyInterface, Thread):
                 self.biasNow = voltage
                 self.currentNow = current
                 self.lastUpdate = time.time()
-                #print 'readIV',voltage,current,self.targetBias,rest
+                # print 'readIV',voltage,current,self.targetBias,rest
             except Exception as inst:
                 print 'Could not read valid iv',type(inst),inst
         self.isBusy=False

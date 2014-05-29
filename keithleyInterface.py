@@ -1,3 +1,4 @@
+
 import time
 import serial
 import math
@@ -563,7 +564,7 @@ class keithleyInterface:
             time.sleep(1);
             self.clearBuffer()
             self.identify()
-            self.setImmidiateVoltage(self.immidiateVoltage)
+            #self.setImmidiateVoltage(self.immidiateVoltage)
             self.clearErrorQueue()
             time.sleep(1)            
         else:
