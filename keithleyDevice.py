@@ -5,7 +5,8 @@ import math
 from threading import Thread
 
 class keithleyDevice(keithleyInterface.keithleyInterface, Thread):
-    def __init__(self,name,config):
+
+    def __init__(self,name,config, hotStart=False):
 
         Thread.__init__(self)
         self.isKilled = False
@@ -14,14 +15,44 @@ class keithleyDevice(keithleyInterface.keithleyInterface, Thread):
         self.config     = config
         self.keithley   = None
 
-        compliance = self.config.get(self.name,'compliance')
-
         self.port    = self.config.get(self.name,'address')
         self.ramp    = float(self.config.get(self.name,'ramp'))
         self.targetBias = float(self.config.get(self.name,'bias'))
         self.minBias = float(self.config.get(self.name,'minBias'))
         self.maxBias = float(self.config.get(self.name,'maxBias'))
         self.maxStep = float(self.config.get(self.name,'maxStep'))
+
+        if self.config.has_option(self.name,'baudrate'):
+            baudrate = self.config.get_option(self.name,'baudrate')
+        else:
+            baudrate = 57600
+
+        self.isBusy   = False
+        self.maxTime  = 20
+
+        if hotStart:    
+            keithleyInterface.keithleyInterface.__init__(self,
+                                                         self.port,
+                                                         baudrate=baudrate,
+                                                         hotStart=True)
+            self.status = 1
+            self.updateVoltageCurrent()
+            u = self.get_bias()
+            self.immidiateVoltage = u
+            self.targetBias       = u
+            self.biasNow          = u
+        else:
+            keithleyInterface.keithleyInterface.__init__(self,
+                                                         self.port,
+                                                         immidiateVoltage = 0,
+                                                         baudrate=baudrate)   
+            self.biasNow = 0
+
+            self.status = 0
+
+
+        compliance = self.config.get(self.name,'compliance')
+
 
         # make sure bias is consistent
         if self.maxBias < self.minBias:
@@ -33,26 +64,15 @@ class keithleyDevice(keithleyInterface.keithleyInterface, Thread):
 
         # last time the actual voltage was changed
         self.lastUChange = time.time()
-        self.biasNow = 0
         self.currentNow = 0
-        self.status = 0
         self.powering_down = False
         self.lastUpdate = time.time()
         self.manual = False
 
-        self.isBusy   = False
-        self.maxTime  = 20
 
-        if self.config.has_option(self.name,'baudrate'):
-            baudrate = self.config.get_option(self.name,'baudrate')
-        else:
-            baudrate = 57600
 
-        # Start with an intial voltage of 0
-        keithleyInterface.keithleyInterface.__init__(self,
-                                                     self.port,
-                                                     immidiateVoltage=0,
-                                                     baudrate=baudrate)
+
+
 
 
     def set_manual(self,status):

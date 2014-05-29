@@ -31,6 +31,7 @@ import keithleyReader
 
 parser = argparse.ArgumentParser(description='Keithley Power Supply steering and readout software')
 parser.add_argument('--config','-c',help='Config file',default='keithley.cfg')
+parser.add_argument('--hotstart','-H', help='Hot start (leave Keithleys ON and current voltage)',default=False)
 
 args = parser.parse_args()
 print args
@@ -46,7 +47,21 @@ config.read(args.config)
 # The CLI gets its own thread. Tkinter (display GUI) needs to be the
 # main thread.
 
-keithleys = keithleyReader.get_keithleys(config)
+if args.hotstart in ["True", "true", "1", "yes","on"]:
+    print ""
+    print "ENABLED HOTSTART. All Keitlheys should already be ON. If they are not, press CTRL+C in the next 10 seconds"
+    print ""
+    hotstart = True
+else:
+    print ""
+    print "DISABLED HOTSTART. All Keitlheys will be reset. If you don't want this, press CTRL+C in the next 10 seconds"
+    print ""
+    hotstart = False
+
+time.sleep(10)
+
+
+keithleys = keithleyReader.get_keithleys(config, hotstart)
 for k in keithleys:
     keithleys[k].start()
 myCLI = CLI()

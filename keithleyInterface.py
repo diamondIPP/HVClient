@@ -8,7 +8,11 @@ OFF=0
 
 
 class keithleyInterface:
-    def __init__(self,serialPortName,immidiateVoltage =-150,baudrate=57600):
+    def __init__(self,
+                 serialPortName,
+                 immidiateVoltage = -150,
+                 baudrate         = 57600, 
+                 hotStart         = False):
         self.immidiateVoltage = immidiateVoltage
         self.bOpen=False
         self.bOpenInformed=False
@@ -21,11 +25,11 @@ class keithleyInterface:
         self.terminator = 13
         self.measurments = deque()
         self.lastVoltage = 0
-        self.openSerialPort()
+        self.openSerialPort(hotStart)
         self.model =2400
 
 
-    def openSerialPort(self):
+    def openSerialPort(self, hotStart=False):
         try:
             self.serial = serial.Serial(
                                         port=self.serialPortName,
@@ -42,7 +46,7 @@ class keithleyInterface:
             self.bOpen=False
             pass
 
-        self.initKeithley()
+        self.initKeithley(hotStart = hotStart)
 
     def getLastVoltage(self):
         return self.lastVoltage
@@ -551,26 +555,38 @@ class keithleyInterface:
         print 'doLinearSweep retVal %s'%retVal
         return retVal
 
-    def initKeithley(self,protection = 500e-6):
-        time.sleep(1);
-        self.setOutput(False)
-        self.reset()
-        self.clearBuffer()
-        self.identify()
-        self.setOutput(False)
-        self.setRearOutput()
-        self.setFixedVoltMode()
-        self.setStandardOutputForm()
-        self.setConcurrentMeasurments(True)
-        self.setDigitalFilterType('REP')
-        self.setAverageFiltering(True)
-        self.setAverageFilterCount(3)
-        self.setCurrentProtection(100e-6)
-        self.setCurrentMeasurmentSpeed(10)
-        self.setImmidiateVoltage(self.immidiateVoltage)
-        self.clearErrorQueue()
-        self.setComplianceAbortLevel('LATE')
-        time.sleep(1);
+    def initKeithley(self,
+                     protection = 500e-6, 
+                     hotStart = False):
+
+        if hotStart:
+            time.sleep(1);
+            self.clearBuffer()
+            self.identify()
+            self.setImmidiateVoltage(self.immidiateVoltage)
+            self.clearErrorQueue()
+            time.sleep(1)            
+        else:
+            time.sleep(1);
+            self.setOutput(False)
+            self.reset()
+            self.clearBuffer()
+            self.identify()
+            self.setOutput(False)
+            self.setRearOutput()
+            self.setFixedVoltMode()
+            self.setStandardOutputForm()
+            self.setConcurrentMeasurments(True)
+            self.setDigitalFilterType('REP')
+            self.setAverageFiltering(True)
+            self.setAverageFilterCount(3)
+            self.setCurrentProtection(100e-6)
+            self.setCurrentMeasurmentSpeed(10)
+            self.setImmidiateVoltage(self.immidiateVoltage)
+            self.clearErrorQueue()
+            self.setComplianceAbortLevel('LATE')
+            time.sleep(1);
+        
 
     def identify(self):
         self.identifier = self.getAnswerForQuery('*IDN?')

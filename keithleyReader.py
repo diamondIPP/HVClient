@@ -2,7 +2,7 @@ import keithleyDevice
 import ConfigParser
 
 
-def get_keithleys(config):
+def get_keithleys(config, hotStart):
     keithleys = {}
     try:
         for sec in config.sections():
@@ -15,7 +15,9 @@ def get_keithleys(config):
     for i in range(1,nKeithleys+1):
         name = 'Keithley%d'%i
         if config.has_section(name):
-            keithleys[name] = keithleyDevice.keithleyDevice(name,config)
+            keithleys[name] = keithleyDevice.keithleyDevice(name,
+                                                            config, 
+                                                            hotStart)
 
         pass
     return keithleys
