@@ -154,7 +154,7 @@ while myCLI.running:
 
             # Build logging string
             logging_string = k
-            logging_string += value.strftime(' %H:%M:%S ')
+            logging_string += value.strftime(' %Y_%m_%d %H:%M:%S ')
             logging_string += "{0:10.3e} {1:10.3e}".format(voltage, current)
 
             # Display and log...
