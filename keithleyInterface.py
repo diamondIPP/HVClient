@@ -19,7 +19,7 @@ class keithleyInterface:
         self.bOpenInformed=False
         self.serialPortName=serialPortName
         self.writeSleepTime=0.1
-        self.readSleepTime=.1
+        self.readSleepTime=.5
         self.baudrate = baudrate
         self.commandEndCharacter='\r\n'
         self.removeCharacters = '\r\n\x00\x13\x10\x11'
@@ -595,8 +595,12 @@ class keithleyInterface:
 
     def getModelName(self):
         identList = self.identifier.split(' ')
-        self.model = 9999
+        self.model = 2400 #9999
+        print 'identifier:'
+        print self.identifier
         if len(identList) >5:
+            print 'model:'
+            print identList[4]
             if self.is_number(identList[4]):
                 self.model = int(identList[4])
         if self.model == 2400:
