@@ -12,12 +12,11 @@ import sys
 import cmd
 import time
 import datetime
-from threading import Thread
+from threading import *
 
 #######################################
 # Class CLI
 #######################################
-
 class CLI(cmd.Cmd,Thread):
     """Command Line Interface"""
 
@@ -43,6 +42,7 @@ class CLI(cmd.Cmd,Thread):
         print 'set keithleys'
         for name in keithleys:
             print name,keithleys[name].name
+
 
     def do_exit(self,line):
         """Quit CLI"""

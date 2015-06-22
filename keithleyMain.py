@@ -75,10 +75,12 @@ myCLI.start()
 #######################################
 
 def signal_handler(signal, frame):
-    print 'Received SIGINT'
-    # myCLI.do_exit('')
-    for k in keithleys:
-        keithleys[k].isKilled = True
+    print 'Received SIGINT bla'
+    myCLI.do_exit("exit")
+    for i in keithleys:
+        keithleys[i].isKilled = True
+    myCLI.logfile.close()
+    myCLI.running = False
     sys.exit(0)
 
 
