@@ -1,3 +1,6 @@
 *.pyc
 *.py~
 keithleyLog*.txt
+*~
+nohup.out
+set_chmod.sh

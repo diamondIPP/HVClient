@@ -574,7 +574,7 @@ class keithleyInterface:
             self.clearBuffer()
             self.identify()
             self.setOutput(False)
-            self.setRearOutput()
+            self.setRearOutput(False)
             self.setFixedVoltMode()
             self.setStandardOutputForm()
             self.setConcurrentMeasurments(True)
