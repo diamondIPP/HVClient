@@ -104,6 +104,22 @@ class keithley24XX_interface(HV_interface):
             self.maxVolt = 0
         print 'Connected Keithley Model %s'%self.model
 
+    def readIV(self):
+        answer = self.getAnswerForQuery(':READ?',20)
+        try:
+            answer = answer.split()
+            voltage = float(answer[0])
+            current = float(answer[1])
+            rest = answer[2:]
+            timestamp = time.time()
+            measurment = [float(x) for x in answer]
+            measurment.insert(0,timestamp)
+            self.measurments.append(measurment)
+            return voltage,current,rest
+        except:
+            raise Exception('Could not perform valid IV Measurement, received "%s"'%answer)
+        return answer
+
     def set_output(self,status):
         return self.setOutput(status)
 
