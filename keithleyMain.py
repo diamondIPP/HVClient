@@ -12,13 +12,13 @@ Main program for Keithley Power Supply steering and readout.
 # Standard Python Modules
 import sys
 import signal
-import time
+from time import time, sleep
 import ConfigParser
 import argparse
 import datetime
 import Tkinter
-import math
-from threading import Thread
+# import math
+# from threading import Thread
 
 # Command Line Interface
 from keithleyCLI import CLI
@@ -30,8 +30,8 @@ import keithleyReader
 #######################################
 
 parser = argparse.ArgumentParser(description='Keithley Power Supply steering and readout software')
-parser.add_argument('--config','-c',help='Config file',default='keithley.cfg')
-parser.add_argument('--hotstart','-H', help='Hot start (leave Keithleys ON and current voltage)',default=False)
+parser.add_argument('--config', '-c', help='Config file', default='keithley.cfg')
+parser.add_argument('--hotstart', '-H', action="store_true", help='Hot start (leave Keithleys ON and current voltage)', default=False)
 
 args = parser.parse_args()
 print args
@@ -47,7 +47,7 @@ config.read(args.config)
 # The CLI gets its own thread. Tkinter (display GUI) needs to be the
 # main thread.
 
-if args.hotstart in ["True", "true", "1", "yes","on"]:
+if args.hotstart:
     print ""
     print "ENABLED HOTSTART. All Keitlheys should already be ON. If they are not, press CTRL+C in the next 10 seconds"
     print ""
@@ -58,8 +58,7 @@ else:
     print ""
     hotstart = False
 
-time.sleep(10)
-
+sleep(10)
 
 keithleys = keithleyReader.get_keithleys(config, hotstart)
 for k in keithleys:
@@ -77,10 +76,11 @@ myCLI.start()
 
 def signal_handler(signal, frame):
     print 'Received SIGINT'
-    myCLI.stop()
+    # myCLI.do_exit('')
     for k in keithleys:
-        keithleys[k].isKilled=True
+        keithleys[k].isKilled = True
     sys.exit(0)
+
 
 signal.signal(signal.SIGINT, signal_handler)
 
@@ -90,20 +90,20 @@ signal.signal(signal.SIGINT, signal_handler)
 #######################################
 
 root = Tkinter.Tk()
-root.minsize(1000, 200) # x/y
+root.minsize(1000, 200)  # x/y
 root.maxsize(1000, 200)
 
 # Create Tk-variable and -label objects for each keithley
 # A label is an object and the variable is the content
-di_vars   = {}
+di_vars = {}
 di_labels = {}
 
 # create labels and hook them up with variables
 for name in keithleys.keys():
     tmp = Tkinter.StringVar()
     di_vars[name] = tmp
-    di_labels[name] = Tkinter.Label(root, textvariable = tmp,font=("Courier"),justify=Tkinter.LEFT)
-    #if di_labels[name]:
+    di_labels[name] = Tkinter.Label(root, textvariable=tmp, font="Courier", justify=Tkinter.LEFT)
+    # if di_labels[name]:
     #    di_labels[name].pack(side='left')
 
 # add the labels to the output window
@@ -115,22 +115,22 @@ for k in sorted(di_labels.keys()):
 # Main GUI loop
 #######################################
 
-now = time.time()
+now = time()
 while myCLI.running:
 
     # Make sure enough time has passed before we poll again
-    while time.time()-now < 1:
-        time.sleep(.2)
-    now = time.time()
+    while time() - now < 1:
+        sleep(.2)
+    now = time()
 
     # Loop over the keithleys, get the voltages and update the display
-    for k,v in sorted(keithleys.iteritems(), key = lambda x:x[0]):
+    for k, v in sorted(keithleys.iteritems(), key=lambda x: x[0]):
 
         if not myCLI.running:
             break
 
         status = v.get_status()
-        #v.serial.flushInput()
+        # v.serial.flushInput()
 
         if status:
 
@@ -144,8 +144,8 @@ while myCLI.running:
 
             # Build display string
             display_string = k
-            display_string+= ": U: {0:7.1f} V      I: {1:10.2e} muA    ".format(voltage, current/1e-6)
-            display_string+= value.strftime('%H:%M:%S')
+            display_string += ": U: {0:7.1f} V      I: {1:10.2e} muA    ".format(voltage, current / 1e-6)
+            display_string += value.strftime('%H:%M:%S')
             if v.manual:
                 display_string = ' MANUAL'
             setBias = v.get_target_bias()
@@ -158,24 +158,23 @@ while myCLI.running:
             logging_string += "{0:10.3e} {1:10.3e}".format(voltage, current)
 
             # Display and log...
-            di_vars[k].set( display_string)
+            di_vars[k].set(display_string)
             # (the logfile only exists while we are running)
             if myCLI.running:
-                myCLI.logfile.write( logging_string + "\n")
-
+                myCLI.logfile.write(logging_string + "\n")
 
         else:
-            value = datetime.datetime.fromtimestamp(time.time())
-            display_string = k+": OFF " + value.strftime('%H:%M:%S')
+            value = datetime.datetime.fromtimestamp(time())
+            display_string = k + ": OFF " + value.strftime('%H:%M:%S')
             if v.manual:
                 display_string = ' MANUAL'
-            logging_string = k+" "+value.strftime('%H:%M:%S')+" OFF"
-            di_vars[k].set( display_string )
+            logging_string = k + " " + value.strftime('%H:%M:%S') + " OFF"
+            di_vars[k].set(display_string)
             # (the logfile only exists while we are running)
             if myCLI.running:
-                myCLI.logfile.write( logging_string + "\n")
+                myCLI.logfile.write(logging_string + "\n")
 
-        v.isBusy=False
+        v.isBusy = False
         root.update()
-    # end of Keithley loop
+        # end of Keithley loop
 # End of Main GUI loop
