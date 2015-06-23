@@ -7,6 +7,7 @@
 import ConfigParser
 import serial
 from HV_interface import HVInterface
+from time import sleep,time
 
 # ============================
 # CONSTANTS
@@ -28,6 +29,7 @@ class Keithley237(HVInterface):
         self.serial = None
         self.model = 237
         self.identifier = None
+        self.answer_time = 0.1
         self.open_serial_port(hot_start)
         pass
 
@@ -50,28 +52,64 @@ class Keithley237(HVInterface):
          self.__write('++addr %d'%self.gbip)
          retVal = self.__write('++addr ')
          print 'Set GBIP Address to %d'%self.gbip
+         self.init_keithley(hot_start)
+
+    def init_keithley(self,hot_start):
+        self.set_source_voltage_dc()
+        self.set_1100V_range(True)
+        pass
+
+
+    def set_source_voltage_dc(self):
+        return self.__execute('F0,0')
+
+    def set_source_voltage_sweep(self):
+        return self.__execute('F0,1')
+
+    def set_source_current_dc(self):
+        return self.__execute('F1,0')
+
+    def set_source_current_sweep(self):
+        return self.__execute('F1,1')
+
+    def set_1100V_range(self,val=True):
+        if val:
+            return self.__execute('V1')
+        else:
+            return self.__execute('V0')
+
+    def set_display(self,msg,mode=1):
+        msg = str(msg).upper()
+        return self.__execute('D%d,%s'%(mode,msg))
 
     def write(self,message):
+        return self.__write(message)
+
+    def __execute(self,message):
+        message = message.strip('\r\n')
+        if not message.endswith('X'):
+            message+='X'
         return self.__write(message)
 
     def __write(self,message):
         if not message.startswith('++') and (not message.endswith('\r\n')):
             message += '\r\n'
         retVal = self.serial.write(message)
+        sleep(self.answer_time)
         retMsg = []
         while self.serial.inWaiting():
             retMsg.append(self.serial.readline())
         return retVal,retMsg
 
-    def set_display(self,msg):
-        msg = str(msg).upper()
-        return self.__write('D1,%sX'%msg)
 
     def set_output(self, status):
         pass
 
     def set_bias(self, voltage):
-        pass
+        if not -1100 <voltage < 1100:
+            raise Exception('Range of Keithley 237 is from -1100.0 V to 1100.0 V')
+        self.set_voltage = voltage
+        self.__execute('B%1.3E,0,0'%voltage)
 
     def get_output(self):
         pass
