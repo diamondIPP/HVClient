@@ -1,21 +1,23 @@
 # Base class for all High Voltage interfaces
+import ConfigParser
 
-ON=1
-OFF=0
+ON = 1
+OFF = 0
 
 
 class HV_interface():
-    def __init(self,config, device_no=1, hotStart=False):
+    def __init__(self, config, device_no=1, hot_start=False):
         self.__device_no = device_no
-        self.__set_voltage=0
-        self.__config=config
-        self.section_name = 'HV%d'%self.__device_no
+        self.__set_voltage = 0
+        self.config = config
+        self.section_name = 'HV%d' % self.__device_no
+        self.bla = 5
         pass
 
-    def set_output(self,status):
+    def set_output(self, status):
         pass
 
-    def set_bias(self,voltage):
+    def set_bias(self, voltage):
         self.__set_voltage = voltage
         pass
 
@@ -31,7 +33,7 @@ class HV_interface():
     def getModelName(self):
         pass
 
-    def set_voltage(self,value):
+    def set_voltage(self, value):
         return self.set_bias(value)
 
     def set_ON(self):
@@ -43,17 +45,16 @@ class HV_interface():
     def get_set_voltage(self):
         return self.__set_voltage
 
-    def is_number(self,s):
+    def is_number(self, s):
         try:
             int(s)
             return True
         except ValueError:
             return False
 
-    def is_float(self,s):
+    def is_float(self, s):
         try:
             float(s)
             return True
         except ValueError:
             return False
-

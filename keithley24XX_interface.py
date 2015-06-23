@@ -2,10 +2,13 @@ from HV_interface import *
 import serial
 from time import sleep, time
 import ConfigParser
+from collections import deque
+from string import maketrans
+import math
 
 class keithley24XX_interface(HV_interface):
     def __init__(self,config,device_no=1,hotStart=False):
-        HV_interface.__init__(config,hotStart)
+        HV_interface.__init__(self,config,device_no,hotStart)
         self.bOpen=False
         self.bOpenInformed=False
         self.serialPortName=config.get(self.section_name,'address')
@@ -66,21 +69,21 @@ class keithley24XX_interface(HV_interface):
             self.setAverageFilterCount(3)
             self.setCurrentProtection(100e-6)
             self.setCurrentMeasurmentSpeed(10)
-            self.setImmidiateVoltage(self.immidiateVoltage)
+            # self.setImmidiateVoltage(self.immidiateVoltage)
             self.clearErrorQueue()
             self.setComplianceAbortLevel('LATE')
             #self.setComplianceAbortLevel('NEVER')
             sleep(1)
 
     def read_rear_output(self):
-        if self.__config.has_option(self.section_name,'output'):
-            retVal = self.__config.get(self.section_name,'output')
+        if self.config.has_option(self.section_name,'output'):
+            retVal = self.config.get(self.section_name,'output')
             if (retVal.lower()=='rear'):
                 return True
             else:
                 return False
-        if self.__config.has_option(self.section_name,'rear_output'):
-            return self.__config.getboolean(self.section_name,'rear_output')
+        if self.config.has_option(self.section_name,'rear_output'):
+            return self.config.getboolean(self.section_name,'rear_output')
         return False
 
 
@@ -105,20 +108,20 @@ class keithley24XX_interface(HV_interface):
         print 'Connected Keithley Model %s'%self.model
 
     def readIV(self):
-        answer = self.getAnswerForQuery(':READ?',20)
-        try:
-            answer = answer.split()
-            voltage = float(answer[0])
-            current = float(answer[1])
-            rest = answer[2:]
-            timestamp = time.time()
-            measurment = [float(x) for x in answer]
-            measurment.insert(0,timestamp)
-            self.measurments.append(measurment)
-            return voltage,current,rest
-        except:
-            raise Exception('Could not perform valid IV Measurement, received "%s"'%answer)
-        return answer
+      answer = self.getAnswerForQuery(':READ?',20)
+      try:
+          answer = answer.split()
+          voltage = float(answer[0])
+          current = float(answer[1])
+          rest = answer[2:]
+          timestamp = time()
+          measurment = [float(x) for x in answer]
+          measurment.insert(0,timestamp)
+          self.measurments.append(measurment)
+          return voltage,current,rest
+      except:
+          raise Exception('Could not perform valid IV Measurement, received "%s"'%answer)
+
 
     def set_output(self,status):
         return self.setOutput(status)
@@ -206,7 +209,7 @@ class keithley24XX_interface(HV_interface):
 #            print 'clearing Buffer: %s'%self.serial.inWaiting()
             while self.serial.inWaiting():
                 self.read()
-                time.sleep(self.readSleepTime)
+                sleep(self.readSleepTime)
         else:
             pass
 
@@ -437,19 +440,19 @@ class keithley24XX_interface(HV_interface):
     def isTriped(self,statusword):
         bit = 0x08
         if int(statusword)&bit == bit:
-	    print 'keithley is tripped'
+            print 'keithley is tripped'
             self.clearErrorQueue()
             self.clearBuffer()
-            time.sleep(1)
+            sleep(1)
             return True
         return False
 
     def getAnswerForQuery(self,data,minlength =1):
-        print 'getAnswer for query: %s'%data
+        #print 'getAnswer for query: %s'%data
         self.write(data)
-        time.sleep(self.readSleepTime)
+        sleep(self.readSleepTime)
         data = self.read(minlength)
-        print 'length is %s'%len(data),'"%s"'%data.strip(self.removeCharacters)
+        #print 'length is %s'%len(data),'"%s"'%data.strip(self.removeCharacters)
         return self.clearString(data)
 
     def  validVoltage(self,value): #TODO Write function which 'knows' if the voltage is possible
@@ -496,7 +499,7 @@ class keithley24XX_interface(HV_interface):
             output = self.serial.write(data)
         else:
             output = True
-        time.sleep(self.writeSleepTime)
+        sleep(self.writeSleepTime)
         return output==len(data)
 
     def read(self,minLength=0):
@@ -509,33 +512,39 @@ class keithley24XX_interface(HV_interface):
                 self.bOpenInformed = False
             return ''
         while self.serial.inWaiting()<=0 and i<10:
-            time.sleep(self.readSleepTime)
+            sleep(self.readSleepTime)
             i+=1
-        ts =time.time()
+        ts =time()
         maxTime = 300
         k=0
-        print "start reading data at %s"%(ts)
+        #print "start reading data at %s"%(ts)
         while True:
-            while self.serial.inWaiting() > 0 and time.time()-ts<maxTime and not out.endswith(self.commandEndCharacter):
+            while self.serial.inWaiting() > 0 and time()-ts<maxTime and not out.endswith(self.commandEndCharacter):
                 out += self.serial.read(1)
                 k+=1
-            if len(out) > 1:
-                print 'DATA: "%s"'%out.strip(self.removeCharacters), out.endswith(self.commandEndCharacter),
-                try: print ord(out[-2]),ord(out[-1]),ord(self.commandEndCharacter[0]),ord(self.commandEndCharacter[1]),len(out)
-                except: print "Error trying: 'print ord(out[-2]),ord(out[-1]),ord(self.commandEndCharacter[0]),ord(self.commandEndCharacter[1]),len(out)'"
+            # if len(out) > 1:
+            #     # print 'DATA: "%s"'%out.strip(self.removeCharacters), out.endswith(self.commandEndCharacter),
+            #     try: print ord(out[-2]),ord(out[-1]),ord(self.commandEndCharacter[0]),ord(self.commandEndCharacter[1]),len(out)
+            #     except: print "Error trying: 'print ord(out[-2]),ord(out[-1]),ord(self.commandEndCharacter[0]),ord(self.commandEndCharacter[1]),len(out)'"
             if out.endswith(self.commandEndCharacter):
-                print 'Found Valid Package'
+                #print 'Found Valid Package'
                 break
-            if time.time()-ts>maxTime:
+            if time()-ts>maxTime:
                 break
             if minLength > 0 and len(out) >= minLength:
-                print 'out is long enough',len(out)
+                #print 'out is long enough',len(out)
                 break
-            time.sleep(self.readSleepTime)
-        if time.time()-ts>maxTime:
-            print "Tried reading for %s seconds."%(time.time()-ts),out
+            sleep(self.readSleepTime)
+        if time()-ts>maxTime:
+            print "Tried reading for %s seconds."%(time()-ts),out
             try: print ord(out[-2]),ord(out[-1]),ord(self.commandEndCharacter[0]),ord(self.commandEndCharacter[1])
             except: print "Error trying: 'print ord(out[-2]),ord(out[-1]),ord(self.commandEndCharacter[0]),ord(self.commandEndCharacter[1]),len(out)'"
             return ''
-        print 'received after %s/%s tries: %s'%(i,k,out)
+        #print 'received after %s/%s tries: %s'%(i,k,out)
         return out
+
+
+if __name__ == '__main__':
+    config = ConfigParser.ConfigParser()
+    config.read('keithley.cfg')
+    k24XX = keithley24XX_interface(config,1,False)

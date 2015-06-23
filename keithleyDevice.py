@@ -1,10 +1,11 @@
-import keithleyInterface
+# import keithleyInterface
+from keithley24XX_interface import keithley24XX_interface
 import ConfigParser
 import time
 import math
 from threading import Thread
 
-class keithleyDevice(keithleyInterface.keithleyInterface, Thread):
+class keithleyDevice(keithley24XX_interface, Thread):
 
     def __init__(self,name,config, hotStart=False):
 
@@ -31,10 +32,10 @@ class keithleyDevice(keithleyInterface.keithleyInterface, Thread):
         self.maxTime  = 20
 
         if hotStart:    
-            keithleyInterface.keithleyInterface.__init__(self,
-                                                         self.port,
-                                                         baudrate=baudrate,
-                                                         hotStart=True)
+            keithley24XX_interface.__init__(self,
+                                             self.config,
+                                             1,
+                                             hotStart=True)
             self.status = 1
             self.updateVoltageCurrent()
             u = self.get_bias()
@@ -43,10 +44,7 @@ class keithleyDevice(keithleyInterface.keithleyInterface, Thread):
             self.targetBias       = u
             self.biasNow          = u
         else:
-            keithleyInterface.keithleyInterface.__init__(self,
-                                                         self.port,
-                                                         immidiateVoltage = 0,
-                                                         baudrate=baudrate)   
+            keithley24XX_interface.__init__(self, self.config)
             self.biasNow = 0
 
             self.status = 0
@@ -137,7 +135,7 @@ class keithleyDevice(keithleyInterface.keithleyInterface, Thread):
         self.isBusy=True
         self.status = self.getOutputStatus()
         if self.status:
-            try:
+            # try:
                 [voltage, current,rest] = self.readIV()
                 self.biasNow = voltage
                 self.currentNow = current
