@@ -144,7 +144,7 @@ class Keithley237(HVInterface):
 
     def get_defined_sweep_size(self):
         retVal = self.__execute('U8')
-        return self.extract_defined_sweep_size()
+        return self.extract_defined_sweep_size(retVal)
 
     def get_warning_status_word(self):
         return self.__execute('U9')
