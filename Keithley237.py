@@ -109,7 +109,68 @@ class Keithley237(HVInterface):
         if not -1100 <voltage < 1100:
             raise Exception('Range of Keithley 237 is from -1100.0 V to 1100.0 V')
         self.set_voltage = voltage
-        self.__execute('B%1.3E,0,0'%voltage)
+        return self.__execute('B%1.3E,0,0'%voltage)
+
+    def get_model_no_and_revision(self):
+        retVal = self.__execute('U0')
+        return self.extract_model_no_and_revision(retVal)
+
+    #todo:
+    def extract_model_no_and_revision(self,value):
+        return value
+
+    def get_error_status_word(self):
+        return self.__execute('U1')
+
+    def get_stored_ascii_string(self):
+        return self.__execute('U2')
+
+    def get_machine_status_word(self):
+        return self.__execute('U3')
+
+    def get_measurement_parameters(self):
+        return self.__execute('U4')
+
+    def get_compliance_value(self):
+        retVal = self.__execute('U5')
+        return self.extract_compliance_value(retVal)
+
+    def get_surpression_value(self):
+        retVal = self.__execute('U6')
+        return self.extract_surpression_value(retVal)
+
+    def get_calibrate_status_word(self):
+        return self.__execute('U7')
+
+    def get_defined_sweep_size(self):
+        retVal = self.__execute('U8')
+        return self.extract_defined_sweep_size()
+
+    def get_warning_status_word(self):
+        return self.__execute('U9')
+
+    def get_first_sweep_point_in_compliance(self):
+        retVal = self.__execute('U10')
+        return self.extract_first_sweep_point_in_compliance(retVal)
+
+    def get_sweep_measure_size(self):
+        retVal = self.__execute('U11')
+        return self.extract_sweep_measure_size(retVal)
+
+    def extract_sweep_measure_size(self,value):
+        return value
+
+    def extract_first_sweep_point_in_compliance(self,value):
+        return value
+
+    def extract_surpression_value(self,value):
+        return value
+
+    def extract_compliance_value(self,value):
+        return value
+
+    def extract_defined_sweep_size(self,value):
+        return value
 
     def get_output(self):
         pass
