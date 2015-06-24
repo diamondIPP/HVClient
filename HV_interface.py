@@ -17,7 +17,7 @@ OFF = 0
 # MAIN CLASS
 # ============================
 class HVInterface:
-    def __init__(self, config, device_no=1):  # , hot_start=False):
+    def __init__(self, config, device_no=1 , hot_start=False):
         self.device_no = device_no
         self.set_voltage = 0
         self.config = config
