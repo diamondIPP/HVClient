@@ -49,9 +49,10 @@ class Keithley23X(HVInterface):
             print 'Could not open serial Port: \'%s\''%self.serialPortName
             self.bOpen=False
             pass
-         self.__write('++addr %d'%self.gbip)
-         retVal = self.__write('++addr ')
-         print 'Set GBIP Address to %d'%self.gbip
+         if self.bOpen:
+             self.__write('++addr %d'%self.gbip)
+             retVal = self.__write('++addr ')
+             print 'Set GBIP Address to %d'%self.gbip
          self.init_keithley(hot_start)
 
     def init_keithley(self,hot_start):
@@ -94,6 +95,8 @@ class Keithley23X(HVInterface):
     def __write(self,message):
         if not message.startswith('++') and (not message.endswith('\r\n')):
             message += '\r\n'
+        if not self.bOpen:
+            return -1,[]
         retVal = self.serial.write(message)
         sleep(self.answer_time)
         retMsg = []
@@ -113,13 +116,15 @@ class Keithley23X(HVInterface):
 
     def get_model_no_and_revision(self):
         retVal = self.__execute('U0')
-        return self.extract_model_no_and_revision(retVal)
+        return Keithley23X.extract_model_no_and_revision(retVal)
 
     def get_error_status_word(self):
-        return self.__execute('U1')
+        retVal =  self.__execute('U1')
+        return Keithley23X.extract_error_status_word(retVal)
 
     def get_stored_ascii_string(self):
-        return self.__execute('U2')
+        retVal = self.__execute('U2')
+        return Keithley23X.extract_stored_ascii_string(retVal)
 
     def get_machine_status_word(self):
         retVal =  self.__execute('U3')
@@ -133,12 +138,13 @@ class Keithley23X(HVInterface):
         retVal = self.__execute('U5')
         return self.extract_compliance_value(retVal)
 
-    def get_surpression_value(self):
+    def get_suppression_value(self):
         retVal = self.__execute('U6')
-        return self.extract_surpression_value(retVal)
+        return self.extract_suppression_value(retVal)
 
     def get_calibrate_status_word(self):
-        return self.__execute('U7')
+        retVal = self.__execute('U7')
+        return self.extract_calibrate_status_word(retVal)
 
     def get_defined_sweep_size(self):
         retVal = self.__execute('U8')
@@ -157,9 +163,21 @@ class Keithley23X(HVInterface):
 
     #returns model no and revision number
     @staticmethod
-    def extract_model_no_and_revision(self,value):
+    def extract_model_no_and_revision(value):
         value = value.strip()
         return int(value[:3]),value[3:]
+
+    @staticmethod
+    def extract_error_status_word(value):
+        return value
+
+    @staticmethod
+    def extract_stored_ascii_string(value):
+        return value
+
+    @staticmethod
+    def extract_calibrate_status_word(value):
+        return value
 
     @staticmethod
     def convert_integration_time(value):
@@ -174,6 +192,7 @@ class Keithley23X(HVInterface):
         elif value == 3:
             return 20e-3,5
         raise Exception()
+
     @staticmethod
     def extract_measurement_parameters(value):
         retVal = {}
@@ -220,23 +239,68 @@ class Keithley23X(HVInterface):
         retVal['suppression'] =  bool(value[1])
         return retVal
 
+    @staticmethod
+    def extract_sweep_measure_size(value):
+        value = value.strip()
+        if not value.startswith('SMS'):
+            raise Exception('Cannot find correct Identifier \'SMS\'')
+        value = value[3:]
+        n_measured = int(value)
+        return n_measured
 
-
-
-    def extract_sweep_measure_size(self,value):
+    @staticmethod
+    def extract_first_sweep_point_in_compliance(value):
+        value = value.strip()
+        if value == '':
+            return []
+        #todo
         return value
 
-    def extract_first_sweep_point_in_compliance(self,value):
+    @staticmethod
+    def extract_suppression_value(value):
+        value = value.strip()
+        if not value.startswith('ISP') and not value.startswith('VSP'):
+            raise Exception('Cannot find Identifier \'ISP\'/\'VSP\'')
+        value = value[3:]
+        suppression_value = float(value)
+        return suppression_value
+
+    @staticmethod
+    def extract_compliance_value(value):
+        value = value.strip()
+        if not value.startswith('ICP') and not value.startswith('VCP'):
+            raise Exception('Cannot find Identifier \'ICP\'/\'VCP\'')
+        value = value[3:]
+        suppression_value = float(value)
         return value
 
-    def extract_surpression_value(self,value):
-        return value
+    @staticmethod
+    def extract_defined_sweep_size(value):
+        value = value.strip()
+        if not value.startswith('DSS'):
+            raise Exception('Cannot find Identigier \'DSS\'')
+        value = value[3:]
+        sweep_size = int(value)
+        return sweep_size
 
-    def extract_compliance_value(self,value):
-        return value
-
-    def extract_defined_sweep_size(self,value):
-        return value
+    @staticmethod
+    def extract_warning_status_word(value):
+        value = value.strip()
+        if not value.startswith('WSR'):
+            raise Exception('Cannot find Identifier \'WSR\'')
+        value = value[3:]
+        warning = int(value,base=2)
+        # bit 10: uncalibrated
+        # bit  9: Temporary Cal
+        # bit  8: Value Out of Range
+        # bit  7: Sweep Buffer Filled
+        # bit  6: No Sweep Points, Must Create Sweep Points
+        # bit  5: Pulse Times Not Met
+        # bit  4: Not In Remote
+        # bit  3: Measure Range Changed Due to 1 kV/1 OOmA or 11 OV/1 A Range Select
+        # bit  2: Measurement Overflow (OFLO)/Sweep Aborted
+        # bit  1: Pending Trigger
+        return warning
 
     def get_output(self):
         pass
