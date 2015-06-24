@@ -21,7 +21,6 @@ from threading import Thread
 class CLI(cmd.Cmd,Thread):
     """Command Line Interface"""
 
-
     def __init__(self):
         cmd.Cmd.__init__(self)
         Thread.__init__(self)

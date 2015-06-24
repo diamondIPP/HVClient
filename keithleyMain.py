@@ -77,7 +77,13 @@ myCLI.start()
 
 def signal_handler(signal, frame):
     print 'Received SIGINT'
-    myCLI.stop()
+    myCLI.do_exit()
+    myCLI.running = False
+
+    while myCLI.isAlive():
+        print 'still alive'
+        sleep(.1)
+
     for k in keithleys:
         keithleys[k].isKilled=True
     sys.exit(0)
