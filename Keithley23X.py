@@ -19,7 +19,7 @@ OFF = 0
 # ============================
 # MAIN CLASS
 # ============================
-class Keithley237(HVInterface):
+class Keithley23X(HVInterface):
     def __init__(self, config, device_no=1, hot_start=False):
         HVInterface.__init__(self, config, device_no)
         self.bOpen = False
@@ -87,8 +87,8 @@ class Keithley237(HVInterface):
     def __execute(self, message):
         message = message.strip('\r\n')
         if not message.endswith('X'):
-            message += 'X'
-        return self.__write(message)
+            message+='X'
+        return self.__write(message)[1]
 
     def __write(self, message):
         if not message.startswith('++') and (not message.endswith('\r\n')):
@@ -97,8 +97,8 @@ class Keithley237(HVInterface):
         sleep(self.answer_time)
         retMsg = []
         while self.serial.inWaiting():
-            retMsg.append(self.serial.readline())
-        return retVal, retMsg
+            retMsg.append(self.serial.readline().strip('\r\n'))
+        return retVal,retMsg
 
     def set_output(self, status):
         pass
@@ -113,10 +113,6 @@ class Keithley237(HVInterface):
         retVal = self.__execute('U0')
         return self.extract_model_no_and_revision(retVal)
 
-    # todo:
-    def extract_model_no_and_revision(self, value):
-        return value
-
     def get_error_status_word(self):
         return self.__execute('U1')
 
@@ -124,10 +120,12 @@ class Keithley237(HVInterface):
         return self.__execute('U2')
 
     def get_machine_status_word(self):
-        return self.__execute('U3')
+        retVal =  self.__execute('U3')
+        return extract_machine_status_word(retVal)
 
     def get_measurement_parameters(self):
-        return self.__execute('U4')
+        retVal = self.__execute('U4')
+        return self.extract_measurement_parameters(retVal)
 
     def get_compliance_value(self):
         retVal = self.__execute('U5')
@@ -155,7 +153,75 @@ class Keithley237(HVInterface):
         retVal = self.__execute('U11')
         return self.extract_sweep_measure_size(retVal)
 
-    def extract_sweep_measure_size(self, value):
+    #returns model no and revision number
+    @staticmethod
+    def extract_model_no_and_revision(self,value):
+        value = value.strip()
+        return int(value[:3]),value[3:]
+
+    @staticmethod
+    def convert_integration_time(value):
+        if 0 > value > 3:
+            raise Exception('Invalid Value for conversion, allowed values are 0 - 3')
+        if value == 0:
+            return 416e-6,4
+        elif value == 1:
+            return 4e-3,5
+        elif value == 2:
+            return 16.67e-3,5
+        elif value == 3:
+            return 20e-3,5
+        raise Exception()
+    @staticmethod
+    def extract_measurement_parameters(value):
+        retVal = {}
+        print value
+        if not value.startswith('IMP'):
+            raise Exception('Invalid input, input has to start with identifier \'IMP\'')
+        value = value[3:]
+        print value
+        if not value.startswith('L,'):
+            raise Exception('Invalid String cannot find compliance/measurement range, starting with \'L\'')
+        retVal['measurement_range'] = int(value[2:4])
+        value = value[4:]
+        print value
+        if not value.startswith('F'):
+            raise Exception('Invalid String, cannot find source and function, starting with \'F\'')
+        retVal['source_function'] = value[1:4]
+        value = value[4:]
+        print value
+        if not value.startswith('O'):
+            raise Exception('Invalid String, cannot find output sense, starting with \'O\'')
+        retVal['output_sense'] = int(value[1])
+        value = value[2:]
+        print value
+        if not value.startswith('P'):
+            raise Exception('Invalid String, cannot find Filter, starting with \'P\'')
+        ret = int(value[1])
+        if ret != 0:
+            ret = 2**ret
+        retVal['filter'] = ret
+        value = value[2:]
+        print value
+        if not value.startswith('S'):
+            raise Exception('Invalid String, cannot find Integration Time, starting with \'S\'')
+        retVal['integration_time'] = Keithley23X.convert_integration_time(int(value[1]))
+        value = value[2:]
+        print value
+        if not value.startswith('W'):
+            raise Exception('Invalid String, cannot find Default Delay, starting with \'W\'')
+        retVal['default_delay'] = bool(value[1])
+        value = value[2:]
+        print value
+        if not value.startswith('Z'):
+            raise Exception('Invalid String, cannot find Suppression, starting with \'Z\'')
+        retVal['suppression'] =  bool(value[1])
+        return retVal
+
+
+
+
+    def extract_sweep_measure_size(self,value):
         return value
 
     def extract_first_sweep_point_in_compliance(self, value):
@@ -186,4 +252,4 @@ class Keithley237(HVInterface):
 if __name__ == '__main__':
     conf = ConfigParser.ConfigParser()
     conf.read('keithley.cfg')
-    k237 = Keithley237(conf, 2, False)
+    k237 = Keithley23X(conf, 2, False)
