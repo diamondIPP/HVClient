@@ -22,7 +22,7 @@ OFF = 0
 # ============================
 class Keithley24XX(HVInterface):
     def __init__(self, config, device_no=1, hot_start=False):
-        HVInterface.__init__(self, config, device_no, hot_start)
+        HVInterface.__init__(self, config, device_no)
         self.bOpen = False
         self.bOpenInformed = False
         self.serialPortName = config.get(self.section_name, 'address')
@@ -119,7 +119,7 @@ class Keithley24XX(HVInterface):
             self.maxVolt = 0
         print 'Connected Keithley Model %s' % self.model
 
-    def readIV(self):
+    def read_iv(self):
         answer = self.getAnswerForQuery(':READ?', 20)
         try:
             answer = answer.split()
@@ -133,6 +133,17 @@ class Keithley24XX(HVInterface):
             return voltage, current, rest
         except:
             raise Exception('Could not perform valid IV Measurement, received "%s"' % answer)
+
+    def set_to_manual(self, status):
+        target = 0
+        if status == False:
+            self.write(':SYST:REM')
+            target = self.getAnswerForQuery(':SOUR:VOLT?')
+            target = float(target)
+        else:
+            self.write(':SYST:LOCAL')
+        self.manual = status
+        return target
 
     def set_output(self, status):
         return self.setOutput(status)
@@ -523,9 +534,9 @@ class Keithley24XX(HVInterface):
                 print 'cannot read since Not serial port is not open'
                 self.bOpenInformed = False
             return ''
-        while self.serial.inWaiting() <= 0 and i < 10:
-            sleep(self.readSleepTime)
-            i += 1
+        # while self.serial.inWaiting() <= 0 and i < 10:
+        #     sleep(self.readSleepTime)
+        #     i += 1
         ts = time()
         maxTime = 300
         k = 0
@@ -562,3 +573,4 @@ if __name__ == '__main__':
     conf = ConfigParser.ConfigParser()
     conf.read('keithley.cfg')
     k24XX = Keithley24XX(conf, 1, False)
+

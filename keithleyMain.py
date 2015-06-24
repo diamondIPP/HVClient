@@ -135,7 +135,7 @@ while myCLI.running:
         if status:
 
             # First try to change the voltage
-            v.doRamp()
+            v.ramp()
 
             # Then update GUI and display
             value = datetime.datetime.fromtimestamp(v.get_update_time())
