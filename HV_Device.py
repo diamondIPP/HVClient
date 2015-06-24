@@ -4,7 +4,7 @@ __author__ = 'testbeam'
 # IMPORTS
 # ============================
 from Keithley24XX import Keithley24XX
-from Keithley237 import Keithley237
+from Keithley23X import Keithley23X
 from threading import Thread
 from ConfigParser import ConfigParser, NoOptionError
 from time import time, sleep, strftime
@@ -98,7 +98,7 @@ class HVDevice(Thread):
         if model == 2400 or model == 2410:
             self.interface = Keithley24XX(config, device_no, hot_start)
         elif model == 237:
-            self.interface = Keithley237(config, device_no, hot_start)
+            self.interface = Keithley23X(config, device_no, hot_start)
         else:
             print "unkonwn model number: could not instantiate any device"
 
