@@ -59,10 +59,13 @@ class HVInterface:
     def get_set_voltage(self):
         return self.set_voltage
 
-    def get_model_name(self, log=0):
+    def get_device_name(self, log=0):
         space = ("_" if log else " ")
         out = self.section_name + space + self.name + space + self.model_number
         return out
+
+    def get_model_name(self):
+        pass
 
     @staticmethod
     def is_number(s):

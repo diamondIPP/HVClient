@@ -17,27 +17,52 @@ import ConfigParser
 import argparse
 import datetime
 import Tkinter
-import math
-from threading import Thread
 
 # Command Line Interface
 from keithleyCLI import CLI
-import keithleyReader
+import DeviceReader
 
 
 #######################################
 # Argument Parser
 #######################################
-
 parser = argparse.ArgumentParser(description='Keithley Power Supply steering and readout software')
-parser.add_argument('--config','-c',help='Config file',default='keithley.cfg')
-parser.add_argument('--hotstart','-H', help='Hot start (leave Keithleys ON and current voltage)',default=False)
+parser.add_argument('--config', '-c', help='Config file', default='keithley.cfg')
+parser.add_argument('--hotstart', '-H', action='store_true',
+                    help='Hot start (leave Keithleys ON and current voltage)')
 
 args = parser.parse_args()
-print args
+print '\nConfiguration file:', args.config
+print 'Hotstart:', args.hotstart
 
+
+#######################################
+# CONFIGPARSER
+#######################################
 config = ConfigParser.ConfigParser()
 config.read(args.config)
+
+
+#######################################
+# QUERY FOR HOTSTART
+#######################################
+def query(hot=0):
+    string = raw_input()
+    if string.lower() in ['yes', 'y', '1']:
+        hot_start = (True if hot == 1 else False)
+    else:
+        print 'exiting program'
+        sys.exit(-2)
+    return hot_start
+
+if args.hotstart:
+    print '\nENABLED HOTSTART. All Keitlheys should already be ON\n'
+    print 'You want to have HOTSTART enabled? (yes/no)'
+    hotstart = query(1)
+else:
+    print '\nDISABLED HOTSTART. All Keitlheys will be reset.\n'
+    print 'You want to have HOTSTART disabled? (yes/no)'
+    hotstart = query(0)
 
 
 #######################################
@@ -47,21 +72,7 @@ config.read(args.config)
 # The CLI gets its own thread. Tkinter (display GUI) needs to be the
 # main thread.
 
-if args.hotstart in ["True", "true", "1", "yes","on"]:
-    print ""
-    print "ENABLED HOTSTART. All Keitlheys should already be ON. If they are not, press CTRL+C in the next 10 seconds"
-    print ""
-    hotstart = True
-else:
-    print ""
-    print "DISABLED HOTSTART. All Keitlheys will be reset. If you don't want this, press CTRL+C in the next 10 seconds"
-    print ""
-    hotstart = False
-
-time.sleep(10)
-
-
-keithleys = keithleyReader.get_keithleys(config, hotstart)
+keithleys = DeviceReader.get_keithleys(config, hotstart)
 for k in keithleys:
     keithleys[k].start()
 myCLI = CLI()
@@ -71,22 +82,10 @@ myCLI.start()
 
 #######################################
 # Signal handling
-# (make sure we can kill the GUI with
-#   ctrl+c)
 #######################################
-
 def signal_handler(signal, frame):
     print 'Received SIGINT'
-    myCLI.do_exit()
-    myCLI.running = False
-
-    while myCLI.isAlive():
-        print 'still alive'
-        sleep(.1)
-
-    for k in keithleys:
-        keithleys[k].isKilled=True
-    sys.exit(0)
+    print 'press ctrl + D to exit the interpreter'
 
 signal.signal(signal.SIGINT, signal_handler)
 
@@ -96,20 +95,20 @@ signal.signal(signal.SIGINT, signal_handler)
 #######################################
 
 root = Tkinter.Tk()
-root.minsize(1000, 200) # x/y
+root.minsize(1000, 200)  # x/y
 root.maxsize(1000, 200)
 
 # Create Tk-variable and -label objects for each keithley
 # A label is an object and the variable is the content
-di_vars   = {}
+di_vars = {}
 di_labels = {}
 
 # create labels and hook them up with variables
 for name in keithleys.keys():
     tmp = Tkinter.StringVar()
     di_vars[name] = tmp
-    di_labels[name] = Tkinter.Label(root, textvariable = tmp,font=("Courier"),justify=Tkinter.LEFT)
-    #if di_labels[name]:
+    di_labels[name] = Tkinter.Label(root, textvariable=tmp, font="Courier", justify=Tkinter.LEFT)
+    # if di_labels[name]:
     #    di_labels[name].pack(side='left')
 
 # add the labels to the output window
@@ -125,18 +124,18 @@ now = time.time()
 while myCLI.running:
 
     # Make sure enough time has passed before we poll again
-    while time.time()-now < 1:
+    while time.time() - now < 1:
         time.sleep(.2)
     now = time.time()
 
     # Loop over the keithleys, get the voltages and update the display
-    for k,v in sorted(keithleys.iteritems(), key = lambda x:x[0]):
+    for k, v in sorted(keithleys.iteritems(), key=lambda x: x[0]):
 
         if not myCLI.running:
             break
 
         status = v.get_status()
-        #v.serial.flushInput()
+        # v.serial.flushInput()
 
         if status:
 
@@ -150,38 +149,25 @@ while myCLI.running:
 
             # Build display string
             display_string = k
-            display_string+= ": U: {0:7.1f} V      I: {1:10.2e} muA    ".format(voltage, current/1e-6)
-            display_string+= value.strftime('%H:%M:%S')
+            display_string += ": U: {0:7.1f} V      I: {1:10.2e} muA    ".format(voltage, current / 1e-6)
+            display_string += value.strftime('%H:%M:%S')
             if v.manual:
                 display_string = ' MANUAL'
             setBias = v.get_target_bias()
             if v.is_ramping():
                 display_string += " ramping to " + str(setBias)
 
-            # Build logging string
-            logging_string = k
-            logging_string += value.strftime(' %Y_%m_%d %H:%M:%S ')
-            logging_string += "{0:10.3e} {1:10.3e}".format(voltage, current)
-
-            # Display and log...
-            di_vars[k].set( display_string)
-            # (the logfile only exists while we are running)
-            if myCLI.running:
-                myCLI.logfile.write( logging_string + "\n")
-
+            # Display
+            di_vars[k].set(display_string)
 
         else:
             value = datetime.datetime.fromtimestamp(time.time())
-            display_string = k+": OFF " + value.strftime('%H:%M:%S')
+            display_string = k + ": OFF " + value.strftime('%H:%M:%S')
             if v.manual:
                 display_string = ' MANUAL'
-            logging_string = k+" "+value.strftime('%H:%M:%S')+" OFF"
-            di_vars[k].set( display_string )
-            # (the logfile only exists while we are running)
-            if myCLI.running:
-                myCLI.logfile.write( logging_string + "\n")
+            di_vars[k].set(display_string)
 
-        v.isBusy=False
+        v.isBusy = False
         root.update()
-    # end of Keithley loop
+        # end of Keithley loop
 # End of Main GUI loop

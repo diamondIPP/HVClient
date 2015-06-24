@@ -3,12 +3,15 @@ __author__ = 'testbeam'
 # ============================
 # IMPORTS
 # ============================
-from keithley24XX import Keithley24XX
+from Keithley24XX import Keithley24XX
+from Keithley237 import Keithley237
 from threading import Thread
 from ConfigParser import ConfigParser, NoOptionError
-from time import time, sleep
+from time import time, sleep, strftime
 from math import copysign
 import sys
+import logging
+import os
 
 # for *_interface do import bla
 
@@ -76,27 +79,95 @@ class HVDevice(Thread):
         if self.target_bias > self.max_bias:
             raise Exception("Invalid config file (bias > maxBias)")
 
+        # logging
+        self.logger = logging.getLogger(self.section_name)
+        self.fh = None
+        self.configure_log()
+        self.last_day = strftime('%d')
+        self.last_status = self.status
+        self.last_ramp = False
+
+        # functions for CLI
+
     # ============================
     # INIT DEVICE INTERFACE
     def init_interface(self, config, device_no, hot_start):
         # if statements for model name
-        print self.model_number
-        if self.model_number == 2400 or self.model_number == 2410:
+        print 'model number from config:', self.model_number
+        model = self.model_number
+        if model == 2400 or model == 2410:
             self.interface = Keithley24XX(config, device_no, hot_start)
+        elif model == 237:
+            self.interface = Keithley237(config, device_no, hot_start)
         else:
             print "unkonwn model number: could not instantiate any device"
 
     # ============================
+    # LOGGGING CONTROL
+    def configure_log(self):
+        logfile_dir = self.config.get('Main', 'testbeam_name') + '/'
+        # check if dir exists
+        dirs = os.path.dirname(logfile_dir)
+        try:
+            os.stat(dirs)
+        except OSError:
+            os.mkdir(dirs)
+        logfile_name = self.interface.get_device_name(1) + strftime('_%Y_%m_%d_%H_%M_%S.log')
+        logfile_dest = logfile_dir + logfile_name
+
+        self.fh = logging.FileHandler(logfile_dest)
+        self.fh.setLevel(logging.INFO)
+        formatter = logging.Formatter('%(asctime)s %(message)s', '%H:%M:%S')
+        self.fh.setFormatter(formatter)
+        self.logger.addHandler(self.fh)
+        print 'created logfile:', logfile_name
+
+    # make new logfile when the day changes
+    def log_control(self):
+        day = strftime('%d')
+        if day != self.last_day:
+            self.configure_log()
+            self.last_day = day
+            sleep(0.1)
+
+    def write_log(self):
+        # write when device is turned ON or OFF
+        if self.get_last_status() != self.get_status():
+            self.logger.warning('DEVICE_ON') if self.get_status() else self.logger.warning('DEVICE_OFF')
+        self.last_status = self.get_status()
+        # write when ramping starts
+        if self.get_last_ramp() != self.is_ramping() and self.get_status():
+            if self.is_ramping():
+                self.logger.warning('START_RAMPING')
+        # only write measurements when device is ON
+        if self.get_status():
+            voltage = self.get_bias()
+            current = self.get_current()
+            string = "{0:10.3e} {1:10.3e}".format(voltage, current)
+            self.logger.warning(string)
+        # write when ramping stops
+        if self.get_last_ramp() != self.is_ramping() and self.get_status():
+            if not self.is_ramping():
+                self.logger.warning('FINISH_RAMPING')
+        self.last_ramp = self.is_ramping()
+
+    # ============================
     # MAIN LOOP FOR THREAD (overwriting thread run)
     def run(self):
+        # if not self.is_configured:
+        #     self.configure_log()
+        #     self.is_configured = True
+        self.log_control()
         now = time()
         while not self.isKilled:
             sleep(.5)
             if time() - now > 1 and not self.manual:
                 self.update_voltage_current()
                 self.ramp()
+                self.write_log()
                 self.update_voltage_current()
                 now = time()
+                self.write_log()
 
     # ============================
     # GET-FUNCTIONS
@@ -112,8 +183,14 @@ class HVDevice(Thread):
     def get_status(self):
         return self.status
 
+    def get_last_status(self):
+        return self.last_status
+
     def get_update_time(self):
         return self.last_update
+
+    def get_last_ramp(self):
+        return self.last_ramp
 
     # ============================
     # SET-FUNCTIONS
@@ -128,7 +205,7 @@ class HVDevice(Thread):
     # ============================
     # MISCELLANEOUS FUNCTIONS
     def is_ramping(self):
-        return abs(self.biasNow - self.target_bias) > 0.1
+        return abs(self.biasNow - self.target_bias) > 0.1 if self.get_status() else False
 
     def power_down(self):
         self.set_target_bias(0)
@@ -161,7 +238,6 @@ class HVDevice(Thread):
         if not self.status:
             return
         delta_v = self.target_bias - self.biasNow
-        print 'elapsed time:', (time() - self.last_v_change)
         step_size = abs(self.ramp_speed * (time() - self.last_v_change))
 
         # Limit the maximal voltage step size
@@ -195,5 +271,7 @@ class HVDevice(Thread):
 if __name__ == '__main__':
     conf = ConfigParser()
     conf.read('keithley.cfg')
-    keithley = HVDevice(conf, 1, False)
-    keithley.interface.set_on()
+    keithley1 = HVDevice(conf, 1, False)
+    keithley2 = HVDevice(conf, 2, False)
+    keithley1.logger.warning("HALLO")
+    keithley2.logger.warning("HALLO")
