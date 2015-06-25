@@ -269,7 +269,7 @@ class HVDevice(Thread):
                 # print self.biasNow, step_size,delta_v
 
             self.isBusy = True
-            self.interface.setVoltage(new_bias)
+            self.interface.set_voltage(new_bias)
             if new_bias == self.target_bias and not self.powering_down:
                 print '%s is done with ramping to %d' % (self.interface.name, self.target_bias)
             self.last_v_change = newtime

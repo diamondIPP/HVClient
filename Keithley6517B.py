@@ -9,7 +9,7 @@ from time import sleep, time
 import ConfigParser
 from collections import deque
 from string import maketrans
-# import math
+import math
 
 
 # ============================
@@ -32,7 +32,6 @@ class Keithley6517B(HVInterface):
         self.readSleepTime = 0.2
         self.baudrate = config.getint(self.section_name, 'baudrate')
         self.commandEndCharacter = chr(13) + chr(10)
-        self.removeCharacters = '\r\n\x00\x13\x11\x10'
         self.measurments = deque()
         self.lastVoltage = 0
         self.serial = None
@@ -135,9 +134,13 @@ class Keithley6517B(HVInterface):
         data = ':SYST:ZCH ON' if status else ':SYST:ZCH OFF'
         return self.write(data)
 
+    def set_range_voltage(self, status):
+        data = ':SOUR:RANG 1000' if status == 'high' else ':SOUR:RANG 1000'
+        return self.write(data)
+
     # there can only be one value be maesured at a time
     def config_readout(self, readout='current'):
-        data = ':CONF:VOLT:DC' if readout.lower() == 'voltage' else ':CONF:VOLT:DC'
+        data = ':CONF:VOLT:DC' if readout.lower() == 'voltage' else ':CONF:CURR:DC'
         return self.write(data)
 
     # set the format s.t. is return the measurement of the given value and the voltage of the output
@@ -156,6 +159,20 @@ class Keithley6517B(HVInterface):
         return self.write(data)
 
     # ============================
+    # SET-FUNCTIONS
+    def set_bias(self, voltage):
+        self.set_voltage(voltage)
+
+    def set_voltage(self, value):
+        if self.max_voltage < math.fabs(value) and self.is_float(value):
+            value = math.copysign(self.max_voltage, value)
+            print 'set voltage to maximum allowed voltage: %s' % value
+        else:
+            print 'invalid Voltage: %s' % value
+            return -1
+        return self.write(':SOUR:VOLT:LEV:IMM:AMPL %s' % value)
+
+    # ============================
     # ACCESS FUNCTIONS
     def read_iv(self):
         answer = self.get_answer_for_query(':READ?', 20)
@@ -163,10 +180,9 @@ class Keithley6517B(HVInterface):
             answer = answer.split()
             voltage = float(answer[0])
             current = float(answer[1])
-            rest = answer[2:]
             measurment = [float(x) for x in answer]
             self.measurments.append(measurment)
-            return voltage, current, rest
+            return voltage, current
         except:
             raise Exception('Could not perform valid IV Measurement, received "%s"' % answer)
 
@@ -219,10 +235,14 @@ class Keithley6517B(HVInterface):
 
     # ============================
     # HELPER FUNCTIONS
-    def clear_string(self, data):
-        data = data.translate(None, self.removeCharacters)
+    @staticmethod
+    def clear_string(data):
+        data = data.translate(None, '\r\n\x00\x13\x11\x10')
         data = data.translate(maketrans(',', ' '))
         return data.strip()
+
+    def valid_voltage(self, value):
+        return True if self.is_float(value) and abs(value) <= self.max_voltage else False
 
 
 if __name__ == '__main__':
