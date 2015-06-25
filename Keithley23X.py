@@ -224,7 +224,7 @@ class Keithley23X(HVInterface):
                 retVal.update(Keithley23X.extract_buffer_location(entry))
             else:
                 raise Exception('Cannot extract data from \'%s\''%entry) 
-        return value
+        return retVal
 #         source_prefix = value[:4]
     
     @staticmethod
