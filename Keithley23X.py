@@ -228,21 +228,21 @@ class Keithley23X(HVInterface):
             raise Exception('Cannot find suitable identifier \'MST\'')
         value = value[3:]
         retVal = {}
-        retVal['output_data_format'] = Keithley23X.extract_output_data_format(value[:7])
+        retVal.update(Keithley23X.extract_output_data_format(value[:7]))
         value = value[7:]
-        retVal['eoi_and_bus_hold_off'] = Keithley23X.extract_eoi_and_bus_hold_off(value[:2])
+        retVal.update(Keithley23X.extract_eoi_and_bus_hold_off(value[:2]))
         value = value[2:]
-        retVal['srq_mask_and_compliance_select'] = Keithley23X.extract_srq_mask_and_compliance_select(value[:6])
+        retVal.update(Keithley23X.extract_srq_mask_and_compliance_select(value[:6]))
         value = value[6:]
-        retVal['operate'] = Keithley23X.extract_operate(value[:2])
+        retVal.update*=(Keithley23X.extract_operate(value[:2]))
         value = value[2:]
-        retVal['trigger_control'] = Keithley23X.extract_trigger_control(value[:2])
+        retVal.update(Keithley23X.extract_trigger_control(value[:2]))
         value = value[2:]
-        retVal['trigger_configuration'] = Keithley23X.extract_trigger_configuration(value[:8])
+        retVal.update(Keithley23X.extract_trigger_configuration(value[:8]))
         value = value[8:]
-        retVal['v1100_range_control'] = Keithley23X.extract_v1100_range_control(value[:2])
+        retVal.update(Keithley23X.extract_v1100_range_control(value[:2]))
         value = value[2:]
-        retVal['terminator'] = Keithley23X.extract_terminator(value[:2])
+        retVal.update(Keithley23X.extract_terminator(value[:2]))
         return retVal
     
     @staticmethod
@@ -286,7 +286,7 @@ class Keithley23X(HVInterface):
         # 3 = Disable EOI and hold-off
         if not value.startswith('K'):
             raise Exception ("Cannot extract eoi and bus hold off, string doesn't start with \'K\', \'%s\'"%value)
-        value = value[1:]
+        value = int(value[1:])
         retVal = {}
         if value == 0:
             retVal['eoi'] = True
@@ -300,6 +300,8 @@ class Keithley23X(HVInterface):
         elif value == 3:
             retVal['eoi'] = False
             retVal['bus_hold_off'] = False
+        if len(retVal) == 0:
+            raise Exception("Couldn't convert eoi and bus hold off correctly, K%d"%value)
         return retVal
     
     @staticmethod
@@ -391,7 +393,7 @@ class Keithley23X(HVInterface):
         retVal['trigger_in'] = int(value[2])
         retVal['triggger_out'] = int(value[4])
         retVal['trigger_sweep_end_out'] = int(value[6])
-        return value
+        return retVal
     
     @staticmethod
     def extract_v1100_range_control(value):
@@ -410,11 +412,11 @@ class Keithley23X(HVInterface):
             raise Exception ("Cannot extract terminator, string doesn't start with \'Y\', \'%s\'"%value)
         value = int(value[1])
         if value == 0:
-            return {'terminator': '\cr\lf'}
+            return {'terminator': '\r\n'}
         elif value == 1:
-            return {'terminator': '\lf\cr'}
+            return {'terminator': '\n\r'}
         elif value == 2:
-            return {'terminator': '\cr'}
+            return {'terminator': '\r'}
         elif value == 3:
             return {'terminator': ''}
         return value
