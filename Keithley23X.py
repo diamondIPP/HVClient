@@ -104,6 +104,10 @@ class Keithley23X(HVInterface):
         return retVal,retMsg
 
     def set_output(self, status):
+        if status == True or status == 1:
+            return self.__execute('N1')
+        else:
+            return self.__execute('N0')
         pass
 
     def set_bias(self, voltage):
@@ -559,12 +563,21 @@ class Keithley23X(HVInterface):
         return warning
 
     def get_output(self):
+        return self.get_machine_status_word()['operate']
         pass
 
+    def read_iv(self):
+        retVal =  self.__execute('H0')
+        print 'read_iv',retVal
+        current = 0
+        voltage = 0
+        return {'current':current, 'voltage':voltage}
+    
     def read_current(self):
-        pass
+        return self.read_iv()['current']
 
     def read_voltage(self):
+        return self.read_iv()['voltage']
         pass
 
     def get_model_name(self):
