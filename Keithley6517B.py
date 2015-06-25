@@ -35,10 +35,10 @@ class Keithley6517B(HVInterface):
         self.measurments = deque()
         self.lastVoltage = 0
         self.serial = None
-        self.open_serial_port(hot_start)
         self.model = None
         self.identifier = None
         self.max_voltage = None
+        self.open_serial_port(hot_start)
 
     def open_serial_port(self, hot_start=False):
         try:
@@ -60,7 +60,6 @@ class Keithley6517B(HVInterface):
         self.init_keithley(hot_start=hot_start)
 
     def init_keithley(self, hot_start=False):
-        # protection = 500e-6,
         if hot_start:
             sleep(1)
             self.clear_buffer()
@@ -77,8 +76,6 @@ class Keithley6517B(HVInterface):
             self.set_zero_check(False)
             self.config_readout()
             self.set_standard_output_format()
-
-    #         self.setStandardOutputForm()
     #         self.setConcurrentMeasurments(True)
     #         self.setDigitalFilterType('REP')
     #         self.setAverageFiltering(True)
@@ -115,18 +112,18 @@ class Keithley6517B(HVInterface):
 
     def identify(self):
         self.identifier = self.get_answer_for_query('*IDN?')
-        self.model = self.get_model_name()
+        self.get_model_name()
 
     def get_model_name(self):
+        self.model = 9999
         if self.identifier == '':
             self.identify()
         else:
             ident_list = self.identifier.split()
-            self.model = 9999
             if len(ident_list) > 5:
                 if ident_list[3].lower().startswith('model'):
                     self.model = ident_list[4]
-            print 'Connected Keithley Model %s' % self.model
+            print 'Connected Keithley Model', self.model
 
     def set_max_voltage(self):
         self.max_voltage = 1000 if self.model == '6517B' else 0
