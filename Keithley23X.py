@@ -49,11 +49,11 @@ class Keithley23X(HVInterface):
             print 'Could not open serial Port: \'%s\'' % self.serialPortName
             self.bOpen = False
             pass
-         if self.bOpen:
+        if self.bOpen:
              self.__write('++addr %d'%self.gbip)
              retVal = self.__write('++addr ')
              print 'Set GBIP Address to %d'%self.gbip
-         self.init_keithley(hot_start)
+        self.init_keithley(hot_start)
 
     def init_keithley(self, hot_start):
         self.set_source_voltage_dc()
@@ -163,10 +163,16 @@ class Keithley23X(HVInterface):
     @staticmethod
     def extract_model_no_and_revision(value):
         value = value.strip()
-        return int(value[:3]),value[3:]
+        self.model = int(value[:3])
+        return self.model,value[3:]
 
     @staticmethod
     def extract_error_status_word(value):
+        value = value.strip()
+        if not value.startswith('ERS'):
+            raise Exception('Cannot find suitable identifier \'ERS\'')
+        value = value[3:]
+        error_status_word = int(value,base=2)
         return value
 
     @staticmethod
