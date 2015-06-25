@@ -114,7 +114,9 @@ class Keithley23X(HVInterface):
 
     def get_model_no_and_revision(self):
         retVal = self.__execute('U0')
-        return Keithley23X.extract_model_no_and_revision(retVal)
+        retVal =  Keithley23X.extract_model_no_and_revision(retVal)
+        self.model = retVal[0]
+        return retVal
 
     def get_error_status_word(self):
         retVal =  self.__execute('U1')
@@ -126,7 +128,7 @@ class Keithley23X(HVInterface):
 
     def get_machine_status_word(self):
         retVal =  self.__execute('U3')
-        return extract_machine_status_word(retVal)
+        return self.extract_machine_status_word(retVal)
 
     def get_measurement_parameters(self):
         retVal = self.__execute('U4')
@@ -142,7 +144,7 @@ class Keithley23X(HVInterface):
 
     def get_calibrate_status_word(self):
         retVal = self.__execute('U7')
-        return self.extract_calibrate_status_word(retVal)
+        return self.extract_calibration_status_word(retVal)
 
     def get_defined_sweep_size(self):
         retVal = self.__execute('U8')
@@ -163,25 +165,125 @@ class Keithley23X(HVInterface):
     @staticmethod
     def extract_model_no_and_revision(value):
         value = value.strip()
-        self.model = int(value[:3])
-        return self.model,value[3:]
-
+        try:
+            model = int(value[:3])
+            return model,value[3:]
+        except Exception as e:
+            raise Exception('Cannot extract model no and revision from \'%s\, %s'%(value,e))
+    
     @staticmethod
     def extract_error_status_word(value):
         value = value.strip()
         if not value.startswith('ERS'):
             raise Exception('Cannot find suitable identifier \'ERS\'')
+        # bits:
+        # bit 26:Trigger Overrun
+        # bit 25IDDC
+        # bit 24:IDDCO
+        # bit 23:Interlock Present
+        # bit 22:Illegal Measure Range
+        # bit 21:Illegal Source Range
+        # bit 20:Invalid Sweep Mix
+        # bit 19:Log Cannot Cross Zero
+        # bit 18:Autoranging Source with Pulse Sweep
+        # bit 17:In Calibration
+        # bit 16:In Standby
+        # bit 15:Unit isa236
+        # bit 14:IOU DPRAM Failed
+        # bit 13:IOU EEROM Failed
+        # bit 12:IOU Cal Checksum Error
+        # bit 11:DPRAM Lockup
+        # bit 10:DPRAM Link Error
+        # bit  9:Cal ADC Zero Error
+        # bit  8:Cal ADC Gain Error
+        # bit  7:Cal SRC Zero Error
+        # bit  6:Cal SRC Gain Error
+        # bit  5:Cal Common Mode Error
+        # bit  4:Cal Compliance Error
+        # bit  3:Cal Value Error
+        # bit  2:Cal Constants Error
+        # bit  1:Cal Invalid Error
         value = value[3:]
         error_status_word = int(value,base=2)
         return value
 
     @staticmethod
     def extract_stored_ascii_string(value):
+        value = value.strip()
+        if not value.startswith('DSP'):
+            raise Exception('Cannot find suitable identifier \'DSP\'')
+        value = value[3:]
         return value
-
+    
     @staticmethod
-    def extract_calibrate_status_word(value):
+    def extract_machine_status_word(value):
+        value = value.strip()
+        if not value.startswith('MST'):
+            raise Exception('Cannot find suitable identifier \'MST\'')
+        value = value[3:]
+        retVal = {}
+        retVal['output_data_format'] = self.extract_output_data_format(value[:7])
+        value = value[7:]
+        retVal['eoi_and_bus_hold_off'] = self.extract_eoi_and_bus_hold_off(value[:2])
+        value = value[2:]
+        retVal['srq_mask_and_compliance_select'] = self.extract_srq_mask_and_compliance_select(value[:6])
+        value = value[6:]
+        retVal['operate'] = self.extract_operate(value[:2])
+        value = value[2:]
+        retVal['trigger_control'] = self.extract_trigger_control(value[:2])
+        value = value[2:]
+        retVal['trigger_configuration'] = self.extract_trigger_configuration(value[:8])
+        value = value[8:]
+        retVal['v1100_range_control'] = self.extract_v1100_range_control(value[:2])
+        value = value[2:]
+        retVal['terminator'] = self.extract_terminator(value[:2])
+        return retVal
+    
+    @staticmethod
+    def extract_output_data_format(value):
         return value
+    
+    @staticmethod
+    def extract_eoi_and_bus_hold_off(value):
+        return value
+    
+    @staticmethod
+    def extract_srq_mask_and_compliance_select(value):
+        return value
+    
+    @staticmethod
+    def extract_operate(value):
+        return value
+    
+    @staticmethod
+    def extract_trigger_control(value):
+        return value
+    
+    @staticmethod
+    def extract_trigger_configuration(value):
+        return value
+    
+    @staticmethod
+    def extract_v1100_range_control(value):
+        return value
+    
+    @staticmethod
+    def extract_terminator(value):
+        return value
+    
+    @staticmethod
+    def extract_calibration_status_word(value):
+        value = value.strip()
+        if not value.startswith('CSP'):
+            raise Exception('Cannot find suitable identifier \'CSP\'')
+        value = value[3:]
+        retVal = {}
+        retVal['calibration_step_in_progress'] = int(value[:2])
+        value = value[3:]
+        retVal['cal_lock_switch'] = bool(value[0])
+        value = value[2:]
+        retVal['unit_calibrated'] = bool(value[0]) 
+        return retVal
 
     @staticmethod
     def convert_integration_time(value):
@@ -275,8 +377,8 @@ class Keithley23X(HVInterface):
         if not value.startswith('ICP') and not value.startswith('VCP'):
             raise Exception('Cannot find Identifier \'ICP\'/\'VCP\'')
         value = value[3:]
-        suppression_value = float(value)
-        return value
+        compliance_value = float(value)
+        return compliance_value
 
     @staticmethod
     def extract_defined_sweep_size(value):
@@ -290,8 +392,8 @@ class Keithley23X(HVInterface):
     @staticmethod
     def extract_warning_status_word(value):
         value = value.strip()
-        if not value.startswith('WSR'):
-            raise Exception('Cannot find Identifier \'WSR\'')
+        if not value.startswith('WRS'):
+            raise Exception('Cannot find Identifier \'WRS\'')
         value = value[3:]
         warning = int(value,base=2)
         # bit 10: uncalibrated
