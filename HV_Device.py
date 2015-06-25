@@ -29,7 +29,7 @@ class HVDevice(Thread):
 
         self.config = config
         self.keithley = None
-        
+
         self.section_name = 'HV%d' % device_no
 
         try:
@@ -59,10 +59,10 @@ class HVDevice(Thread):
             print voltage
             # self.immidiateVoltage = voltage
             self.target_bias = voltage
-            self.biasNow = voltage
+            self.bias_now = voltage
         else:
             self.status = 0
-            self.biasNow = 0
+            self.bias_now = 0
 
         # last time the actual voltage was changed
         self.last_v_change = time()
@@ -93,11 +93,14 @@ class HVDevice(Thread):
     # INIT DEVICE INTERFACE
     def init_interface(self, config, device_no, hot_start):
         # if statements for model name
-        print 'model number from config:', self.model_number
+        try:
+            print '\nInstantiation:', self.config.get(self.section_name, 'name')
+        except NoOptionError:
+            print '\nInstantiation:', self.section_name
         model = self.model_number
         if model == 2400 or model == 2410:
             self.interface = Keithley24XX(config, device_no, hot_start)
-        elif model == 237:
+        elif model == (237 or 236 or 238):
             self.interface = Keithley23X(config, device_no, hot_start)
         else:
             print "unkonwn model number: could not instantiate any device"
@@ -106,14 +109,20 @@ class HVDevice(Thread):
     # LOGGGING CONTROL
     def configure_log(self):
         logfile_dir = self.config.get('Main', 'testbeam_name') + '/'
+        logfile_sub_dir = self.interface.name + '/'
         # check if dir exists
         dirs = os.path.dirname(logfile_dir)
         try:
             os.stat(dirs)
         except OSError:
             os.mkdir(dirs)
+        dirs = os.path.dirname(logfile_dir + logfile_sub_dir)
+        try:
+            os.stat(dirs)
+        except OSError:
+            os.mkdir(dirs)
         logfile_name = self.interface.get_device_name(1) + strftime('_%Y_%m_%d_%H_%M_%S.log')
-        logfile_dest = logfile_dir + logfile_name
+        logfile_dest = logfile_dir + logfile_sub_dir + logfile_name
 
         self.fh = logging.FileHandler(logfile_dest)
         self.fh.setLevel(logging.INFO)
@@ -129,8 +138,8 @@ class HVDevice(Thread):
             self.configure_log()
             self.last_day = day
             sleep(0.1)
-            
-    def add_log_entry(self,log_entry):
+
+    def add_log_entry(self, log_entry):
         self.logger.warning(log_entry)
 
     def write_log(self):
@@ -141,7 +150,10 @@ class HVDevice(Thread):
         # write when ramping starts
         if self.get_last_ramp() != self.is_ramping() and self.get_status():
             if self.is_ramping():
-                self.logger.warning('START_RAMPING')
+                log = 'START_RAMPING_AT' + '{0:7.1f}'.format(self.get_bias())
+                self.logger.warning(log)
+                log = 'TARGET_BIAS' + '{0:7.1f}'.format(self.get_target_bias())
+                self.logger.warning(log)
         # only write measurements when device is ON
         if self.get_status():
             voltage = self.get_bias()
@@ -151,26 +163,24 @@ class HVDevice(Thread):
         # write when ramping stops
         if self.get_last_ramp() != self.is_ramping() and self.get_status():
             if not self.is_ramping():
-                self.logger.warning('FINISH_RAMPING')
+                log = 'FINISH_RAMPING_AT' + '{0:7.1f}'.format(self.get_bias())
+                self.logger.warning(log)
         self.last_ramp = self.is_ramping()
 
     # ============================
     # MAIN LOOP FOR THREAD (overwriting thread run)
     def run(self):
-        # if not self.is_configured:
-        #     self.configure_log()
-        #     self.is_configured = True
         self.log_control()
-        now = time()
+        # now = time()
         while not self.isKilled:
-            sleep(.5)
-            if time() - now > 1 and not self.manual:
+            sleep(.1)
+            if not self.manual:
                 self.update_voltage_current()
+                self.write_log()
                 self.ramp()
-                self.write_log()
-                self.update_voltage_current()
-                now = time()
-                self.write_log()
+                # self.update_voltage_current()
+                # now = time()
+                # self.write_log()
 
     # ============================
     # GET-FUNCTIONS
@@ -178,7 +188,7 @@ class HVDevice(Thread):
         return self.current_now
 
     def get_bias(self):
-        return self.biasNow
+        return self.bias_now
 
     def get_target_bias(self):
         return self.target_bias
@@ -200,6 +210,8 @@ class HVDevice(Thread):
     def set_target_bias(self, target):
         self.target_bias = target
         self.last_v_change = time()
+        log = 'SET_BIAS_TO' + '{0:7.1f}'.format(target)
+        self.logger.warning(log)
 
     def set_to_manual(self, status):
         self.target_bias = self.interface.set_to_manual(status)
@@ -208,7 +220,7 @@ class HVDevice(Thread):
     # ============================
     # MISCELLANEOUS FUNCTIONS
     def is_ramping(self):
-        return abs(self.biasNow - self.target_bias) > 0.1 if self.get_status() else False
+        return abs(self.bias_now - self.target_bias) > 0.1 if self.get_status() else False
 
     def power_down(self):
         self.set_target_bias(0)
@@ -226,7 +238,7 @@ class HVDevice(Thread):
         if self.status:
             try:
                 iv = self.interface.read_iv()
-                self.biasNow = iv[0]
+                self.bias_now = iv[0]
                 self.current_now = iv[1]
                 self.last_update = time()
                 # print 'readIV',voltage,current,self.targetBias,rest
@@ -240,7 +252,7 @@ class HVDevice(Thread):
         # how many seconds passed since last change)
         if not self.status:
             return
-        delta_v = self.target_bias - self.biasNow
+        delta_v = self.target_bias - self.bias_now
         step_size = abs(self.ramp_speed * (time() - self.last_v_change))
 
         # Limit the maximal voltage step size
@@ -253,7 +265,7 @@ class HVDevice(Thread):
             if abs(delta_v) <= step_size:
                 new_bias = self.target_bias
             else:
-                new_bias = self.biasNow + copysign(step_size, delta_v)
+                new_bias = self.bias_now + copysign(step_size, delta_v)
                 # print self.biasNow, step_size,delta_v
 
             self.isBusy = True
@@ -262,8 +274,8 @@ class HVDevice(Thread):
                 print '%s is done with ramping to %d' % (self.interface.name, self.target_bias)
             self.last_v_change = newtime
             self.isBusy = False
-        if self.powering_down and abs(self.biasNow) < .1:
-            self.interface.setOutput(0)
+        if self.powering_down and abs(self.bias_now) < .1:
+            self.interface.set_output(0)
             self.powering_down = False
             print '%s has ramped down and turned off' % self.interface.name
             # End of ramp

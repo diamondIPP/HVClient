@@ -5,20 +5,23 @@ from HV_Device import HVDevice
 from ConfigParser import NoOptionError
 
 
-def get_keithleys(config, hot_start):
-    keithleys = {}
+def get_devices(config, hot_start):
+    devices = {}
     try:
-        for sec in config.sections():
-            print sec, config.options(sec)
-        n_keithleys = config.getint('Main', 'nkeithleys')
+        n_devices = config.getint('Main', 'n_devices')
     except NoOptionError, err:
         print err
-        n_keithleys = 0
-    print 'Found %d devices' % n_keithleys
-    for i in range(1, n_keithleys + 1):
+        n_devices = 0
+    print '\nOptions from config file:'
+    main = config.sections()[0]
+    print main, config.options(main)
+    print 'Found %d devices in config file' % n_devices
+    for i in range(1, n_devices + 1):
+        sec = 'HV' + str(i)
+        print sec, config.options(sec)
+    for i in range(1, n_devices + 1):
         name = 'HV%d' % i
         if config.has_section(name):
-            keithleys[name] = HVDevice(config, i, hot_start)
-
+            devices[name] = HVDevice(config, i, hot_start)
         pass
-    return keithleys
+    return devices

@@ -72,7 +72,6 @@ class Keithley24XX(HVInterface):
             self.reset()
             self.clearBuffer()
             self.identify()
-            self.setOutput(False)
             self.setRearOutput(self.read_rear_output())
             self.setFixedVoltMode()
             self.setStandardOutputForm()
@@ -81,7 +80,7 @@ class Keithley24XX(HVInterface):
             self.setAverageFiltering(True)
             self.setAverageFilterCount(3)
             self.setCurrentProtection(100e-6)
-            self.setCurrentMeasurmentSpeed(10)
+            self.setCurrentMeasurmentSpeed(5)  # was 10 before
             # self.setImmidiateVoltage(self.immidiateVoltage)
             self.clearErrorQueue()
             self.setComplianceAbortLevel('LATE')

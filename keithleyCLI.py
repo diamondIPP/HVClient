@@ -79,7 +79,7 @@ class CLI(cmd.Cmd, Thread):
             keithley.wait_for_device()
             keithley.isBusy = True
             try:
-                keithley.interface.setOutput(status)
+                keithley.interface.set_output(status)
                 keithley.last_v_change = time.time()
                 keithley.powering_down = False
             except Exception as inst:

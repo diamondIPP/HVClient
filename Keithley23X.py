@@ -139,7 +139,7 @@ class Keithley23X(HVInterface):
             if time1-time0 > max_time:
                 break
             pass
-        print 'DELTA T: ', time1-time0
+        # print 'DELTA T: ', time1-time0
         retMsg = []
         while self.serial.inWaiting():
             retMsg.append(self.serial.readline().strip('\r\n'))
@@ -174,7 +174,7 @@ class Keithley23X(HVInterface):
 
     def get_machine_status_word(self):
         retVal =  self.__execute('U3')
-        print retVal
+        # print retVal
         return self.extract_machine_status_word(retVal)
 
     def get_measurement_parameters(self):
@@ -658,6 +658,9 @@ class Keithley23X(HVInterface):
     def get_output(self):
         return self.get_machine_status_word()['operate']
         pass
+
+    def getOutputStatus(self):
+        self.get_output()
 
     def read_iv(self):
         retVal =  self.__execute('H0')

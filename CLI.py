@@ -64,18 +64,18 @@ class CLI(cmd.Cmd, Thread):
     # do_ON / do_OFF
     #######################################
 
-    def setOutput(self, name, status):
+    def set_output(self, name, status):
         print 'Set Output %d: %s' % (status, name)
         if name.upper() == 'ALL':
             for k in self.devices:
-                self.setOutput(k, status)
+                self.set_output(k, status)
             return
         if self.devices.has_key(name):
             keithley = self.devices[name]
             keithley.wait_for_device()
             keithley.isBusy = True
             try:
-                keithley.interface.setOutput(status)
+                keithley.interface.set_output(status)
                 keithley.last_v_change = time.time()
                 keithley.powering_down = False
             except Exception as inst:
@@ -89,14 +89,14 @@ class CLI(cmd.Cmd, Thread):
         Usage: ON KeithleyName
         (ON ALL to turn on all devices)
         """
-        self.setOutput(line, True)
+        self.set_output(line, True)
 
     def do_OFF_FAST(self, line):
         """ Set output of device to OFF.
         Usage: OFF_FAST KeithleyName
         (OFF_FAST ALL to turn on all devices)
         """
-        self.setOutput(line, False)
+        self.set_output(line, False)
 
     def do_OFF(self, line):
         """ Set output of device to OFF.
