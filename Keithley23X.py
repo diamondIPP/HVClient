@@ -58,8 +58,37 @@ class Keithley23X(HVInterface):
     def init_keithley(self, hot_start):
         self.set_source_voltage_dc()
         self.set_1100V_range(True)
+        self.set_output_sense_local()
+        self.set_integration_time(1)
+        self.set_averaging_filter(1)
+        self.set_output_format()
         pass
+    
+    def set_output_sense_local(self):
+        return self.__execute('O0')
 
+    def set_output_sense_remote(self):
+        return self.__execute('O1')
+    def set_averaging_filter_exponent(self,n):
+        if 0 > n > 5:
+             raise Exception('averaging Filter can only be between 0 - 5')
+        print 'setting filter to %d readings'%(2**n)
+        return self.__execute('P%d'%n)
+    
+    def set_averaging_filter(self,n):
+        exponent =  math.log(n)/math.log(2)
+        if not exponent == int(exponent) or exponent > 5: 
+            raise Exception('averaging Filter can only be a factor of 2**X, X in 0 ..5')
+        n = int(exponent)
+        return self.set_averaging_filter(n)
+    
+    def set_integration_time(self,n):
+        if 0 > n > 3:
+            raise Exception('integration time must be in 0-3: 0 [416mus], 1 [4ms], 2 [16.67ms], 3 [20ms]')
+    
+    def set_output_data_format(self,items=15,format=0,lines=0):
+        self.__execute('G%d,%d,%d'%(items,format,lines))
+    
     def set_source_voltage_dc(self):
         return self.__execute('F0,0')
 
@@ -171,7 +200,14 @@ class Keithley23X(HVInterface):
     def get_sweep_measure_size(self):
         retVal = self.__execute('U11')
         return self.extract_sweep_measure_size(retVal)
-
+    
+    @staticmethod
+    def extract_data(value):
+        # NS DC V +1.2345 E+OO, D +12.345 E+OO, NM DC I +1.23456 E+OO, T +123.456 E+OO, B 0000 CRLF
+        value = value.split(',')
+        return value
+#         source_prefix = value[:4]
+         
     #returns model no and revision number
     @staticmethod
     def extract_model_no_and_revision(value):
