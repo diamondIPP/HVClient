@@ -63,6 +63,8 @@ class Keithley23X(HVInterface):
         self.set_integration_time(1)
         self.set_averaging_filter(1)
         self.set_output_data_format()
+        if not hot_start:
+            self.set_off()
         pass
     
     def set_output_sense_local(self):
