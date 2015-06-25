@@ -233,7 +233,7 @@ class Keithley23X(HVInterface):
         retVal['source_prefix']= entry[:2]
         retVal['source_function'] = entry[2:4]
         retVal['measure_type'] = entry[4]
-        retVal['source_value'] = flaot(entry[5:])
+        retVal['source_value'] = float(entry[5:])
         return retVal
     
     @staticmethod
@@ -246,7 +246,7 @@ class Keithley23X(HVInterface):
         retVal['measure_prefix']= entry[:2]
         retVal['measure_function'] = entry[2:4]
         retVal['measure_type'] = entry[4]
-        retVal['measure_value'] = flaot(entry[5:])
+        retVal['measure_value'] = float(entry[5:])
         return retVal
         
     @staticmethod
@@ -660,8 +660,9 @@ class Keithley23X(HVInterface):
     def read_iv(self):
         retVal =  self.__execute('H0')
         print 'read_iv',retVal
-        current = 0
-        voltage = 0
+        converted = self.extract_data(retVal)
+        current = converted['measure_value']
+        voltage = converted['source_value']
         return {'current':current, 'voltage':voltage}
     
     def read_current(self):
