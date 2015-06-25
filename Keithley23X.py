@@ -229,20 +229,30 @@ class Keithley23X(HVInterface):
     
     @staticmethod
     def extract_source_data(entry):
-        return {'source_data': entry}
+        retVal = {}
+        retVal['source_prefix']= entry[:2]
+        retVal['source_function'] = entry[2:4]
+        retVal['measure_type'] = entry[4]
+        retVal['source_value'] = flaot(entry[5:])
+        return retVal
     
     @staticmethod
     def extract_delay(entry):
-        return {'delay':entry}
+        return {'delay_value':entry}
         
     @staticmethod
     def extract_measure_data(entry):
-        return {'measure_data':entry}
+        retVal = {}
+        retVal['measure_prefix']= entry[:2]
+        retVal['measure_function'] = entry[2:4]
+        retVal['measure_type'] = entry[4]
+        retVal['measure_value'] = flaot(entry[5:])
+        return retVal
         
     @staticmethod
     def extract_time_stamp(entry):
         timestamp = float(entry[1:])
-        return {'timestamp':timestamp}
+        return {'timestamp_value':timestamp}
         
     @staticmethod
     def extract_buffer_location(entry):
