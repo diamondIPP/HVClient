@@ -265,7 +265,7 @@ class Keithley23X(HVInterface):
         # o = One line from de buffer
         # 1 = One line from sweep buffer
         # 2 = All lines from sweep buffer
-        if not value.startwith('G'):
+        if not value.startswith('G'):
             raise Exception ("Cannot extract output data format, string doesn't start with \'G\', \'%s\'"%value)
         retVal={}
         value = value[1:]
@@ -284,7 +284,7 @@ class Keithley23X(HVInterface):
         # 1 = Disable EOI, enable hold-off
         # 2 = Enable EOI, disable hold-off
         # 3 = Disable EOI and hold-off
-        if not value.startwith('K'):
+        if not value.startswith('K'):
             raise Exception ("Cannot extract eoi and bus hold off, string doesn't start with \'K\', \'%s\'"%value)
         value = value[1:]
         retVal = {}
@@ -319,7 +319,7 @@ class Keithley23X(HVInterface):
         # Compliance
         # O =Delay, measure, or idle compliance
         # 1 = Measurement compliance
-        if not value.startwith('M'):
+        if not value.startswith('M'):
             raise Exception ("Cannot extract srq mask and compliance select, string doesn't start with \'M\', \'%s\'"%value)
         value = value[1:]
         retVal = {}
@@ -334,7 +334,7 @@ class Keithley23X(HVInterface):
         # N-Operate
         # O =Standby
         # 1 =Operate
-        if not value.startwith('N'):
+        if not value.startswith('N'):
             raise Exception ("Cannot extract operate, string doesn't start with \'N\', \'%s\'"%value)
         retVal = {'operate': bool(value[1])}
         return retVal
@@ -345,7 +345,7 @@ class Keithley23X(HVInterface):
         # R - Trigger Control
         # O = Disable triggering
         # 1 = Enable triggering
-        if not value.startwith('R'):
+        if not value.startswith('R'):
             raise Exception ("Cannot extract trigger control, string doesn't start with \'R\', \'%s\'"%value)
         retVal = {'trigger_control': bool(value[1])}
         return retVal
@@ -362,28 +362,28 @@ class Keithley23X(HVInterface):
         # 4 = Immediate trigger only
         # Trigger In
         # 0 = Continuous
-        # 1 = ·SRC DL Y MSR
-        # 2 = SRC·DL Y MSR
-        # 3 = ·SRC·DL Y MSR
-        # 4 = SRC DL Y·MSR
-        # 5 = ·SRC DL Y•MSR
-        # 6 = SRC·DL Y•MSR
-        # 7 = ·SRC·DLY·MSR
-        # 8 = ·Single Pulse
+        # 1 = SRC DL Y MSR
+        # 2 = SRC DL Y MSR
+        # 3 = SRC DL Y MSR
+        # 4 = SRC DL Y MSR
+        # 5 = *SRC DL Y MSR
+        # 6 = SRC DL Y MSR
+        # 7 = *SRC DLY MSR
+        # 8 = *Single Pulse
         # Trigger Out
         # 0 = None
-        # 1 = SRC•DL Y MSR
-        # 2 = SRC DL Y·MSR
-        # 3 = SRC•DL Y·MSR
-        # 4 = SRC DL Y MSR•
-        # 5 = SRC•DLY MSR•
-        # 6 = SRC DL Y·MSR•
-        # 7 = SRC•DL Y•MSR·
-        # 8 = Pulse End·
-        # Sweep End• Trigger Out
+        # 1 = SRC*DL Y MSR
+        # 2 = SRC DL Y*MSR
+        # 3 = SRC*DL Y*MSR
+        # 4 = SRC DL Y MSR*
+        # 5 = SRC*DLY MSR*
+        # 6 = SRC DL Y*MSR*
+        # 7 = SRC*DL Y*MSR*
+        # 8 = Pulse End*
+        # Sweep End* Trigger Out
         # 0 = Disabled
         # 1 = Enabled
-        if not value.startwith('T'):
+        if not value.startswith('T'):
             raise Exception ("Cannot extract trigger control, string doesn't start with \'T\', \'%s\'"%value)
         value = value[1:]
         retVal = {}
@@ -399,14 +399,14 @@ class Keithley23X(HVInterface):
         # V - 11OOV Range Control
         # O = 11OOV Range Disabled
         # 1 = 11OOV Range Enabled (237 only)
-        if not value.startwith('R'):
-            raise Exception ("Cannot extract v1100 range, string doesn't start with \'R\', \'%s\'"%value)
+        if not value.startswith('V'):
+            raise Exception ("Cannot extract v1100 range, string doesn't start with \'V\', \'%s\'"%value)
         retVal = {'v1100_range': bool(value[1])}
         return retVal
     
     @staticmethod
     def extract_terminator(value):
-        if not value.startwith('Y'):
+        if not value.startswith('Y'):
             raise Exception ("Cannot extract terminator, string doesn't start with \'Y\', \'%s\'"%value)
         value = int(value[1])
         if value == 0:
