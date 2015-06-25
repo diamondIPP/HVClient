@@ -214,11 +214,11 @@ class Keithley23X(HVInterface):
         value = value.split(',')
         retVal = {}
         for entry in value:
-            if entry.startswith('NS'):
+            if entry.startswith('NS') or  entry.startswith('OS'):
                 retVal.update(Keithley23X.extract_source_data(entry))
             elif entry.startswith('D'):
                 retVal.update(Keithley23X.extract_delay(entry))
-            elif entry.startswith('NM'):
+            elif entry.startswith('NM') or  entry.startswith('OM'):
                 retVal.update(Keithley23X.extract_measure_data(entry))
             elif entry.startswith('T'):
                 retVal.update(Keithley23X.extract_time_stamp(entry))
