@@ -9,7 +9,7 @@ from time import sleep, time
 import ConfigParser
 from collections import deque
 from string import maketrans
-import math
+# import math
 
 
 # ============================
@@ -64,8 +64,8 @@ class Keithley6517B(HVInterface):
         # protection = 500e-6,
         if hot_start:
             sleep(1)
-            # self.clearBuffer()
-            # self.identify()
+            self.clear_buffer()
+            self.identify()
             # self.clearErrorQueue()
             sleep(1)
         else:
@@ -74,6 +74,10 @@ class Keithley6517B(HVInterface):
             self.reset()
             self.clear_buffer()
             self.identify()
+            self.set_zero_check(False)
+            self.config_readout()
+            self.set_standard_output_format()
+
     #         self.setStandardOutputForm()
     #         self.setConcurrentMeasurments(True)
     #         self.setDigitalFilterType('REP')
@@ -127,6 +131,16 @@ class Keithley6517B(HVInterface):
     def set_max_voltage(self):
         self.max_voltage = 1000 if self.model == '6517B' else 0
 
+    def set_zero_check(self, status):
+        data = ':SYST:ZCH ON' if status else ':SYST:ZCH OFF'
+        return self.write(data)
+
+    # there can only be one value be maesured at a time
+    def config_readout(self, readout='current'):
+        data = ':CONF:VOLT:DC' if readout.lower() == 'voltage' else ':CONF:VOLT:DC'
+        return self.write(data)
+
+    # set the format s.t. is return the measurement of the given value and the voltage of the output
     def set_standard_output_format(self):
         return self.write(':FORM:ELEM READ,VSO')
 
@@ -143,6 +157,19 @@ class Keithley6517B(HVInterface):
 
     # ============================
     # ACCESS FUNCTIONS
+    def read_iv(self):
+        answer = self.get_answer_for_query(':READ?', 20)
+        try:
+            answer = answer.split()
+            voltage = float(answer[0])
+            current = float(answer[1])
+            rest = answer[2:]
+            measurment = [float(x) for x in answer]
+            self.measurments.append(measurment)
+            return voltage, current, rest
+        except:
+            raise Exception('Could not perform valid IV Measurement, received "%s"' % answer)
+
     def get_answer_for_query(self, data, minlength=1):
         self.write(data)
         sleep(self.readSleepTime)
@@ -184,7 +211,8 @@ class Keithley6517B(HVInterface):
             try:
                 print ord(out[-2]), ord(out[-1]), ord(self.commandEndCharacter[0]), ord(self.commandEndCharacter[1])
             except IndexError:
-                print "Error trying: 'print ord(out[-2]),ord(out[-1]),ord(self.commandEndCharacter[0]),ord(self.commandEndCharacter[1]),len(out)'"
+                print "Error trying: 'print ord(out[-2]),ord(out[-1])," \
+                      "ord(self.commandEndCharacter[0]),ord(self.commandEndCharacter[1]),len(out)'"
             return ''
         # print 'received after %s tries: %s' % (k, out)
         return out
