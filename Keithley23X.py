@@ -89,7 +89,7 @@ class Keithley23X(HVInterface):
         message = message.strip('\r\n')
         if not message.endswith('X'):
             message+='X'
-        return self.__write(message)[1]
+        return self.__write(message)[1][0]
 
     def __write(self, message):
         if not message.startswith('++') and (not message.endswith('\r\n')):
@@ -128,6 +128,7 @@ class Keithley23X(HVInterface):
 
     def get_machine_status_word(self):
         retVal =  self.__execute('U3')
+        print retVal
         return self.extract_machine_status_word(retVal)
 
     def get_measurement_parameters(self):
@@ -217,6 +218,10 @@ class Keithley23X(HVInterface):
     
     @staticmethod
     def extract_machine_status_word(value):
+        print value
+        if type(value)==list:
+            value = value[0]
+        print value
         value = value.strip()
         if not value.startswith('MST'):
             raise Exception('Cannot find suitable identifier \'MST\'')
