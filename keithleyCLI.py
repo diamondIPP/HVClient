@@ -263,6 +263,13 @@ class CLI(cmd.Cmd, Thread):
             print Exception
 
     #######################################
+    # do_LOG
+    #######################################
+    def do_LOG(self,line):
+        log_entry = line.split(None, 1)
+        name = command[0]
+        self.keithleys[name].add_log_entry(log_entry)
+    #######################################
     # do_NEWLOG
     #######################################
 
