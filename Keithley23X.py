@@ -234,7 +234,7 @@ class Keithley23X(HVInterface):
         value = value[2:]
         retVal.update(Keithley23X.extract_srq_mask_and_compliance_select(value[:6]))
         value = value[6:]
-        retVal.update*=(Keithley23X.extract_operate(value[:2]))
+        retVal.update(Keithley23X.extract_operate(value[:2]))
         value = value[2:]
         retVal.update(Keithley23X.extract_trigger_control(value[:2]))
         value = value[2:]
