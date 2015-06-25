@@ -115,7 +115,7 @@ class Keithley6517B(HVInterface):
 
     def identify(self):
         self.identifier = self.get_answer_for_query('*IDN?')
-        self.get_model_name()
+        self.model = self.get_model_name()
 
     def get_model_name(self):
         if self.identifier == '':
@@ -165,10 +165,11 @@ class Keithley6517B(HVInterface):
         self.set_voltage(voltage)
 
     def set_voltage(self, value):
+        value = value
         if self.max_voltage < math.fabs(value) and self.is_float(value):
             value = math.copysign(self.max_voltage, value)
             print 'set voltage to maximum allowed voltage: %s' % value
-        else:
+        elif not self.is_float(value):
             print 'invalid Voltage: %s' % value
             return -1
         return self.write(':SOUR:VOLT:LEV:IMM:AMPL %s' % value)
