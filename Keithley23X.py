@@ -155,7 +155,7 @@ class Keithley23X(HVInterface):
     def set_bias(self, voltage):
         if not -1100 < voltage < 1100:
             raise Exception('Range of Keithley 237 is from -1100.0 V to 1100.0 V')
-        self.set_voltage = voltage
+        self.target_voltage = voltage
         return self.__execute('B%1.3E,0,0' % voltage)
 
     def get_model_no_and_revision(self):

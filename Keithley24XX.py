@@ -149,7 +149,7 @@ class Keithley24XX(HVInterface):
 
     def set_bias(self, voltage):
         self.setVoltage(voltage)
-        self.set_voltage = voltage
+        self.target_voltage = voltage
         pass
 
     def get_output(self):

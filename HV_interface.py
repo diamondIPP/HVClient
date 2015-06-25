@@ -18,7 +18,7 @@ OFF = 0
 class HVInterface:
     def __init__(self, config, device_no=1, hot_start=False):
         self.device_no = device_no
-        self.set_voltage = 0
+        self.target_voltage = 0
         self.config = config
         self.section_name = 'HV%d' % self.device_no
         self.model_number = self.config.get(self.section_name, 'model')
@@ -57,7 +57,7 @@ class HVInterface:
         return self.set_output(OFF)
 
     def get_set_voltage(self):
-        return self.set_voltage
+        return self.target_voltage
 
     def get_device_name(self, log=0):
         space = ("_" if log else " ")
