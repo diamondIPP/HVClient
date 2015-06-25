@@ -129,6 +129,9 @@ class HVDevice(Thread):
             self.configure_log()
             self.last_day = day
             sleep(0.1)
+            
+    def add_log_entry(self,log_entry):
+        self.logger.warning(log_entry)
 
     def write_log(self):
         # write when device is turned ON or OFF
