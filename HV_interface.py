@@ -24,6 +24,7 @@ class HVInterface:
         self.section_name = 'HV%d' % self.device_no
         self.model_number = self.config.get(self.section_name, 'model')
         self.name = self.config.get(self.section_name, 'name')
+        self.model = ''
         pass
 
     def set_to_manual(self, status):
