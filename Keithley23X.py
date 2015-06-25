@@ -69,6 +69,7 @@ class Keithley23X(HVInterface):
 
     def set_output_sense_remote(self):
         return self.__execute('O1')
+    
     def set_averaging_filter_exponent(self,n):
         if 0 > n > 5:
              raise Exception('averaging Filter can only be between 0 - 5')
@@ -205,9 +206,45 @@ class Keithley23X(HVInterface):
     def extract_data(value):
         # NS DC V +1.2345 E+OO, D +12.345 E+OO, NM DC I +1.23456 E+OO, T +123.456 E+OO, B 0000 CRLF
         value = value.split(',')
+        retVal = {}
+        for entry in value:
+            if entry.startswith('NS'):
+                retVal.update(Keithley23X.extract_source_data(entry))
+            elif entry.startswith('D'):
+                retVal.update(Keithley23X.extract_delay(entry))
+            elif entry.startswith('NM'):
+                retVal.update(Keithley23X.extract_measure_data(entry))
+            elif entry.startswith('T'):
+                retVal.update(Keithley23X.extract_time_stamp(entry))
+            elif entry.startswith('B'):
+                retVal.update(Keithley23X.extract_buffer_location(entry))
+            else:
+                raise Exception('Cannot extract data from \'%s\''%entry) 
         return value
 #         source_prefix = value[:4]
-         
+    
+    @staticmethod
+    def extract_source_data(entry):
+        return {'source_data': entry}
+    
+    @staticmethod
+    def extract_delay(entry):
+        return {'delay':entry}
+        
+    @staticmethod
+    def extract_measure_data(entry):
+        return {'measure_data':entry}
+        
+    @staticmethod
+    def extract_time_stamp(entry):
+        timestamp = float(entry[1:])
+        return {'timestamp':timestamp}
+        
+    @staticmethod
+    def extract_buffer_location(entry):
+        buffer = int(entry[1:])
+        return {'buffer_location':buffer}
+    
     #returns model no and revision number
     @staticmethod
     def extract_model_no_and_revision(value):
