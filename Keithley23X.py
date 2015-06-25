@@ -8,6 +8,7 @@ import ConfigParser
 import serial
 from HV_interface import HVInterface
 from time import sleep,time
+import math
 
 # ============================
 # CONSTANTS
@@ -61,7 +62,7 @@ class Keithley23X(HVInterface):
         self.set_output_sense_local()
         self.set_integration_time(1)
         self.set_averaging_filter(1)
-        self.set_output_format()
+        self.set_output_data_format()
         pass
     
     def set_output_sense_local(self):
@@ -76,11 +77,14 @@ class Keithley23X(HVInterface):
         return self.__execute('P%d'%n)
     
     def set_averaging_filter(self,n):
-        exponent =  math.log(n)/math.log(2)
+        if n  == 0:
+            exponent = 0
+        else:
+            exponent =  math.log(n)/math.log(2)
+        n = int(exponent)
         if not exponent == int(exponent) or exponent > 5: 
             raise Exception('averaging Filter can only be a factor of 2**X, X in 0 ..5')
-        n = int(exponent)
-        return self.set_averaging_filter(n)
+        return self.set_averaging_filter_exponent(n)
     
     def set_integration_time(self,n):
         if 0 > n > 3:
