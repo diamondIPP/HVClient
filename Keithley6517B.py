@@ -73,6 +73,7 @@ class Keithley6517B(HVInterface):
             self.reset()
             self.clear_buffer()
             self.identify()
+            self.set_max_voltage()
             self.set_zero_check(False)
             self.config_readout()
             self.set_standard_output_format()
@@ -128,7 +129,7 @@ class Keithley6517B(HVInterface):
             print 'Connected Keithley Model %s' % self.model
 
     def set_max_voltage(self):
-        self.max_voltage = float(1000) if self.model == '6517B' else float(0)
+        self.max_voltage = 1000 if self.model == '6517B' else 0
 
     def set_zero_check(self, status):
         data = ':SYST:ZCH ON' if status else ':SYST:ZCH OFF'
