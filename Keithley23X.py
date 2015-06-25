@@ -7,7 +7,7 @@
 import ConfigParser
 import serial
 from HV_interface import HVInterface
-from time import sleep
+from time import sleep,time
 
 # ============================
 # CONSTANTS
@@ -50,8 +50,8 @@ class Keithley23X(HVInterface):
             self.bOpen = False
             pass
         if self.bOpen:
-             self.__write('++addr %d'%self.gbip)
-             retVal = self.__write('++addr ')
+             self.serial.write('++addr %d'%self.gbip)
+             retVal = self.__write('++addr ',1)
              print 'Set GBIP Address to %d'%self.gbip
         self.init_keithley(hot_start)
 
@@ -91,13 +91,19 @@ class Keithley23X(HVInterface):
             message+='X'
         return self.__write(message)[1][0]
 
-    def __write(self, message):
+    def __write(self, message,max_time=10):
         if not message.startswith('++') and (not message.endswith('\r\n')):
             message += '\r\n'
         if not self.bOpen:
             return -1,[]
         retVal = self.serial.write(message)
-        sleep(self.answer_time)
+        time0 = time()
+        while not self.serial.inWaiting():
+            time1 = time()
+            if time1-time0 > max_time:
+                break
+            pass
+        print 'DELTA T: ', time1-time0
         retMsg = []
         while self.serial.inWaiting():
             retMsg.append(self.serial.readline().strip('\r\n'))
@@ -218,11 +224,9 @@ class Keithley23X(HVInterface):
     
     @staticmethod
     def extract_machine_status_word(value):
-        # example: M ST G 0 1, 0, 0 K 0 M 0 0 0, 0 N 0 R 1 T 4, 0, 0, 0 V 1 Y 0 <TERM + EOI>
-        print value
+        # example: MSTG01,0,0K0M000,0N0R1T4,0,0,0V1Y0 <TERM + EOI>
         if type(value)==list:
             value = value[0]
-        print value
         value = value.strip()
         if not value.startswith('MST'):
             raise Exception('Cannot find suitable identifier \'MST\'')
@@ -338,7 +342,7 @@ class Keithley23X(HVInterface):
         # 1 =Operate
         if not value.startswith('N'):
             raise Exception ("Cannot extract operate, string doesn't start with \'N\', \'%s\'"%value)
-        retVal = {'operate': bool(value[1])}
+        retVal = {'operate': int(value[1])==1}
         return retVal
     
     @staticmethod
