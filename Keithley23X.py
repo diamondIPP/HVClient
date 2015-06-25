@@ -218,6 +218,7 @@ class Keithley23X(HVInterface):
     
     @staticmethod
     def extract_machine_status_word(value):
+        # example: M ST G 0 1, 0, 0 K 0 M 0 0 0, 0 N 0 R 1 T 4, 0, 0, 0 V 1 Y 0 <TERM + EOI>
         print value
         if type(value)==list:
             value = value[0]
@@ -246,34 +247,176 @@ class Keithley23X(HVInterface):
     
     @staticmethod
     def extract_output_data_format(value):
-        return value
+        #example: G 0 1, 0, 0
+        #G - Output Data Format
+        # Items (sum of bits)
+        # 00 =No items
+        # 01 = Source value
+        # 02 = Delay value
+        # 04 = Measure value
+        # 08 = Time value
+        # Format
+        # o =ASCII, prefix and suffix
+        # 1 = ASCII, prefix no suffix
+        # 2 =ASCII, no prefix or suffix
+        # 3 =HP binary
+        # 4 = IBM binary
+        # Lines
+        # o = One line from de buffer
+        # 1 = One line from sweep buffer
+        # 2 = All lines from sweep buffer
+        if not value.startwith('G'):
+            raise Exception ("Cannot extract output data format, string doesn't start with \'G\', \'%s\'"%value)
+        retVal={}
+        value = value[1:]
+        retVal['output_items'] = int(value[:2])
+        value = value[3:]
+        retVal['output_format'] = int(value[0])
+        value = value[2:]
+        retVal['output_lines'] = int (value)
+        return retVal
     
     @staticmethod
     def extract_eoi_and_bus_hold_off(value):
-        return value
+        # example: K 0
+        # K - EOI and Bus Hold-off
+        # O = Enable EOI and hold-off
+        # 1 = Disable EOI, enable hold-off
+        # 2 = Enable EOI, disable hold-off
+        # 3 = Disable EOI and hold-off
+        if not value.startwith('K'):
+            raise Exception ("Cannot extract eoi and bus hold off, string doesn't start with \'K\', \'%s\'"%value)
+        value = value[1:]
+        retVal = {}
+        if value == 0:
+            retVal['eoi'] = True
+            retVal['bus_hold_off'] = True
+        elif value == 1:
+            retVal['eoi'] = False
+            retVal['bus_hold_off'] = True
+        elif value == 2:
+            retVal['eoi'] = True
+            retVal['bus_hold_off'] = False
+        elif value == 3:
+            retVal['eoi'] = False
+            retVal['bus_hold_off'] = False
+        return retVal
     
     @staticmethod
     def extract_srq_mask_and_compliance_select(value):
-        return value
+        #example: M 0 0 0, 0
+        # M - SRQ Mask and Compliance
+        # Select
+        # Mask (sum of bits)
+        # 000 = Mask cleared
+        # 001 = Warning
+        # 002 = Sweep done
+        # 004 = Trigger out
+        # 008 = Reading done
+        # 016 = Ready for trigger
+        # 032 =Error
+        # 128 = Compliance
+        # Compliance
+        # O =Delay, measure, or idle compliance
+        # 1 = Measurement compliance
+        if not value.startwith('M'):
+            raise Exception ("Cannot extract srq mask and compliance select, string doesn't start with \'M\', \'%s\'"%value)
+        value = value[1:]
+        retVal = {}
+        retVal['srq_mask'] = int(value[:3])
+        value = value[4:]
+        retVal['compliance_select'] = bool(value)
+        return retVal
     
     @staticmethod
     def extract_operate(value):
-        return value
+        # example: N 0
+        # N-Operate
+        # O =Standby
+        # 1 =Operate
+        if not value.startwith('N'):
+            raise Exception ("Cannot extract operate, string doesn't start with \'N\', \'%s\'"%value)
+        retVal = {'operate': bool(value[1])}
+        return retVal
     
     @staticmethod
     def extract_trigger_control(value):
-        return value
+        # example: R1
+        # R - Trigger Control
+        # O = Disable triggering
+        # 1 = Enable triggering
+        if not value.startwith('R'):
+            raise Exception ("Cannot extract trigger control, string doesn't start with \'R\', \'%s\'"%value)
+        retVal = {'trigger_control': bool(value[1])}
+        return retVal
     
     @staticmethod
     def extract_trigger_configuration(value):
+        # example: T 4, 0, 0, 0
+        # T - Trigger Configuration
+        # Origin
+        # 0 = IEEEX
+        # 1 =IEEE GET
+        # 2 =IEEE talk
+        # 3 = External (TRIGGER IN pulse)
+        # 4 = Immediate trigger only
+        # Trigger In
+        # 0 = Continuous
+        # 1 = ·SRC DL Y MSR
+        # 2 = SRC·DL Y MSR
+        # 3 = ·SRC·DL Y MSR
+        # 4 = SRC DL Y·MSR
+        # 5 = ·SRC DL Y•MSR
+        # 6 = SRC·DL Y•MSR
+        # 7 = ·SRC·DLY·MSR
+        # 8 = ·Single Pulse
+        # Trigger Out
+        # 0 = None
+        # 1 = SRC•DL Y MSR
+        # 2 = SRC DL Y·MSR
+        # 3 = SRC•DL Y·MSR
+        # 4 = SRC DL Y MSR•
+        # 5 = SRC•DLY MSR•
+        # 6 = SRC DL Y·MSR•
+        # 7 = SRC•DL Y•MSR·
+        # 8 = Pulse End·
+        # Sweep End• Trigger Out
+        # 0 = Disabled
+        # 1 = Enabled
+        if not value.startwith('T'):
+            raise Exception ("Cannot extract trigger control, string doesn't start with \'T\', \'%s\'"%value)
+        value = value[1:]
+        retVal = {}
+        retVal['trigger_origin'] = int(value[0])
+        retVal['trigger_in'] = int(value[2])
+        retVal['triggger_out'] = int(value[4])
+        retVal['trigger_sweep_end_out'] = int(value[6])
         return value
     
     @staticmethod
     def extract_v1100_range_control(value):
-        return value
+        # example: V 1 
+        # V - 11OOV Range Control
+        # O = 11OOV Range Disabled
+        # 1 = 11OOV Range Enabled (237 only)
+        if not value.startwith('R'):
+            raise Exception ("Cannot extract v1100 range, string doesn't start with \'R\', \'%s\'"%value)
+        retVal = {'v1100_range': bool(value[1])}
+        return retVal
     
     @staticmethod
     def extract_terminator(value):
+        if not value.startwith('Y'):
+            raise Exception ("Cannot extract terminator, string doesn't start with \'Y\', \'%s\'"%value)
+        value = int(value[1])
+        if value == 0:
+            return {'terminator': '\cr\lf'}
+        elif value == 1:
+            return {'terminator': '\lf\cr'}
+        elif value == 2:
+            return {'terminator': '\cr'}
+        elif value == 3:
+            return {'terminator': ''}
         return value
     
     @staticmethod
