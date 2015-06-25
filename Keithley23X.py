@@ -227,21 +227,21 @@ class Keithley23X(HVInterface):
             raise Exception('Cannot find suitable identifier \'MST\'')
         value = value[3:]
         retVal = {}
-        retVal['output_data_format'] = self.extract_output_data_format(value[:7])
+        retVal['output_data_format'] = K23X.extract_output_data_format(value[:7])
         value = value[7:]
-        retVal['eoi_and_bus_hold_off'] = self.extract_eoi_and_bus_hold_off(value[:2])
+        retVal['eoi_and_bus_hold_off'] = K23X.extract_eoi_and_bus_hold_off(value[:2])
         value = value[2:]
-        retVal['srq_mask_and_compliance_select'] = self.extract_srq_mask_and_compliance_select(value[:6])
+        retVal['srq_mask_and_compliance_select'] = K23X.extract_srq_mask_and_compliance_select(value[:6])
         value = value[6:]
-        retVal['operate'] = self.extract_operate(value[:2])
+        retVal['operate'] = K23X.extract_operate(value[:2])
         value = value[2:]
-        retVal['trigger_control'] = self.extract_trigger_control(value[:2])
+        retVal['trigger_control'] = K23X.extract_trigger_control(value[:2])
         value = value[2:]
-        retVal['trigger_configuration'] = self.extract_trigger_configuration(value[:8])
+        retVal['trigger_configuration'] = K23X.extract_trigger_configuration(value[:8])
         value = value[8:]
-        retVal['v1100_range_control'] = self.extract_v1100_range_control(value[:2])
+        retVal['v1100_range_control'] = K23X.extract_v1100_range_control(value[:2])
         value = value[2:]
-        retVal['terminator'] = self.extract_terminator(value[:2])
+        retVal['terminator'] = K23X.extract_terminator(value[:2])
         return retVal
     
     @staticmethod
