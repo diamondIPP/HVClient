@@ -424,4 +424,4 @@ class Keithley23X(HVInterface):
 if __name__ == '__main__':
     conf = ConfigParser.ConfigParser()
     conf.read('keithley.cfg')
-    k237 = Keithley23X(conf, 2, False)
+    k237 = Keithley23X(conf, 3, False)
