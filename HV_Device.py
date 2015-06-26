@@ -5,6 +5,7 @@ __author__ = 'testbeam'
 # ============================
 from Keithley24XX import Keithley24XX
 from Keithley23X import Keithley23X
+from Keithley6517B import Keithley6517B
 from threading import Thread
 from ConfigParser import ConfigParser, NoOptionError
 from time import time, sleep, strftime
@@ -102,8 +103,10 @@ class HVDevice(Thread):
             self.interface = Keithley24XX(config, device_no, hot_start)
         elif model == (237 or 236 or 238):
             self.interface = Keithley23X(config, device_no, hot_start)
+        elif model == '6517B' or model == 6517:
+            self.interface = Keithley6517B(config, device_no, hot_start)
         else:
-            print "unkonwn model number: could not instantiate any device"
+            print "unknown model number: could not instantiate any device"
 
     # ============================
     # LOGGGING CONTROL
@@ -171,16 +174,12 @@ class HVDevice(Thread):
     # MAIN LOOP FOR THREAD (overwriting thread run)
     def run(self):
         self.log_control()
-        # now = time()
         while not self.isKilled:
             sleep(.1)
             if not self.manual:
                 self.update_voltage_current()
                 self.write_log()
                 self.ramp()
-                # self.update_voltage_current()
-                # now = time()
-                # self.write_log()
 
     # ============================
     # GET-FUNCTIONS
@@ -234,12 +233,17 @@ class HVDevice(Thread):
     def update_voltage_current(self):
         self.wait_for_device()
         self.isBusy = True
-        self.status = self.interface.getOutputStatus()
+        try:
+            self.status = self.interface.get_output_status()
+        except Exception as inst:
+            print 'Couldn not update voltage/current- get output status:', inst
+            self.isBusy = False
+            return
         if self.status:
             try:
                 iv = self.interface.read_iv()
-                self.bias_now = iv[0]
-                self.current_now = iv[1]
+                self.bias_now = iv['voltage']
+                self.current_now = iv['current']
                 self.last_update = time()
                 # print 'readIV',voltage,current,self.targetBias,rest
             except Exception as inst:
@@ -266,8 +270,6 @@ class HVDevice(Thread):
                 new_bias = self.target_bias
             else:
                 new_bias = self.bias_now + copysign(step_size, delta_v)
-                # print self.biasNow, step_size,delta_v
-
             self.isBusy = True
             self.interface.set_voltage(new_bias)
             if new_bias == self.target_bias and not self.powering_down:

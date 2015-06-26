@@ -129,7 +129,7 @@ class CLI(cmd.Cmd, Thread):
             keithley.wait_for_device()
             keithley.isBusy = True
             try:
-                keithley.setAverageFiltering(status)
+                keithley.set_average_filter(status)
             except Exception as inst:
                 print type(inst), inst
             keithley.isBusy = False

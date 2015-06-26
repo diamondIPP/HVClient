@@ -140,7 +140,6 @@ while myCLI.running:
 
             # First try to change the voltage
             # v.ramp()
-
             # Then update GUI and display
             value = datetime.datetime.fromtimestamp(v.get_update_time())
             voltage = v.get_bias()

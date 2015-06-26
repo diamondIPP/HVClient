@@ -16,7 +16,7 @@ OFF = 0
 # MAIN CLASS
 # ============================
 class HVInterface:
-    def __init__(self, config, device_no=1, hot_start=False):
+    def __init__(self, config, device_no=1):  # , hot_start=False):
         self.device_no = device_no
         self.target_voltage = 0
         self.config = config
@@ -65,6 +65,7 @@ class HVInterface:
         return out
 
     def get_model_name(self):
+        print 'blasd'
         pass
 
     @staticmethod
