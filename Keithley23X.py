@@ -22,6 +22,7 @@ OFF = 0
 # ============================
 class Keithley23X(HVInterface):
     def __init__(self, config, device_no=1, hot_start=False):
+        self.Busy = False
         HVInterface.__init__(self, config, device_no)
         self.bOpen = False
         self.serialPortName = config.get(self.section_name, 'address')
@@ -32,6 +33,7 @@ class Keithley23X(HVInterface):
         self.identifier = None
         self.answer_time = 0.1
         self.open_serial_port(hot_start)
+        self.init_keithley(hot_start)
         pass
 
     def open_serial_port(self, hot_start):
@@ -54,7 +56,6 @@ class Keithley23X(HVInterface):
              self.serial.write('++addr %d'%self.gbip)
              retVal = self.__write('++addr ',1)
              print 'Set GBIP Address to %d'%self.gbip
-        self.init_keithley(hot_start)
 
     def init_keithley(self, hot_start):
         self.set_source_voltage_dc()
@@ -125,12 +126,19 @@ class Keithley23X(HVInterface):
         message = message.strip('\r\n')
         if not message.endswith('X'):
             message+='X'
-        return self.__write(message)[1][0]
+        return self.__write(message)[1][-1]
 
     def __write(self, message,max_time=10):
+        time0 = time()
+        while self.Busy:
+            if time()-time0 > 10:
+                raise StandardError('Cannot write - device is busy')
+            sleep (.1)
+        self.Busy = True
         if not message.startswith('++') and (not message.endswith('\r\n')):
             message += '\r\n'
         if not self.bOpen:
+            self.Busy = False
             return -1,[]
         retVal = self.serial.write(message)
         time0 = time()
@@ -140,9 +148,19 @@ class Keithley23X(HVInterface):
                 break
             pass
         # print 'DELTA T: ', time1-time0
+        sleep(.1)
         retMsg = []
-        while self.serial.inWaiting():
-            retMsg.append(self.serial.readline().strip('\r\n'))
+        exception_counter = 0
+        while self.serial.inWaiting() and exception_counter < 10:
+            try:
+                retMsg.append(self.serial.readline().strip('\r\n'))
+            except serial.SerialException, e:
+                print 'Serial Exception! ',e
+                exception_counter += 1
+            except Exception,e:
+                self.Busy =  False
+                raise e
+        self.Busy = False
         return retVal,retMsg
 
     def set_output(self, status):
@@ -156,7 +174,9 @@ class Keithley23X(HVInterface):
         if not -1100 < voltage < 1100:
             raise Exception('Range of Keithley 237 is from -1100.0 V to 1100.0 V')
         self.target_voltage = voltage
-        return self.__execute('B%1.3E,0,0' % voltage)
+        execute_string = 'B%1.3E,0,0' % voltage
+        # print 'set bias to %d V'%voltage,execute_string
+        return self.__execute(execute_string)
 
     def get_model_no_and_revision(self):
         retVal = self.__execute('U0')
@@ -175,7 +195,11 @@ class Keithley23X(HVInterface):
     def get_machine_status_word(self):
         retVal =  self.__execute('U3')
         # print retVal
-        return self.extract_machine_status_word(retVal)
+        try:
+            return self.extract_machine_status_word(retVal)
+        except Exception as e:
+            print "Couldn't convert machine status word '%s', exception: %s"%(retVal,e)
+            raise Exception("Couldn't convert '%s', exception: %s"%(retVal,e))
 
     def get_measurement_parameters(self):
         retVal = self.__execute('U4')
@@ -316,30 +340,36 @@ class Keithley23X(HVInterface):
         return value
     
     @staticmethod
-    def extract_machine_status_word(value):
+    def extract_machine_status_word(rawvalue):
         # example: MSTG01,0,0K0M000,0N0R1T4,0,0,0V1Y0 <TERM + EOI>
+        value = rawvalue
         if type(value)==list:
             value = value[0]
         value = value.strip()
         if not value.startswith('MST'):
             raise Exception('Cannot find suitable identifier \'MST\'')
-        value = value[3:]
-        retVal = {}
-        retVal.update(Keithley23X.extract_output_data_format(value[:7]))
-        value = value[7:]
-        retVal.update(Keithley23X.extract_eoi_and_bus_hold_off(value[:2]))
-        value = value[2:]
-        retVal.update(Keithley23X.extract_srq_mask_and_compliance_select(value[:6]))
-        value = value[6:]
-        retVal.update(Keithley23X.extract_operate(value[:2]))
-        value = value[2:]
-        retVal.update(Keithley23X.extract_trigger_control(value[:2]))
-        value = value[2:]
-        retVal.update(Keithley23X.extract_trigger_configuration(value[:8]))
-        value = value[8:]
-        retVal.update(Keithley23X.extract_v1100_range_control(value[:2]))
-        value = value[2:]
-        retVal.update(Keithley23X.extract_terminator(value[:2]))
+        try:
+            value = value[3:]
+            retVal = {}
+            retVal.update(Keithley23X.extract_output_data_format(value[:7]))
+            value = value[7:]
+            retVal.update(Keithley23X.extract_eoi_and_bus_hold_off(value[:2]))
+            value = value[2:]
+            retVal.update(Keithley23X.extract_srq_mask_and_compliance_select(value[:6]))
+            value = value[6:]
+            retVal.update(Keithley23X.extract_operate(value[:2]))
+            value = value[2:]
+            retVal.update(Keithley23X.extract_trigger_control(value[:2]))
+            value = value[2:]
+            retVal.update(Keithley23X.extract_trigger_configuration(value[:8]))
+            value = value[8:]
+            retVal.update(Keithley23X.extract_v1100_range_control(value[:2]))
+            value = value[2:]
+            retVal.update(Keithley23X.extract_terminator(value[:2]))
+        except Exception,e:
+            print 'error while converting \'%s\''%rawvalue
+            raise e
+
         return retVal
     
     @staticmethod
@@ -656,15 +686,16 @@ class Keithley23X(HVInterface):
         return warning
 
     def get_output(self):
-        return self.get_machine_status_word()['operate']
-        pass
+        retVal = self.get_machine_status_word()
+        if not retVal.has_key('operate'):
+            raise IndexError('Cannot find operate in machine status word: %s'%retVal)
+        return retVal['operate']
 
     def getOutputStatus(self):
-        self.get_output()
+        return self.get_output()
 
     def read_iv(self):
         retVal =  self.__execute('H0')
-        print 'read_iv',retVal
         converted = self.extract_data(retVal)
         current = converted['measure_value']
         voltage = converted['source_value']
