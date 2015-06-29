@@ -32,11 +32,11 @@ class Keithley23X(HVInterface):
         self.model = 237
         self.identifier = None
         self.answer_time = 0.1
-        self.open_serial_port(hot_start)
+        self.open_serial_port()
         self.init_keithley(hot_start)
         pass
 
-    def open_serial_port(self, hot_start):
+    def open_serial_port(self):
         try:
             self.serial = serial.Serial(
                 port=self.serialPortName,
@@ -52,6 +52,9 @@ class Keithley23X(HVInterface):
             print 'Could not open serial Port: \'%s\'' % self.serialPortName
             self.bOpen = False
             pass
+        self.set_gbip_address()
+
+    def set_gbip_address(self):
         if self.bOpen:
              self.serial.write('++addr %d'%self.gbip)
              retVal = self.__write('++addr ',1)
