@@ -29,7 +29,7 @@ class Keithley2657(HVInterface):
         self.identifier = None
         self.answer_time = 0.1
         self.open_tcp_connection()
-        self.init_keithley(hot_start)
+        #self.init_keithley(hot_start)
 
 
     def open_tcp_connection(self):
@@ -42,29 +42,71 @@ class Keithley2657(HVInterface):
         self.set_voltage_source_function()
         self.set_voltage_measure_autorange(True)
         self.set_bias(1000)
-        self.set_current_measure_range(20e-3)
+        self.set_measure_range_current(20e-3)
         self.set_source_limit(10e-3)
-        self.set_ON()
+        self.set_on()
 
+    def __query(self,query):
+        return self.inst.query(query).strip('\n')
+
+    def __write(self,value):
+        print 'write',value
+        retVal =  self.inst.write(value)
+        sleep(1)
+        return retVal
+
+    def __read(self):
+        return self.inst.read()
+
+    def __print(self,value):
+        return self.__query('print(%s)'%value)
+
+    def print2(self,value):
+        return self.__print(value)
+    
+    def query(self,value):
+        return self.__query(value)
+
+    def query_float(self,query):
+        return float(self.__query(query))
+    
+    def query_int(self,query):
+        return int(self.__query(query))
+
+    def query_bool(self,query):
+        return bool(self.__query(query))
+
+    def write(self,value):
+        return self.__write(value)
+
+    def get_next_error_message(self):
+        error_count = int(float(self.__print('errorqueue.count')))
+        retVal = self.__query('errorcode, message = errorqueue.next() \n print(errorcode, message)')
+        retVal=retVal.split('\t')
+        error_code = int(float(retVal[0]))
+        error_msg = retVal[1]
+        return error_count,error_code,error_msg
+
+    
 
     def get_identifier(self):
-        return self.inst.query('*IDN?')
+        return self.__query('*IDN?')
     
     def set_autozero_off(self):
-        self.inst.write('smua.measure.autozero = smua.AUTOZERO_OFF')
+        self.__write('smua.measure.autozero = smua.AUTOZERO_OFF')
         
     def set_autozero_once(self):
-        self.inst.write('smua.measure.autozero = smua.AUTOZERO_ONCE')
+        self.__write('smua.measure.autozero = smua.AUTOZERO_ONCE')
         
     def set_autozero_auto(self):
-        self.inst.write('smua.measure.autozero = smua.AUTOZERO_AUTO')
+        self.__write('smua.measure.autozero = smua.AUTOZERO_AUTO')
         
     # Enable current measure autorange.
     def set_current_measure_autorange(self,value):
         if value:
-            self.inst.write('smua.measure.autorangei = smua.AUTORANGE_ON')
+            self.__write('smua.measure.autorangei = smua.AUTORANGE_ON')
         else:
-            self.inst.write('smua.measure.autorangei = smua.AUTORANGE_OFF')
+            self.__write('smua.measure.autorangei = smua.AUTORANGE_OFF')
             
     def get_current_measure_autorange(self):
         return self.inst.query('print(smua.measure.autorangei)')
@@ -72,40 +114,41 @@ class Keithley2657(HVInterface):
     # Enable voltage measure autorange.
     def set_voltage_measure_autorange(self,value):
         if value:
-            self.inst.write('smua.measure.autorangev = smua.AUTORANGE_ON')
+            self.__write('smua.measure.autorangev = smua.AUTORANGE_ON')
         else:
-            self.inst.write('smua.measure.autorangev = smua.AUTORANGE_OFF')
+            self.__write('smua.measure.autorangev = smua.AUTORANGE_OFF')
     
     def get_voltage_measure_autorange(self):
         return self.inst.query('print(smua.measure.autorangev)')
     
     def reset(self):
-        return self.inst.write('smua.reset()')
+        print 'reset'
+        return self.__write('smua.reset()')
     
     def set_voltage_source_function(self):
-        return self.inst.write('smua.source.func = smua.OUTPUT_DCVOLTS')
+        return self.__write('smua.source.func = smua.OUTPUT_DCVOLTS')
     
     def set_bias(self,voltage):
-        retVal = self.inst.write('smua.source.levelv = %f'%voltage)
+        retVal = self.__write('smua.source.levelv = %f'%voltage)
         self.set_voltage = voltage
         return self.get_bias()
     
     def set_source_limit(self,limit):
-        retVal = self.inst.write('smua.source.limiti = %3.3E'%limit)
+        retVal = self.__write('smua.source.limiti = %3.3E'%limit)
         return self.get_source_limit()
         
     def get_source_limit(self):
-        return self.inst.query('smua.source.limiti')
+        return self.query_float('print(smua.source.limiti)')
     
     def set_measure_range_current(self,range):
-        retVal = self.inst.write('smua.measure.rangei = %5.2E'%range)
+        retVal = self.__write('smua.measure.rangei = %5.2E'%range)
         return self.get_measure_range_current()
     
     def get_measure_range_current(self):
-        return self.inst.query('smua.measure.rangei')
+        return self.query_float('print(smua.measure.rangei)')
 
     def get_bias(self):
-        return self.inst.query('print(smua.source.levelv)')    
+        return self.query_float('print(smua.source.levelv)')    
     
     def read_current(self):
         return self.query('smua.measure.i()')
@@ -118,11 +161,13 @@ class Keithley2657(HVInterface):
         return retVal
     
     def set_output(self,status):
-        self.write('smua.source.output = %d'%status)
-        return self.get_output(self)
+        self.__write('smua.source.output = %d'%status)
+        return self.get_output()
     
     def get_output(self):
-        return self.query('print(smua.source.output)')
+        retVal =  self.query_float('print(smua.source.output)')
+        #todo check 
+        return retVal == 0.
 
 if __name__ == '__main__':
     conf = ConfigParser.ConfigParser()
