@@ -691,7 +691,7 @@ class Keithley23X(HVInterface):
             raise IndexError('Cannot find operate in machine status word: %s'%retVal)
         return retVal['operate']
 
-    def getOutputStatus(self):
+    def get_output_status(self):
         return self.get_output()
 
     def read_iv(self):
