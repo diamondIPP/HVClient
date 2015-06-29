@@ -3,7 +3,6 @@
 # ============================
 # IMPORTS
 # ============================
-# import ConfigParser
 
 
 # ============================
@@ -17,11 +16,17 @@ OFF = 0
 # MAIN CLASS
 # ============================
 class HVInterface:
-    def __init__(self, config, device_no=1, hot_start=False):
-        self.__device_no = device_no
-        self.set_voltage = 0
+    def __init__(self, config, device_no=1):  # , hot_start=False):
+        self.device_no = device_no
+        self.target_voltage = 0
         self.config = config
-        self.section_name = 'HV%d' % self.__device_no
+        self.section_name = 'HV%d' % self.device_no
+        self.model_number = self.config.get(self.section_name, 'model')
+        self.name = self.config.get(self.section_name, 'name')
+        self.model = ''
+        pass
+
+    def set_to_manual(self, status):
         pass
 
     def set_output(self, status):
@@ -39,11 +44,10 @@ class HVInterface:
     def read_voltage(self):
         pass
 
-    def get_model_name(self):
+    def read_iv(self):
         pass
 
     def set_voltage(self, value):
-
         return self.set_bias(value)
 
     def set_on(self):
@@ -53,7 +57,16 @@ class HVInterface:
         return self.set_output(OFF)
 
     def get_set_voltage(self):
-        return self.set_voltage
+        return self.target_voltage
+
+    def get_device_name(self, log=0):
+        space = ("_" if log else " ")
+        out = self.section_name + space + self.name + space + self.model_number
+        return out
+
+    def get_model_name(self):
+        print 'blasd'
+        pass
 
     @staticmethod
     def is_number(s):

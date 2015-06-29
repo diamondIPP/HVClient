@@ -1,5 +1,5 @@
 # import keithleyInterface
-from keithley24XX_interface import Keithley24XX
+from keithley24XX import Keithley24XX
 import ConfigParser
 import time
 import math
@@ -124,7 +124,7 @@ class KeithleyDevice(Keithley24XX, Thread):
         self.status = self.getOutputStatus()
         if self.status:
             try:
-                [voltage, current, rest] = self.readIV()
+                [voltage, current, rest] = self.read_iv()
                 self.biasNow = voltage
                 self.currentNow = current
                 self.lastUpdate = time.time()

@@ -19,7 +19,7 @@ import datetime
 import Tkinter
 
 # Command Line Interface
-from keithleyCLI import CLI
+from CLI import CLI
 import DeviceReader
 
 
@@ -57,11 +57,11 @@ def query(hot=0):
 
 if args.hotstart:
     print '\nENABLED HOTSTART. All Keitlheys should already be ON\n'
-    print 'You want to have HOTSTART enabled? (yes/no)'
+    print 'You want to have HOTSTART enabled? (yes/no)',
     hotstart = query(1)
 else:
     print '\nDISABLED HOTSTART. All Keitlheys will be reset.\n'
-    print 'You want to have HOTSTART disabled? (yes/no)'
+    print 'You want to have HOTSTART disabled? (yes/no)',
     hotstart = query(0)
 
 
@@ -71,12 +71,11 @@ else:
 
 # The CLI gets its own thread. Tkinter (display GUI) needs to be the
 # main thread.
-
-keithleys = DeviceReader.get_keithleys(config, hotstart)
-for k in keithleys:
-    keithleys[k].start()
+devices = DeviceReader.get_devices(config, hotstart)
+for k in devices:
+    devices[k].start()
 myCLI = CLI()
-myCLI.set_keithleys(keithleys)
+myCLI.set_keithleys(devices)
 myCLI.start()
 
 
@@ -104,7 +103,7 @@ di_vars = {}
 di_labels = {}
 
 # create labels and hook them up with variables
-for name in keithleys.keys():
+for name in devices.keys():
     tmp = Tkinter.StringVar()
     di_vars[name] = tmp
     di_labels[name] = Tkinter.Label(root, textvariable=tmp, font="Courier", justify=Tkinter.LEFT)
@@ -129,7 +128,7 @@ while myCLI.running:
     now = time.time()
 
     # Loop over the keithleys, get the voltages and update the display
-    for k, v in sorted(keithleys.iteritems(), key=lambda x: x[0]):
+    for k, v in sorted(devices.iteritems(), key=lambda x: x[0]):
 
         if not myCLI.running:
             break
@@ -140,8 +139,7 @@ while myCLI.running:
         if status:
 
             # First try to change the voltage
-            v.ramp()
-
+            # v.ramp()
             # Then update GUI and display
             value = datetime.datetime.fromtimestamp(v.get_update_time())
             voltage = v.get_bias()

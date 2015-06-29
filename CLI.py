@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
-""" Keithley_CLI.py: Command line interface
+""" CLI.py: Command line interface
 """
-
 
 #######################################
 # Imports
@@ -24,43 +23,40 @@ class CLI(cmd.Cmd, Thread):
         cmd.Cmd.__init__(self)
         Thread.__init__(self)
         self.running = True
-        self.keithleys = {}
+        self.devices = {}
 
     def run(self):
         self.cmdloop()
 
     def set_keithleys(self, keithleys):
         """ set a map of  keithley devices"""
-        self.keithleys = keithleys
-        print 'set keithleys'
+        self.devices = keithleys
+        print '\nFollowing devices were set up:'
         for name in keithleys:
-            print name, keithleys[name].name
+            print name, keithleys[name].interface.name, keithleys[name].name
 
     def do_exit(self, line=''):
         """Quit CLI"""
 
         # Turn off the devices
-        for k in self.keithleys.keys():
-            self.keithleys[k].isKilled = True
+        for k in self.devices.keys():
+            self.devices[k].isKilled = True
 
         self.running = False
         return True
 
-    def exit(self):
-        self.do_exit('')
-
     def do_EOF(self, line):
-        for k in self.keithleys.keys():
-            self.keithleys[k].isKilled = True
+        for k in self.devices.keys():
+            self.devices[k].isKilled = True
         self.running = False
         return True
 
     def do_names(self, line):
         """Print connected Keithley devices"""
 
-        print 'There are %d Keithleys connected:' % len(self.keithleys)
+        print 'There are %d Keithleys connected:' % len(self.devices)
         k = 1
-        for i in self.keithleys:
+        for i in self.devices:
             print k, i
             k += 1
 
@@ -68,14 +64,14 @@ class CLI(cmd.Cmd, Thread):
     # do_ON / do_OFF
     #######################################
 
-    def setOutput(self, name, status):
+    def set_output(self, name, status):
         print 'Set Output %d: %s' % (status, name)
         if name.upper() == 'ALL':
-            for k in self.keithleys:
-                self.setOutput(k, status)
+            for k in self.devices:
+                self.set_output(k, status)
             return
-        if self.keithleys.has_key(name):
-            keithley = self.keithleys[name]
+        if self.devices.has_key(name):
+            keithley = self.devices[name]
             keithley.wait_for_device()
             keithley.isBusy = True
             try:
@@ -93,14 +89,14 @@ class CLI(cmd.Cmd, Thread):
         Usage: ON KeithleyName
         (ON ALL to turn on all devices)
         """
-        self.setOutput(line, True)
+        self.set_output(line, True)
 
     def do_OFF_FAST(self, line):
         """ Set output of device to OFF.
         Usage: OFF_FAST KeithleyName
         (OFF_FAST ALL to turn on all devices)
         """
-        self.setOutput(line, False)
+        self.set_output(line, False)
 
     def do_OFF(self, line):
         """ Set output of device to OFF.
@@ -111,10 +107,10 @@ class CLI(cmd.Cmd, Thread):
         try:
             name = line.split()[0]
             if name.upper() == 'ALL':
-                for k in self.keithleys:
+                for k in self.devices:
                     self.do_OFF(k)
             else:
-                self.keithleys[name].power_down()
+                self.devices[name].power_down()
 
         except Exception as inst:
             print type(inst), inst
@@ -125,11 +121,11 @@ class CLI(cmd.Cmd, Thread):
     def setFilter(self, name, status):
         print 'Set Filter %d: %s' % (status, name)
         if name.upper() == 'ALL':
-            for k in self.keithleys:
+            for k in self.devices:
                 self.setFilter(k, status)
             return
-        if self.keithleys.has_key(name):
-            keithley = self.keithleys[name]
+        if self.devices.has_key(name):
+            keithley = self.devices[name]
             keithley.wait_for_device()
             keithley.isBusy = True
             try:
@@ -157,19 +153,20 @@ class CLI(cmd.Cmd, Thread):
     # do_MANUAL
     #######################################
 
-    def set_manual(self, name, status):
+    def set_to_manual(self, name, status):
         """ (De-)Activates manual control mode.
         MANUAL KeithleyName status
         status should be 0/1
         ('MANUAL ALL 0/1' sets all devices)"""
         try:
-            keithley = self.keithleys[name]
-        except Exception as inst:
+            device = self.devices[name]
+            try:
+                device.set_to_manual(status)
+            except Exception as inst:
+                print type(inst), inst
+        except Exception:
             print 'cannot find keithley with name "%s"' % name
-        try:
-            keithley.set_manual(status)
-        except Exception as inst:
-            print type(inst), inst
+
 
     def do_MANUAL(self, line):
         try:
@@ -179,12 +176,12 @@ class CLI(cmd.Cmd, Thread):
             print 'Wrong input for MANUAL', line
             return
         if name.upper() == 'ALL':
-            for k in self.keithleys:
-                self.set_manual(k, status)
+            for k in self.devices:
+                self.set_to_manual(k, status)
         else:
             try:
-                keithley = self.keithleys[name]
-                keithley.set_manual(status)
+                device = self.devices[name]
+                device.set_to_manual(status)
             except:
                 print 'cannot find keithley with name "%s"' % name
 
@@ -195,8 +192,8 @@ class CLI(cmd.Cmd, Thread):
     def setBias(self, name, target_bias):
 
         try:
-            if self.keithleys.has_key(name):
-                keithley = self.keithleys[name]
+            if self.devices.has_key(name):
+                keithley = self.devices[name]
 
                 min_bias = keithley.min_bias
                 max_bias = keithley.max_bias
@@ -231,8 +228,8 @@ class CLI(cmd.Cmd, Thread):
         try:
             command = line.split(None, 1)
             name = command[0]
-            if self.keithleys.has_key(name):
-                keithley = self.keithleys[name]
+            if self.devices.has_key(name):
+                keithley = self.devices[name]
                 keithley.wait_for_device()
                 keithley.isBusy = True
                 try:
@@ -250,7 +247,7 @@ class CLI(cmd.Cmd, Thread):
         """Call read for device"""
         try:
             name = line
-            keithley = self.keithleys[name]
+            keithley = self.devices[name]
             keithley.wait_for_device()
             keithley.isBusy = True
             try:
@@ -267,8 +264,8 @@ class CLI(cmd.Cmd, Thread):
     #######################################
     def do_LOG(self,line):
         log_entry = line.split(None, 1)
-        name = command[0]
-        self.keithleys[name].add_log_entry(log_entry)
+        name = log_entry[0]
+        self.devices[name].add_log_entry(log_entry[1])
     #######################################
     # do_NEWLOG
     #######################################
