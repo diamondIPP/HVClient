@@ -245,7 +245,7 @@ class Keithley2657(HVInterface):
         return self.print_int('smua.measure.filter.count')
 
     def set_measure_filter_count(self,value):
-        self.set_value('smua.measure.filter.count',value)
+        self.__set_value('smua.measure.filter.count',value)
         return self.get_measure_filter_count()
 
     def get_measure_filter_enable(self):
@@ -278,7 +278,7 @@ class Keithley2657(HVInterface):
         self.__set_value('smua.measure.filter.type','smua.FILTER_REPEAT_AVG')
         return self.get_measure_filter_type()
 
-    def get_measure_integration_aperture(self)
+    def get_measure_integration_aperture(self):
         self.print_int('smua.measure.nplc')
 
     def set_measure_integration_aperture(self,value):
