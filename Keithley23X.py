@@ -23,7 +23,7 @@ OFF = 0
 class Keithley23X(HVInterface):
     def __init__(self, config, device_no=1, hot_start=False):
         self.Busy = False
-        HVInterface.__init__(self, config, device_no)
+        HVInterface.__init__(self, config, device_no,hot_start)
         self.bOpen = False
         self.serialPortName = config.get(self.section_name, 'address')
         self.gbip = config.getint(self.section_name, 'gbip')
@@ -64,8 +64,8 @@ class Keithley23X(HVInterface):
         self.set_source_voltage_dc()
         self.set_1100V_range(True)
         self.set_output_sense_local()
-        self.set_integration_time(1)
-        self.set_averaging_filter(1)
+        self.set_integration_time(2)
+        self.set_averaging_filter(2)
         self.set_output_data_format()
         if not hot_start:
             self.set_off()

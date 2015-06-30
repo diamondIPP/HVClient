@@ -50,7 +50,7 @@ class Keithley2657(HVInterface):
         self.set_autozero_auto()
         self.set_voltage_source_function()
         self.set_voltage_measure_autorange(True)
-        self.set_bias(1000)
+        self.set_bias(-600)
         self.set_measure_range_current(10e-6)
         self.set_current_protection(10e-6)
         self.set_measure_filter_count(10)

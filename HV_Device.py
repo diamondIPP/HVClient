@@ -84,7 +84,7 @@ class HVDevice(Thread):
         self.logger = logging.getLogger(self.section_name)
         self.fh = None
         self.configure_log()
-        self.last_day = strftime('%d')
+        self.last_day = strftime('%H')
         self.last_status = self.status
         self.last_ramp = False
 
@@ -136,8 +136,9 @@ class HVDevice(Thread):
 
     # make new logfile when the day changes
     def log_control(self):
-        day = strftime('%d')
+        day = strftime('%H')
         if day != self.last_day:
+            print 'a new hour just begun...'
             self.configure_log()
             self.last_day = day
             sleep(0.1)
@@ -173,8 +174,8 @@ class HVDevice(Thread):
     # ============================
     # MAIN LOOP FOR THREAD (overwriting thread run)
     def run(self):
-        self.log_control()
         while not self.isKilled:
+            self.log_control()
             sleep(.1)
             if not self.manual:
                 self.update_voltage_current()
