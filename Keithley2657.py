@@ -22,7 +22,6 @@ OFF = 0
 class Keithley2657(HVInterface):
     def __init__(self, config, device_no=1, hot_start=False):
         HVInterface.__init__(self, config, device_no, hot_start)
-        self.
         self.bOpen = False
         self.ip_address = config.get(self.section_name, 'ip_address')
         self.rm = visa.ResourceManager('@py')
@@ -79,10 +78,12 @@ class Keithley2657(HVInterface):
     def __write(self,value):
         print 'write',value
         retVal =  self.inst.write(value)
-        sleep(1)
+        sleep(.1)
         return retVal
 
     def __set_value(self,variable,value):
+        if type(value) == bool:
+            value = int(value)
         self.__write('%s = %s'%(variable,value))
 
     def __read(self):
@@ -209,16 +210,16 @@ class Keithley2657(HVInterface):
     def get_compliance_control(self):
         return self.print_bool('smua.source.compliance')
 
-    def set_compliance_control(self,value=True):
-        if value:
-            self.__set_value('smua.source.compliance','true')
-        else:
-            self.__set_value('smua.source.compliance','false')
-        return self.get_compliance_control)()
+    #def set_compliance_control(self,value=True):
+    #    if value:
+    #        self.__set_value('smua.source.compliance','true')
+    #    else:
+    #        self.__set_value('smua.source.compliance','false')
+    #    return self.get_compliance_control()
 
     def set_source_limit(self,limit):
         retVal = self.__write('smua.source.limiti = %3.3E'%limit)
-        self.set_compliance_control(True)
+        #self.set_compliance_control(True)
         return self.get_source_limit()
 
     def set_current_protection(self,limit):
