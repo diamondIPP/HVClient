@@ -7,6 +7,7 @@ __author__ = 'bachmair'
 # ============================
 import ConfigParser
 import visa
+import socket
 from HV_interface import HVInterface
 from time import sleep,time
 
@@ -41,18 +42,51 @@ class Keithley2657(HVInterface):
         if self.config.has_option(self.section_name,'measure_range'):
             self.measure_range_current = float(self.config.get(self.section_name,'measure_range'))
         pass
+    
+    def check_port(self,port_no):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        result = sock.connect_ex((self.ip_address,port_no))
+        sock.send('CLOSE')
+        if result == 0:
+            print "Port is open"
+            retVal = True
+        else:
+            print "Port is not open"
+            retVal =  False
+        sock.shutdown(1)
+        #while(s.read(sock, ...)=0) 
+        sock.close()
+        return retVal
+            
+    def close_all_open_connections(self):
+        port=5030
+        print 'closing all open connections by opening/closing port %d'%port
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect((self.ip_address,port))
+        s.send('CLOSE')
+        #while(s.read(sock, ...)=0) 
+        s.shutdown(1)
+        s.close()
+
+        #import socket
     def open_tcp_connection(self):
+        self.close_all_open_connections()
+        print '\nOpen TCP connection', self.check_port(1024)
+        print '\n'
         resource_name = "TCPIP::%s::INSTR"%self.ip_address
         self.inst = self.rm.open_resource(resource_name)
     
     def init_keithley(self,hot_start=False):
-        if hot_start:
-            self.clear_buffer()
-            self.identify()
-            self.clear_error_queue()
-            return
-        self.reset()
-        self.set_output(False)
+        #if hot_start:
+        #    self.set_display_digits()
+        #    self.set_display_current()
+        #    self.clear_buffer()
+        #    self.identify()
+        #    self.clear_error_queue()
+        #    return
+        if not hot_start:
+            self.reset()
+            self.set_output(False)
         self.clear_status()
         self.clear_errorqueue()
         self.clear_eventlog()
@@ -72,14 +106,13 @@ class Keithley2657(HVInterface):
         self.set_measure_speed_normal()
         self.set_display_current()
 
-
     def __query(self,query):
         return self.inst.query(query).strip('\n')
 
     def __write(self,value):
-        print 'write',value
+        #print 'write',value
         retVal =  self.inst.write(value)
-        sleep(.1)
+        #sleep(.1)
         return retVal
 
     def __set_value(self,variable,value):
@@ -204,8 +237,9 @@ class Keithley2657(HVInterface):
         return self.__write('smua.source.func = smua.OUTPUT_DCVOLTS')
     
     def set_bias(self,voltage):
+        #print 'set_bias: ',voltage,type(voltage)
         retVal = self.__write('smua.source.levelv = %f'%voltage)
-        self.set_voltage = voltage
+        self.target_voltage = voltage
         return self.get_bias()
 
     def get_compliance_control(self):
@@ -256,7 +290,7 @@ class Keithley2657(HVInterface):
     
     def get_output(self):
         retVal =  self.print_bool('smua.source.output')
-        return retVal == 0.
+        return retVal
 
     def get_output_status(self):
         return self.get_output()
@@ -361,6 +395,17 @@ class Keithley2657(HVInterface):
 
     def set_display_current(self):
         self.__set_value('display.smua.measure.func','display.MEASURE_DCAMPS')
+    
+    def set_display_digits(self,value=6):
+        if not value in [4,5,6]:   
+            raise ValueError('Invalid no of display digits. %d'%value)
+        if value == 4:
+            self.__set_value('display.smua.digits','display.DIGITS_4_5')
+        elif value == 5:
+            self.__set_value('display.smua.digits','display.DIGITS_5_5')
+        elif value == 6:
+            self.__set_value('display.smua.digits','display.DIGITS_6_5')
+        
 if __name__ == '__main__':
     conf = ConfigParser.ConfigParser()
     conf.read('keithley.cfg')
