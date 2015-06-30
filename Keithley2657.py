@@ -31,7 +31,7 @@ class Keithley2657(HVInterface):
         self.open_tcp_connection()
         self.max_voltage = 3000
         self.read_config()
-        #self.init_keithley(hot_start)
+        self.init_keithley(hot_start)
 
     def read_config(self):
         self.compliance = 1e-6
@@ -52,6 +52,7 @@ class Keithley2657(HVInterface):
             self.clear_error_queue()
             return
         self.reset()
+        self.set_output(False)
         self.clear_status()
         self.clear_errorqueue()
         self.clear_eventlog()
@@ -256,6 +257,9 @@ class Keithley2657(HVInterface):
     def get_output(self):
         retVal =  self.print_bool('smua.source.output')
         return retVal == 0.
+
+    def get_output_status(self):
+        return self.get_output()
 
     def get_erorqueue_count(self):
         return self.print_int('errorqueue.count')
