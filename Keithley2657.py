@@ -22,6 +22,7 @@ OFF = 0
 class Keithley2657(HVInterface):
     def __init__(self, config, device_no=1, hot_start=False):
         HVInterface.__init__(self, config, device_no, hot_start)
+        self.
         self.bOpen = False
         self.ip_address = config.get(self.section_name, 'ip_address')
         self.rm = visa.ResourceManager('@py')
@@ -30,14 +31,27 @@ class Keithley2657(HVInterface):
         self.answer_time = 0.1
         self.open_tcp_connection()
         self.max_voltage = 3000
+        self.read_config()
         #self.init_keithley(hot_start)
 
-
+    def read_config(self):
+        self.compliance = 1e-6
+        if self.config.has_option(self.section_name,'compliance'):
+            self.compliance = float(self.config.get(self.section_name,'compliance'))
+        self.measure_range_current = 1e-6
+        if self.config.has_option(self.section_name,'measure_range'):
+            self.measure_range_current = float(self.config.get(self.section_name,'measure_range'))
+        pass
     def open_tcp_connection(self):
         resource_name = "TCPIP::%s::INSTR"%self.ip_address
         self.inst = self.rm.open_resource(resource_name)
     
     def init_keithley(self,hot_start=False):
+        if hot_start:
+            self.clear_buffer()
+            self.identify()
+            self.clear_error_queue()
+            return
         self.reset()
         self.clear_status()
         self.clear_errorqueue()
@@ -50,15 +64,14 @@ class Keithley2657(HVInterface):
         self.set_autozero_auto()
         self.set_voltage_source_function()
         self.set_voltage_measure_autorange(True)
-        self.set_bias(-600)
-        self.set_measure_range_current(10e-6)
-        self.set_current_protection(10e-6)
+        self.set_measure_range_current(self.measure_range_current)
+        self.set_current_protection(self.compliance)
         self.set_measure_filter_count(10)
         self.set_measure_filter_enable(True)
         self.set_measure_filter_type_repeating_average()
         self.set_measure_speed_normal()
         self.set_display_current()
-        self.set_on()
+
 
     def __query(self,query):
         return self.inst.query(query).strip('\n')
@@ -103,7 +116,16 @@ class Keithley2657(HVInterface):
         return int(float((self.__query(query))))
 
     def query_bool(self,query):
-        return bool(float(self.__query(query)))
+        retVal = self.__query(query)
+        try:
+            return bool(float(retVal))
+        except ValueError, e:
+            if retVal == 'false':
+                return False
+            elif retVal == 'true':
+                return True
+            else:
+                raise ValueError(e)
 
     def write(self,value):
         return self.__write(value)
@@ -183,9 +205,20 @@ class Keithley2657(HVInterface):
         retVal = self.__write('smua.source.levelv = %f'%voltage)
         self.set_voltage = voltage
         return self.get_bias()
-    
+
+    def get_compliance_control(self):
+        return self.print_bool('smua.source.compliance')
+
+    def set_compliance_control(self,value=True):
+        if value:
+            self.__set_value('smua.source.compliance','true')
+        else:
+            self.__set_value('smua.source.compliance','false')
+        return self.get_compliance_control)()
+
     def set_source_limit(self,limit):
         retVal = self.__write('smua.source.limiti = %3.3E'%limit)
+        self.set_compliance_control(True)
         return self.get_source_limit()
 
     def set_current_protection(self,limit):
