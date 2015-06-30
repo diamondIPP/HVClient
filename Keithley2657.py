@@ -58,8 +58,20 @@ class Keithley2657(HVInterface):
     def __read(self):
         return self.inst.read()
 
+    def __print_string(self,value):
+        return 'print(%s)'%value
+
     def __print(self,value):
-        return self.__query('print(%s)'%value)
+        return self.__query(self.__print_string(value))
+
+    def print_float(self,value):
+        return self.query_float(self.__print_string(value))
+
+    def print_float(self,value):
+        return self.query_float(self.__print_string(value))
+
+    def print_bool(self,value):
+        return self.query_bool(self.__print_string(value))
 
     def print2(self,value):
         return self.__print(value)
@@ -71,10 +83,10 @@ class Keithley2657(HVInterface):
         return float(self.__query(query))
     
     def query_int(self,query):
-        return int(self.__query(query))
+        return int(float((self.__query(query)))
 
     def query_bool(self,query):
-        return bool(self.__query(query))
+        return bool(float(self.__query(query)))
 
     def write(self,value):
         return self.__write(value)
@@ -119,7 +131,7 @@ class Keithley2657(HVInterface):
             self.__write('smua.measure.autorangev = smua.AUTORANGE_OFF')
     
     def get_voltage_measure_autorange(self):
-        return self.inst.query('print(smua.measure.autorangev)')
+        return self.print_float('smua.measure.autorangev')
     
     def reset(self):
         print 'reset'
@@ -138,23 +150,23 @@ class Keithley2657(HVInterface):
         return self.get_source_limit()
         
     def get_source_limit(self):
-        return self.query_float('print(smua.source.limiti)')
+        return self.print_float('smua.source.limiti')
     
     def set_measure_range_current(self,range):
         retVal = self.__write('smua.measure.rangei = %5.2E'%range)
         return self.get_measure_range_current()
     
     def get_measure_range_current(self):
-        return self.query_float('print(smua.measure.rangei)')
+        return self.print_float('smua.measure.rangei')
 
     def get_bias(self):
-        return self.query_float('print(smua.source.levelv)')    
+        return self.print_float('smua.source.levelv')
     
     def read_current(self):
-        return self.query('smua.measure.i()')
+        return self.query_float('smua.measure.i()')
     
     def read_voltage(self):
-        return self.query('smua.measure.v()')
+        return self.query_float('smua.measure.v()')
     
     def read_iv(self):
         retVal = self.query('smua.measure.iv()')
@@ -165,8 +177,7 @@ class Keithley2657(HVInterface):
         return self.get_output()
     
     def get_output(self):
-        retVal =  self.query_float('print(smua.source.output)')
-        #todo check 
+        retVal =  self.print_bool('smua.source.output')
         return retVal == 0.
 
 if __name__ == '__main__':
