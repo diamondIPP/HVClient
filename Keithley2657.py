@@ -83,7 +83,7 @@ class Keithley2657(HVInterface):
         return float(self.__query(query))
     
     def query_int(self,query):
-        return int(float((self.__query(query)))
+        return int(float((self.__query(query))))
 
     def query_bool(self,query):
         return bool(float(self.__query(query)))
@@ -163,14 +163,15 @@ class Keithley2657(HVInterface):
         return self.print_float('smua.source.levelv')
     
     def read_current(self):
-        return self.query_float('smua.measure.i()')
+        return self.print_float('smua.measure.i()')
     
     def read_voltage(self):
-        return self.query_float('smua.measure.v()')
+        return self.print_float('smua.measure.v()')
     
     def read_iv(self):
-        retVal = self.query('smua.measure.iv()')
-        return retVal
+        retVal = self.__print('smua.measure.iv()')
+        retVal = retVal.split('\t')
+        return {'current': float(retVal[0]), 'voltage': float(retVal[1])}
     
     def set_output(self,status):
         self.__write('smua.source.output = %d'%status)
