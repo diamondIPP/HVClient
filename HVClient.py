@@ -27,7 +27,7 @@ import DeviceReader
 # Argument Parser
 #######################################
 parser = argparse.ArgumentParser(description='Keithley Power Supply steering and readout software')
-parser.add_argument('--config', '-c', help='Config file', default='keithley.cfg')
+parser.add_argument('--config', '-c', help='Config file', default='config/keithley.cfg')
 parser.add_argument('--hotstart', '-H', action='store_true',
                     help='Hot start (leave Keithleys ON and current voltage)')
 
