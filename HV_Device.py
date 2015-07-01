@@ -6,6 +6,7 @@ __author__ = 'testbeam'
 from Keithley24XX import Keithley24XX
 from Keithley23X import Keithley23X
 from Keithley6517B import Keithley6517B
+from Keithley2657 import Keithley2657
 from threading import Thread
 from ConfigParser import ConfigParser, NoOptionError
 from time import time, sleep, strftime
@@ -32,16 +33,13 @@ class HVDevice(Thread):
         self.keithley = None
 
         self.section_name = 'HV%d' % device_no
-
         try:
-            self.port = self.config.get(self.section_name, 'address')
+            self.model_number = int(self.config.get(self.section_name, 'model'))
             self.ramp_speed = float(self.config.get(self.section_name, 'ramp'))
             self.target_bias = float(self.config.get(self.section_name, 'bias'))
             self.min_bias = float(self.config.get(self.section_name, 'min_bias'))
             self.max_bias = float(self.config.get(self.section_name, 'max_bias'))
             self.max_step = float(self.config.get(self.section_name, 'max_step'))
-            self.model_number = int(self.config.get(self.section_name, 'model'))
-            self.baudrate = self.config.get(self.section_name, 'baudrate')
         except NoOptionError, err:
             print err, '--> exiting program'
             sys.exit(-1)
@@ -54,7 +52,7 @@ class HVDevice(Thread):
 
         # evealuate hot start
         if hot_start:
-            self.status = 1
+            self.status = self.interface.get_output_status()
             self.update_voltage_current()
             voltage = self.get_bias()
             print voltage
@@ -99,14 +97,19 @@ class HVDevice(Thread):
         except NoOptionError:
             print '\nInstantiation:', self.section_name
         model = self.model_number
+        self.isBusy = True
         if model == 2400 or model == 2410:
             self.interface = Keithley24XX(config, device_no, hot_start)
         elif model == (237 or 236 or 238):
             self.interface = Keithley23X(config, device_no, hot_start)
         elif model == '6517B' or model == 6517:
             self.interface = Keithley6517B(config, device_no, hot_start)
+        elif model == '2657A' or model == 2657:
+            self.interface = Keithley2657(config, device_no, hot_start)
         else:
-            print "unknown model number: could not instantiate any device"
+            print "unknown model number: could not instantiate any device", '--> exiting program'
+            sys.exit(-2)
+        self.isBusy = False
 
     # ============================
     # LOGGGING CONTROL
@@ -232,6 +235,7 @@ class HVDevice(Thread):
             sleep(.2)
 
     def update_voltage_current(self):
+        #print 'update_voltage_current'
         self.wait_for_device()
         self.isBusy = True
         try:
@@ -241,12 +245,16 @@ class HVDevice(Thread):
             self.isBusy = False
             return
         if self.status:
+            #print 'status',self.status,
             try:
                 iv = self.interface.read_iv()
+                print 'iv: ',iv,
                 self.bias_now = iv['voltage']
+                print 'bias_now',self.bias_now,
                 self.current_now = iv['current']
+                print 'current_now',self.current_now
                 self.last_update = time()
-                # print 'readIV',voltage,current,self.targetBias,rest
+                #print 'readIV',voltage,current,self.targetBias,rest
             except Exception as inst:
                 print 'Could not read valid iv', type(inst), inst
         self.isBusy = False
@@ -258,11 +266,16 @@ class HVDevice(Thread):
         if not self.status:
             return
         delta_v = self.target_bias - self.bias_now
-        step_size = abs(self.ramp_speed * (time() - self.last_v_change))
+        #print 'target: %f \t bias: %f ==> %f V'%(self.target_bias,self.bias_now,delta_v)
+        t_now = time()
+        delta_t = t_now - self.last_v_change
+        step_size = abs(self.ramp_speed * (delta_t))
+        #print 'step_size: %f \t %f - %f = %f \t %f'%(step_size,t_now,self.last_v_change,delta_t,self.ramp_speed),
 
         # Limit the maximal voltage step size
         if step_size > self.max_step:
             step_size = self.max_step
+        #print step_size
 
         # print 'delta U ',delta_v,step_size
         newtime = time()
@@ -271,6 +284,7 @@ class HVDevice(Thread):
                 new_bias = self.target_bias
             else:
                 new_bias = self.bias_now + copysign(step_size, delta_v)
+            #print 'new bias: ',new_bias
             self.isBusy = True
             self.interface.set_voltage(new_bias)
             if new_bias == self.target_bias and not self.powering_down:
@@ -289,7 +303,7 @@ class HVDevice(Thread):
 if __name__ == '__main__':
     conf = ConfigParser()
     conf.read('keithley.cfg')
-    keithley1 = HVDevice(conf, 1, False)
-    keithley2 = HVDevice(conf, 2, False)
+    keithley1 = HVDevice(conf, 4, False)
+    #keithley2 = HVDevice(conf, 2, False)
     keithley1.logger.warning("HALLO")
-    keithley2.logger.warning("HALLO")
+    #keithley2.logger.warning("HALLO")
