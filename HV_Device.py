@@ -3,10 +3,12 @@ __author__ = 'testbeam'
 # ============================
 # IMPORTS
 # ============================
-from Keithley24XX import Keithley24XX
-from Keithley23X import Keithley23X
-from Keithley6517B import Keithley6517B
-from Keithley2657 import Keithley2657
+import interfaces
+from interfaces import *
+from interfaces.Keithley24XX import Keithley24XX
+from interfaces.Keithley23X import Keithley23X
+from interfaces.Keithley6517B import Keithley6517B
+from interfaces.Keithley2657 import Keithley2657
 from threading import Thread
 from ConfigParser import ConfigParser, NoOptionError
 from time import time, sleep, strftime
@@ -302,8 +304,8 @@ class HVDevice(Thread):
 # ============================
 if __name__ == '__main__':
     conf = ConfigParser()
-    conf.read('keithley.cfg')
-    keithley1 = HVDevice(conf, 4, False)
+    conf.read('config/keithley.cfg')
+    keithley1 = HVDevice(conf, 6, False)
     #keithley2 = HVDevice(conf, 2, False)
     keithley1.logger.warning("HALLO")
     #keithley2.logger.warning("HALLO")
