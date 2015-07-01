@@ -9,6 +9,7 @@ import ConfigParser
 import visa
 import socket
 from HV_interface import HVInterface
+import sys
 from time import sleep,time
 
 # ============================
@@ -77,41 +78,60 @@ class Keithley2657(HVInterface):
         self.inst = self.rm.open_resource(resource_name)
     
     def init_keithley(self,hot_start=False):
-        #if hot_start:
-        #    self.set_display_digits()
-        #    self.set_display_current()
-        #    self.clear_buffer()
-        #    self.identify()
-        #    self.clear_error_queue()
-        #    return
-        if not hot_start:
-            self.reset()
-            self.set_output(False)
-        self.clear_status()
-        self.clear_errorqueue()
-        self.clear_eventlog()
-        self.clear_dataqueue()
-        self.identify()
-        self.set_measure_filter_count(5)
-        self.set_measure_filter_enable(1)
-        self.set_measure_filter_type_repeating_average()
-        self.set_autozero_auto()
-        self.set_voltage_source_function()
-        self.set_voltage_measure_autorange(True)
-        self.set_measure_range_current(self.measure_range_current)
-        self.set_current_protection(self.compliance)
-        self.set_measure_filter_count(10)
-        self.set_measure_filter_enable(True)
-        self.set_measure_filter_type_repeating_average()
-        self.set_measure_speed_normal()
-        self.set_display_current()
+        try:
+            self.clear_errorqueue()
+            #if hot_start:
+            #    self.set_display_digits()
+            #    self.set_display_current()
+            #    self.clear_buffer()
+            #    self.identify()
+            #    self.clear_error_queue()
+            #    return
+            if not hot_start:
+                self.reset()
+                self.set_output(False)
+            self.clear_status()
+            self.clear_eventlog()
+            self.clear_dataqueue()
+            self.identify()
+            self.set_measure_filter_count(5)
+            self.set_measure_filter_enable(1)
+            self.set_measure_filter_type_repeating_average()
+            self.set_autozero_auto()
+            self.set_voltage_source_function()
+            self.set_voltage_measure_autorange(True)
+            self.set_measure_range_current(self.measure_range_current)
+            self.set_current_protection(self.compliance)
+            self.set_measure_filter_count(10)
+            self.set_measure_filter_enable(True)
+            self.set_measure_filter_type_repeating_average()
+            self.set_measure_speed_normal()
+            self.set_display_current()
+        except Exception,e:
+            print 'EXCEPTION: ',e
+
+    def __check_for_errors(self,query):
+        return
+        words = ['errorqueue','*CLS','clear'] 
+        if any([x in query for x in words]):
+            return
+        error_count,error_code, msg = self.get_next_error_message()
+        while error_count > 0:
+            print self.name,'Error Message', error_count,error_code,msg
+            sys.stdout.flush()
+            raise Exception('Error No %d - %s - %d errors left'%(error_code,msg,error_count))
+            error_count,error_code, msg = self.get_next_error_message()
 
     def __query(self,query):
-        return self.inst.query(query).strip('\n')
+        retVal = self.inst.query(query).strip('\n')
+        self.__check_for_errors(query)
+        return retVal
+        
 
     def __write(self,value):
-        #print 'write',value
+        print 'write',value
         retVal =  self.inst.write(value)
+        self.__check_for_errors(value)
         #sleep(.1)
         return retVal
 
@@ -169,8 +189,13 @@ class Keithley2657(HVInterface):
         error_count = int(float(self.__print('errorqueue.count')))
         retVal = self.__query('errorcode, message = errorqueue.next() \n print(errorcode, message)')
         retVal=retVal.split('\t')
-        error_code = int(float(retVal[0]))
-        error_msg = retVal[1]
+        try:
+            error_code = int(float(retVal[0]))
+            error_msg = retVal[1]
+        except:
+            print 'Could not convert \'%s\''% retVal
+            error_code = -1
+            error_msg = retVal
         return error_count,error_code,error_msg
 
     def identify(self):
@@ -240,6 +265,7 @@ class Keithley2657(HVInterface):
         #print 'set_bias: ',voltage,type(voltage)
         retVal = self.__write('smua.source.levelv = %f'%voltage)
         self.target_voltage = voltage
+        sleep(.5)
         return self.get_bias()
 
     def get_compliance_control(self):
@@ -282,6 +308,10 @@ class Keithley2657(HVInterface):
     def read_iv(self):
         retVal = self.__print('smua.measure.iv()')
         retVal = retVal.split('\t')
+        voltage = float(retVal[1])
+        current = float(retVal[0])
+        if abs(voltage) > 1e10 or abs(current) >1e10:
+            raise ValueError('Invalid measurement of current or voltage: %s V  / %s A'%(voltage,current))
         return {'current': float(retVal[0]), 'voltage': float(retVal[1])}
     
     def set_output(self,status):
