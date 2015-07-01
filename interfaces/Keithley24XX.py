@@ -19,7 +19,7 @@ OFF = 0
 # ============================
 class Keithley24XX(KeithleyHead):
     def __init__(self, config, device_no=1, hot_start=False):
-        KeithleyHead.__init__(self, config, device_no)
+        KeithleyHead.__init__(self, config, device_no, hot_start)
         self.removeCharacters = '\r\n\x00\x13\x11\x10'
         self.init_keithley(hot_start)
         self.output = ''
@@ -262,5 +262,5 @@ class Keithley24XX(KeithleyHead):
 
 if __name__ == '__main__':
     conf = ConfigParser()
-    conf.read('keithley.cfg')
+    conf.read('../config/keithley.cfg')
     keithley = Keithley24XX(conf, 1, False)

@@ -117,5 +117,5 @@ class Keithley6517B(KeithleyHead):
 
 if __name__ == '__main__':
     conf = ConfigParser.ConfigParser()
-    conf.read('keithley.cfg')
+    conf.read('../config/keithley.cfg')
     keithley = Keithley6517B(conf, 2, False)

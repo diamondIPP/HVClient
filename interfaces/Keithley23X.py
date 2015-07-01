@@ -6,6 +6,10 @@
 # ============================
 import ConfigParser
 import serial
+import os,sys,inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0,parentdir) 
 from HV_interface import HVInterface
 from time import sleep,time
 import math
@@ -717,5 +721,5 @@ class Keithley23X(HVInterface):
 
 if __name__ == '__main__':
     conf = ConfigParser.ConfigParser()
-    conf.read('keithley.cfg')
+    conf.read('../config/keithley.cfg')
     k237 = Keithley23X(conf, 3, False)
