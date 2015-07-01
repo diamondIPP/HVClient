@@ -52,13 +52,10 @@ class Keithley2657(HVInterface):
         result = sock.connect_ex((self.ip_address,port_no))
         sock.send('CLOSE')
         if result == 0:
-            print "Port is open"
             retVal = True
         else:
-            print "Port is not open"
             retVal =  False
         sock.shutdown(1)
-        #while(s.read(sock, ...)=0) 
         sock.close()
         return retVal
             
@@ -75,43 +72,56 @@ class Keithley2657(HVInterface):
         #import socket
     def open_tcp_connection(self):
         self.close_all_open_connections()
-        print '\nOpen TCP connection', self.check_port(1024)
-        print '\n'
+        print 'Open TCP connection', self.check_port(1024)
         resource_name = "TCPIP::%s::INSTR"%self.ip_address
         self.inst = self.rm.open_resource(resource_name)
+        self.clear_readout()
+    
+    def clear_readout(self):
+        print 'clear_readout'
+        timeout = self.inst.timeout
+        self.inst.timeout = 100
+        while True:
+            try:
+                retVal = self.inst.read()
+                print 'Reading: ',retVal
+            except:
+                print 'No more data in cache'
+                break
+        self.inst.timeout = timeout
+        
     
     def init_keithley(self,hot_start=False):
-        try:
-            self.clear_errorqueue()
-            #if hot_start:
-            #    self.set_display_digits()
-            #    self.set_display_current()
-            #    self.clear_buffer()
-            #    self.identify()
-            #    self.clear_error_queue()
-            #    return
-            if not hot_start:
-                self.reset()
-                self.set_output(False)
-            self.clear_status()
-            self.clear_eventlog()
-            self.clear_dataqueue()
-            self.identify()
-            self.set_measure_filter_count(5)
-            self.set_measure_filter_enable(1)
-            self.set_measure_filter_type_repeating_average()
-            self.set_autozero_auto()
-            self.set_voltage_source_function()
-            self.set_voltage_measure_autorange(True)
-            self.set_measure_range_current(self.measure_range_current)
-            self.set_current_protection(self.compliance)
-            self.set_measure_filter_count(10)
-            self.set_measure_filter_enable(True)
-            self.set_measure_filter_type_repeating_average()
-            self.set_measure_speed_normal()
-            self.set_display_current()
-        except Exception,e:
-            print 'EXCEPTION: ',e
+        ntries = 0
+        while ntries <10:
+                try:
+                    self.clear_readout()
+                    self.clear_errorqueue()
+                    if not hot_start:
+                        self.reset()
+                        self.set_output(False)
+                    self.clear_status()
+                    self.clear_eventlog()
+                    self.clear_dataqueue()
+                    self.identify()
+                    self.set_measure_filter_count(5)
+                    self.set_measure_filter_enable(1)
+                    self.set_measure_filter_type_repeating_average()
+                    self.set_autozero_auto()
+                    self.set_voltage_source_function()
+                    self.set_voltage_measure_autorange(True)
+                    self.set_measure_range_current(self.measure_range_current)
+                    self.set_current_protection(self.compliance)
+                    self.set_measure_filter_count(10)
+                    self.set_measure_filter_enable(True)
+                    self.set_measure_filter_type_repeating_average()
+                    self.set_measure_speed_normal()
+                    self.set_display_current()
+                    break
+                except Exception,e:
+                    print 'EXCEPTION: ',e
+                    self.clear_readout()
+                ntries += 1
 
     def __check_for_errors(self,query):
         return
@@ -132,7 +142,7 @@ class Keithley2657(HVInterface):
         
 
     def __write(self,value):
-        print 'write',value
+        #print 'write',value
         retVal =  self.inst.write(value)
         self.__check_for_errors(value)
         #sleep(.1)
@@ -441,5 +451,5 @@ class Keithley2657(HVInterface):
         
 if __name__ == '__main__':
     conf = ConfigParser.ConfigParser()
-    conf.read('../config/keithley.cfg')
-    k2657 = Keithley2657(conf, 4, False)
+    conf.read(parentdir + '/config/keithley.cfg')
+    k2657 = Keithley2657(conf, 6, False)
