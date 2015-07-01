@@ -186,6 +186,9 @@ class HVDevice(Thread):
                 self.update_voltage_current()
                 self.write_log()
                 self.ramp()
+                if self.is_ramping():
+                    self.update_voltage_current()
+                    sleep(.1)
 
     # ============================
     # GET-FUNCTIONS
@@ -250,11 +253,11 @@ class HVDevice(Thread):
             #print 'status',self.status,
             try:
                 iv = self.interface.read_iv()
-                print 'iv: ',iv,
+                #print 'iv: ',iv,
                 self.bias_now = iv['voltage']
-                print 'bias_now',self.bias_now,
+                #print 'bias_now',self.bias_now,
                 self.current_now = iv['current']
-                print 'current_now',self.current_now
+                #print 'current_now',self.current_now
                 self.last_update = time()
                 #print 'readIV',voltage,current,self.targetBias,rest
             except Exception as inst:
@@ -267,7 +270,11 @@ class HVDevice(Thread):
         # how many seconds passed since last change)
         if not self.status:
             return
-        delta_v = self.target_bias - self.bias_now
+        if abs(self.interface.target_voltage - self.bias_now) > 1:
+            raise ValueError( 'Did not reach the current set voltage on the power supply, set_voltage: %f V, measured_voltage: %f V'
+                                %(self.target_bias,self.bias_now))
+        delta_v = self.target_bias - self.interface.target_voltage
+
         #print 'target: %f \t bias: %f ==> %f V'%(self.target_bias,self.bias_now,delta_v)
         t_now = time()
         delta_t = t_now - self.last_v_change
