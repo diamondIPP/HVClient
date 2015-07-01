@@ -281,7 +281,7 @@ class Keithley2657(HVInterface):
         sleep(.5)
         return self.get_bias()
 
-    def get_compliance_control(self):
+    def is_in_compliance(self):
         return self.print_bool('smua.source.compliance')
 
     #def set_compliance_control(self,value=True):
@@ -320,12 +320,13 @@ class Keithley2657(HVInterface):
     
     def read_iv(self):
         retVal = self.__print('smua.measure.iv()')
+        compl = self.is_in_compliance()
         retVal = retVal.split('\t')
         voltage = float(retVal[1])
         current = float(retVal[0])
         if abs(voltage) > 1e10 or abs(current) >1e10:
             raise ValueError('Invalid measurement of current or voltage: %s V  / %s A'%(voltage,current))
-        return {'current': float(retVal[0]), 'voltage': float(retVal[1])}
+        return {'current': float(retVal[0]), 'voltage': float(retVal[1]),'compliance':compl}
     
     def set_output(self,status):
         self.__write('smua.source.output = %d'%status)
