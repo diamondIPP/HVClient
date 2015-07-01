@@ -8,8 +8,11 @@ __author__ = 'bachmair'
 import ConfigParser
 import visa
 import socket
+import os,sys,inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0,parentdir) 
 from HV_interface import HVInterface
-import sys
 from time import sleep,time
 
 # ============================
@@ -438,5 +441,5 @@ class Keithley2657(HVInterface):
         
 if __name__ == '__main__':
     conf = ConfigParser.ConfigParser()
-    conf.read('keithley.cfg')
+    conf.read('../config/keithley.cfg')
     k2657 = Keithley2657(conf, 4, False)
