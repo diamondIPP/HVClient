@@ -58,6 +58,7 @@ class HVDevice(Thread):
             self.update_voltage_current()
             voltage = self.get_bias()
             print voltage
+            self.interface.set_bias(voltage)
             # self.immidiateVoltage = voltage
             self.target_bias = voltage
             self.bias_now = voltage
@@ -272,7 +273,7 @@ class HVDevice(Thread):
             return
         if abs(self.interface.target_voltage - self.bias_now) > 1:
             raise ValueError( 'Did not reach the current set voltage on the power supply, set_voltage: %f V, measured_voltage: %f V'
-                                %(self.target_bias,self.bias_now))
+                                %(self.interface.target_voltages,self.bias_now))
         delta_v = self.target_bias - self.interface.target_voltage
 
         #print 'target: %f \t bias: %f ==> %f V'%(self.target_bias,self.bias_now,delta_v)
