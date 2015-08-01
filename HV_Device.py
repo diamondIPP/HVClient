@@ -85,7 +85,7 @@ class HVDevice(Thread):
         self.logger = logging.getLogger(self.section_name)
         self.fh = None
         self.configure_log()
-        self.last_day = strftime('%H')
+        self.last_day = strftime('%d')
         self.last_status = self.status
         self.last_ramp = False
 
@@ -138,13 +138,15 @@ class HVDevice(Thread):
         formatter = logging.Formatter('%(asctime)s %(message)s', '%H:%M:%S')
         self.fh.setFormatter(formatter)
         self.logger.addHandler(self.fh)
+
         print 'created logfile:', logfile_name
 
     # make new logfile when the day changes
     def log_control(self):
-        day = strftime('%H')
+        day = strftime('%d')
         if day != self.last_day:
-            print 'a new hour just begun...'
+            print 'a new day just begun...'
+            self.logger.removeHandler(self.fh)
             self.configure_log()
             self.last_day = day
             sleep(0.1)

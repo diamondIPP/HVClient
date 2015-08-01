@@ -71,7 +71,7 @@ class Keithley23X(HVInterface):
         self.set_integration_time(2)
         self.set_averaging_filter(2)
         self.set_output_data_format()
-        self.set_compliance(1e-6,1e-6)
+        self.set_compliance(100e-9,100e-9)
         if not hot_start:
             self.set_off()
         pass
@@ -89,13 +89,17 @@ class Keithley23X(HVInterface):
                   9:100e-3,
                   10:1
                   }
-        if measurement_range not in ranges.values() and not :
+        if measurement_range not in ranges.values():
             measurement_range = 0
             print 'set measurement_range to AUTO'
-        measurement_range = ranges.keys()[ranges.values().index(range)]
+        try:
+            measurement_range = ranges.keys()[ranges.values().index(measurement_range)]
+        except:
+            measurement_range = 0
+            print 'set measurement_range to AUTO'
         # if ranges[measurement_range]  < level:
         #     print 'cannot set level to a higher value than the measurement range'
-        self.__execute('L%5E,%d'%measurement_range)
+        self.__execute('L%5E,%d'%(level,measurement_range))
 
     
     def set_output_sense_local(self):
