@@ -33,6 +33,7 @@ class HVDevice(Thread):
 
         self.config = config
         self.keithley = None
+        self.bias_now = -0
 
         self.section_name = 'HV%d' % device_no
         try:
@@ -273,9 +274,22 @@ class HVDevice(Thread):
         # how many seconds passed since last change)
         if not self.status:
             return
-        if abs(self.interface.target_voltage - self.bias_now) > 1:
-            raise ValueError( 'Did not reach the current set voltage on the power supply, set_voltage: %f V, measured_voltage: %f V'
-                                %(self.interface.target_voltages,self.bias_now))
+        #self.update_voltage_current()
+        tries = 0
+        while abs(self.interface.target_voltage - self.bias_now) > 1:
+            msg =  '\033[91m'
+            msg += 'Did not reach the current set voltage on the power supply:'
+            msg += ' set_voltage: %f V'%self.interface.target_voltage 
+            msg += ', measured_voltage: %f V'%self.bias_now
+            msg += '\033[99m'
+            print msg,'\033[99m'
+            print "\033[99m" +' '+ '\033[0m'
+            sleep(1)
+            self.update_voltage_current()
+            tries += 1
+            if tries > 10:
+                raise ValueError(msg)
+                                
         delta_v = self.target_bias - self.interface.target_voltage
 
         #print 'target: %f \t bias: %f ==> %f V'%(self.target_bias,self.bias_now,delta_v)
