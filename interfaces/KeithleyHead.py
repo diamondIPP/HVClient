@@ -170,6 +170,7 @@ class KeithleyHead(HVInterface):
                     mod = ident_list[4]
                     self.model = int(mod) if self.is_number(mod) else mod
             print 'Connected Keithley Model', self.model
+        self.set_max_voltage()
 
     def get_output_status(self):
         answer = self.get_answer_for_query(':OUTP?')
@@ -285,7 +286,7 @@ class KeithleyHead(HVInterface):
 
     def validate_voltage(self, voltage):
         if self.max_voltage < math.fabs(voltage) and self.is_float(voltage):
-            voltage = math.copysign(self.max_voltage, voltage)
+            voltage = math.copysign(self.max_voltage, float(voltage))
             print 'set voltage to maximum allowed voltage: %s' % voltage
         elif not self.is_float(voltage):
             print 'invalid Voltage: %s' % voltage
