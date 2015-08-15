@@ -29,6 +29,7 @@ class Keithley24XX(KeithleyHead):
             sleep(1)
             self.clear_buffer()
             self.identify()
+            self.set_measurement_speed(2)  # was 10 before
             self.clear_error_queue()
             sleep(1)
         else:
@@ -46,7 +47,7 @@ class Keithley24XX(KeithleyHead):
             self.set_average_filter(True)
             self.set_average_filter_count(3)
             self.set_current_protection(100e-6)
-            self.set_measurement_speed(5)  # was 10 before
+            self.set_measurement_speed(2)  # was 10 before
             self.clear_error_queue()
             self.set_compliance_abort_level('LATE')
             # self.setComplianceAbortLevel('NEVER')

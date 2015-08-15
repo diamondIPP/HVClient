@@ -36,6 +36,7 @@ class HVDevice(Thread):
         self.bias_now = -0
 
         self.section_name = 'HV%d' % device_no
+        self.bias_now = 0
         try:
             self.model_number = int(self.config.get(self.section_name, 'model'))
             self.ramp_speed = float(self.config.get(self.section_name, 'ramp'))

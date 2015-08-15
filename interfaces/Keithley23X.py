@@ -160,6 +160,12 @@ class Keithley23X(HVInterface):
         message = message.strip('\r\n')
         if not message.endswith('X'):
             message+='X'
+        retVal = self.__write(message)
+        try:
+             return retVal[1][-1]
+        except Exception, e:
+            print retVal
+            raise e
         return self.__write(message)[1][-1]
 
     def __write(self, message,max_time=10):
