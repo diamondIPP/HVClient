@@ -36,6 +36,12 @@ class Keithley23X(HVInterface):
         self.model = 237
         self.identifier = None
         self.answer_time = 0.1
+        self.integration_time = 3
+        if config.has_option(self.section_name,'integration_time'):
+            config.getint(  self.section_name,'integration_time')
+        self.n_average_filter = 32
+        if config.has_option(self.section_name,'n_average_filter'):
+            config.getint(  self.section_name,'n_average_filter')
         self.open_serial_port()
         self.init_keithley(hot_start)
         pass
@@ -68,8 +74,8 @@ class Keithley23X(HVInterface):
         self.set_source_voltage_dc()
         self.set_1100V_range(True)
         self.set_output_sense_local()
-        self.set_integration_time(2)
-        self.set_averaging_filter(2)
+        self.set_integration_time(self.integration_time)
+        self.set_averaging_filter(self.n_average_filter)
         self.set_output_data_format()
         self.set_compliance(100e-9,100e-9)
         if not hot_start:
@@ -127,6 +133,7 @@ class Keithley23X(HVInterface):
     def set_integration_time(self,n):
         if 0 > n > 3:
             raise Exception('integration time must be in 0-3: 0 [416mus], 1 [4ms], 2 [16.67ms], 3 [20ms]')
+        self.__execute('S%d'%n)
     
     def set_output_data_format(self,items=15,format=0,lines=0):
         self.__execute('G%d,%d,%d'%(items,format,lines))
