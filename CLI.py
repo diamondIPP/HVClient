@@ -60,6 +60,21 @@ class CLI(cmd.Cmd, Thread):
             print k, i
             k += 1
 
+    def set_device_name(self,name,device_name):
+        if self.devices.has_key(name):
+            keithley = self.devices[name]
+            keithley.set_device_name(device_name)
+        else:
+            print 'cannot find %s' % name
+
+    def do_SET_NAME(self,line):
+        """ Set device name of device to new_name
+        Usage: SET_NAME KeithleyName NEW_DEVICE_NAME
+        """
+        name = line.split()[0]
+        device_name = line.split()[1]
+        self.set_device_name(line, name,device_name)
+
     #######################################
     # do_ON / do_OFF
     #######################################
