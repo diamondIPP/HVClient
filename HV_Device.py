@@ -47,6 +47,10 @@ class HVDevice(Thread):
         except NoOptionError, err:
             print err, '--> exiting program'
             sys.exit(-1)
+        if self.config.has_option('Names',self.section_name):
+            self.__device_name = self.config.get('Names',self.section_name)
+        else:
+            self.__device_name = "UNKNOWN"
 
         self.interface = None
         self.init_interface(config, device_no, hot_start)
@@ -116,6 +120,15 @@ class HVDevice(Thread):
             sys.exit(-2)
         self.isBusy = False
 
+    def get_device_name(self):
+        return self.__device_name
+
+    def set_device_name(self, device_name):
+        if self.__device_name != device_name:
+            self.__device_name = device_name
+            self.create_new_log_file()
+            print 'Setting device name of %s to "%s"'%(self.section_name,self.__device_name)
+
     # ============================
     # LOGGGING CONTROL
     def configure_log(self):
@@ -134,51 +147,55 @@ class HVDevice(Thread):
             os.mkdir(dirs)
         logfile_name = self.interface.get_device_name(1) + strftime('_%Y_%m_%d_%H_%M_%S.log')
         logfile_dest = logfile_dir + logfile_sub_dir + logfile_name
-
+        if self.fh:
+            self.logger.removeHandler(self.fh)
         self.fh = logging.FileHandler(logfile_dest)
         self.fh.setLevel(logging.INFO)
         formatter = logging.Formatter('%(asctime)s %(message)s', '%H:%M:%S')
         self.fh.setFormatter(formatter)
         self.logger.addHandler(self.fh)
 
-        print 'created logfile:', logfile_name
+    def create_new_log_file(self):
+        self.logger.removeHandler(self.fh)
+        self.configure_log()
 
     # make new logfile when the day changes
     def log_control(self):
         day = strftime('%d')
         if day != self.last_day:
             print 'a new day just begun...'
-            self.logger.removeHandler(self.fh)
-            self.configure_log()
+            self.create_new_log_file()
             self.last_day = day
             sleep(0.1)
 
     def add_log_entry(self, log_entry):
-        self.logger.warning(log_entry)
+        if not self.logger:
+            self.configure_log()
+        self.logger.warning(log_entry+'\t%s'%self.__device_name)
 
     def write_log(self):
         # write when device is turned ON or OFF
         if self.get_last_status() != self.get_status():
-            self.logger.warning('DEVICE_ON') if self.get_status() else self.logger.warning('DEVICE_OFF')
+            self.add_log_entry('DEVICE_ON') if self.get_status() else self.add_log_entry('DEVICE_OFF')
         self.last_status = self.get_status()
         # write when ramping starts
         if self.get_last_ramp() != self.is_ramping() and self.get_status():
             if self.is_ramping():
                 log = 'START_RAMPING_AT' + '{0:7.1f}'.format(self.get_bias())
-                self.logger.warning(log)
+                self.add_log_entry(log)
                 log = 'TARGET_BIAS' + '{0:7.1f}'.format(self.get_target_bias())
-                self.logger.warning(log)
+                self.add_log_entry(log)
         # only write measurements when device is ON
         if self.get_status():
             voltage = self.get_bias()
             current = self.get_current()
             string = "{0:10.3e} {1:10.3e}".format(voltage, current)
-            self.logger.warning(string)
+            self.add_log_entry(string)
         # write when ramping stops
         if self.get_last_ramp() != self.is_ramping() and self.get_status():
             if not self.is_ramping():
                 log = 'FINISH_RAMPING_AT' + '{0:7.1f}'.format(self.get_bias())
-                self.logger.warning(log)
+                self.add_log_entry(log)
         self.last_ramp = self.is_ramping()
 
     # ============================
@@ -224,7 +241,7 @@ class HVDevice(Thread):
         self.target_bias = target
         self.last_v_change = time()
         log = 'SET_BIAS_TO' + '{0:7.1f}'.format(target)
-        self.logger.warning(log)
+        self.add_log_entry(log)
 
     def set_to_manual(self, status):
         self.target_bias = self.interface.set_to_manual(status)
