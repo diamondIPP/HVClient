@@ -29,19 +29,12 @@ class Keithley23X(HVInterface):
         self.Busy = False
         HVInterface.__init__(self, config, device_no,hot_start)
         self.bOpen = False
-        self.serialPortName = config.get(self.section_name, 'address')
-        self.gbip = config.getint(self.section_name, 'gbip')
+        self.read_config(config)
         self.lastVoltage = 0
         self.serial = None
         self.model = 237
         self.identifier = None
         self.answer_time = 0.1
-        self.integration_time = 3
-        if config.has_option(self.section_name,'integration_time'):
-            config.getint(  self.section_name,'integration_time')
-        self.n_average_filter = 32
-        if config.has_option(self.section_name,'n_average_filter'):
-            config.getint(  self.section_name,'n_average_filter')
         self.open_serial_port()
         self.init_keithley(hot_start)
         pass
@@ -77,9 +70,26 @@ class Keithley23X(HVInterface):
         self.set_integration_time(self.integration_time)
         self.set_averaging_filter(self.n_average_filter)
         self.set_output_data_format()
-        self.set_compliance(100e-9,100e-9)
+        self.set_compliance(self.measure_range_current,self.compliance)
         if not hot_start:
             self.set_off()
+        pass
+
+    def read_config(self,config):
+        self.serialPortName = config.get(self.section_name, 'address')
+        self.gbip = config.getint(self.section_name, 'gbip')
+        self.integration_time = 3
+        if config.has_option(self.section_name,'integration_time'):
+            self.integration_time = config.getint(  self.section_name,'integration_time')
+        self.n_average_filter = 32
+        if config.has_option(self.section_name,'n_average_filter'):
+            self.n_average_filter = config.getint(  self.section_name,'n_average_filter')
+        self.compliance = 1e-6
+        if self.config.has_option(self.section_name,'compliance'):
+            self.compliance = float(self.config.get(self.section_name,'compliance'))
+        self.measure_range_current = 1e-6
+        if self.config.has_option(self.section_name,'measure_range'):
+            self.measure_range_current = float(self.config.get(self.section_name,'measure_range'))
         pass
 
     def set_compliance(self,level,measurement_range):
