@@ -128,6 +128,9 @@ while myCLI.running:
     now = time.time()
 
     # Loop over the keithleys, get the voltages and update the display
+
+    string_len = max([len(v.get_device_name()) for k,v in devices.items()])
+
     for k, v in sorted(devices.iteritems(), key=lambda x: x[0]):
 
         if not myCLI.running:
@@ -146,8 +149,12 @@ while myCLI.running:
             current = v.get_current()
 
             # Build display string
-            display_string = k
-            display_string += ": U: {0:7.1f} V      I: {1:10.2e} muA    ".format(voltage, current / 1e-6)
+            display_string = '%s | %s'%(v.get_device_name().rjust(string_len),k)
+            display_string = '%s | %s'%(v.get_device_name().rjust(string_len),k)
+            if abs(current) < 1e-6:
+                display_string += ": U: {0:7.1f} V      I: {1:10.2e} nA     ".format(voltage, current / 1e-9)
+            else:
+                display_string += ": U: {0:7.1f} V      I: {1:10.2e} muA    ".format(voltage, current / 1e-6)
             display_string += value.strftime('%H:%M:%S')
             if v.manual:
                 display_string = ' MANUAL'
