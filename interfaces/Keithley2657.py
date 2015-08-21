@@ -68,6 +68,7 @@ class Keithley2657(HVInterface):
         #while(s.read(sock, ...)=0) 
         s.shutdown(1)
         s.close()
+        print'CLOSED'
 
         #import socket
     def open_tcp_connection(self):
@@ -75,6 +76,7 @@ class Keithley2657(HVInterface):
         print 'Open TCP connection', self.check_port(1024)
         resource_name = "TCPIP::%s::INSTR"%self.ip_address
         self.inst = self.rm.open_resource(resource_name)
+        print 'DONE'
         self.clear_readout()
     
     def clear_readout(self):
@@ -140,7 +142,6 @@ class Keithley2657(HVInterface):
         
 
     def __write(self,value):
-        #print 'write',value
         retVal =  self.inst.write(value)
         self.__check_for_errors(value)
         #sleep(.1)
@@ -322,10 +323,22 @@ class Keithley2657(HVInterface):
         retVal = retVal.split('\t')
         voltage = float(retVal[1])
         current = float(retVal[0])
+        if compl:
+            current = self.read_current()
+            voltage = self.read_voltage()
+            print ValueError('In Complicance')
         if abs(voltage) > 1e10 or abs(current) >1e10:
-            raise ValueError('Invalid measurement of current or voltage: %s V  / %s A'%(voltage,current))
-        return {'current': float(retVal[0]), 'voltage': float(retVal[1]),'compliance':compl}
-    
+            current = self.read_current()
+            voltage = self.read_voltage()
+            msg = '\x1B[s'
+            msg +=  '\033[91m'
+            msg +=  '\x1B[1A\rInvalid measurement of current or voltage: %s V  / %s '%(voltage,current)
+            msg += '\033[99m'+ '\033[0m'
+            msg += '\x1B[u\x1B[1D'
+            print msg,
+            sys.stdout.flush()
+        return {'current': current, 'voltage': voltage,'compliance':compl}
+
     def set_output(self,status):
         self.__write('smua.source.output = %d'%status)
         return self.get_output()
