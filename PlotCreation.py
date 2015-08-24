@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*- 
+
 """
 show how to add a matplotlib FigureCanvasGTK or FigureCanvasGTKAgg widget to a
 gtk.Window
@@ -44,7 +46,7 @@ def convert(filename):
     return retval
 
 #  plot_data[0],converted[-1]
-def update_plot(plot_data,fig,current_range=None):
+def update_plot(plot_data,fig,current_range=None,unit='nA'):
     if len( plot_data)==0:
         return
     fig.clear()
@@ -59,7 +61,21 @@ def update_plot(plot_data,fig,current_range=None):
 #     fig, ax1 = plt.subplots()
     times = [x[0] for x in plot_data]
     voltages = [x[1] for x in plot_data]
-    currents = [x[2] for x in plot_data]
+    if unit == 'fA':
+        currents = [x[2]*1e12 for x in plot_data]
+        ax1.set_ylabel('current/fA', color='r')
+    elif unit == 'nA':
+        currents = [x[2]*1e9 for x in plot_data]
+        ax1.set_ylabel('current/nA', color='r')
+    elif unit == 'μA':
+        currents = [x[2]*1e6 for x in plot_data]
+        ax1.set_ylabel('current/μA', color='r')
+    elif unit == 'μA':
+        currents = [x[2]*1e3 for x in plot_data]
+        ax1.set_ylabel('current/mA', color='r')
+    else:
+        currents = [x[2] for x in plot_data]
+        ax1.set_ylabel('current/A', color='r') 
 #     print len(times),len(voltages),len(currents)
     max_v = max(voltages)
     min_v = min(voltages)
@@ -75,7 +91,7 @@ def update_plot(plot_data,fig,current_range=None):
     # plot time vs current in red dots
     ax1.plot_date(times, currents, 'r.',ms=2)
     ax1.set_xlabel('time')
-    ax1.set_ylabel('current/A', color='r')
+    
     
     for tl in ax1.get_yticklabels():
         tl.set_color('r')
