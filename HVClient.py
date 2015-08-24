@@ -102,9 +102,16 @@ root = HVGui(devices)
 
 now = time.time()
 while myCLI.running:
+    if root.destroyed:
+        print 'ROOT DEstroyed'
+        myCLI.do_exit()
+        myCLI.do_EOF()
     try:
         root.update()
     except:
+        myCLI.do_exit()
+        myCLI.do_EOF()
+        
         break
     # Make sure enough time has passed before we poll again
 #     while time.time() - now < 1:
@@ -139,7 +146,12 @@ while myCLI.running:
             else:
                 root.set_mode(k,"NORMAL")
             root.set_target_bias(k,v.target_bias)
+            
 root._quit()
+myCLI.onecmd('exit\n')
+myCLI.cmdqueue.append('exit\n')
+print myCLI.cmdqueue,type(myCLI.cmdqueue)
+print 'Press enter to quit'
 #             if v.manual:
 #                 display_string = ' MANUAL'
 #             setBias = v.get_target_bias()
