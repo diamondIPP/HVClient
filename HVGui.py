@@ -29,12 +29,23 @@ class HVGui():
         print('you pressed %s'%event.key)
 #     key_press_handler(event, canvas, toolbar)
     def update(self):
-        self.root.update()
+        try:
+            self.root.update()
+        except:
+            pass
+        
     def _quit(self):
+        self.destroyed = True
+        print 'QUITTING',self.destroyed
         self.root.quit()     # stops mainloop
-        self.root.destroy()  # this is necessary on Windows to prevent
+        try:
+            self.root.destroy()  # this is necessary on Windows to prevent
+        except:
+            pass
+        
                         # Fatal Python Error: PyEval_RestoreThread: NULL tstate
     def __init__(self,devices):
+        self.destroyed = False
         self.root = Tk.Tk()
             
         self.root.minsize(1000, 200)  # x/y
@@ -94,7 +105,7 @@ class HVGui():
         measurement = [time_stamp,voltage,current,diamond_name]
         if len(self.devices[device_name]['measurements']) != 0:
             if self.devices[device_name]['measurements'][-1] == measurement:
-                return 
+                return
 #         print 'add measurement', measurement
         self.devices[device_name]['measurements'].append(measurement)
         self.update_measurement_buffer(device_name)
@@ -112,9 +123,12 @@ class HVGui():
         self.devices[device_name]['name_var'].set(last_measurement[3])
         self.devices[device_name]['voltage_var'].set('%+4d V'%last_measurement[1])
         self.devices[device_name]['current_var'].set(self.get_current_string(last_measurement[2]))
-        self.devices[device_name]['time_var'].set(self.get_time_string(last_measurement[0]))
-#         self.update_status_display(device_name)
-        self.root.update( )
+        time_stamp = last_measurement[0]
+        ts = mdates.num2date(time_stamp)
+        time_stamp_string = ts.strftime('%H:%M:%S')
+        self.devices[device_name]['time_var'].set(time_stamp_string)
+        self.update( )
+        
 # #         print 'updated ',device_name,
 #         print self.devices[device_name]['name_var'].get(),
 #         print self.devices[device_name]['voltage_var'].get(),
@@ -157,6 +171,10 @@ class HVGui():
         f = Tk.Frame(self.toptopframe)#, relief=Tk.SUNKEN)
         f.pack(side = Tk.RIGHT,fill=Tk.Y)
         
+        self.time = Tk.StringVar()
+        self.time.set(self.get_time_string(datetime.datetime.now()))
+        self.clock = Tk.Label(f, textvariable=self.time,font=("Helvetica", 18) )
+        self.clock.pack(side = Tk.TOP)
         l = Tk.Label(master=f,text='Update Interval:')
         l.pack(side=Tk.TOP)
         w = Tk.Spinbox(master=f,from_=1 , to=60,width = 5, textvariable=self.update_interval)
@@ -186,15 +204,22 @@ class HVGui():
         device['current_var'] = Tk.StringVar()
         device['current_label'] = Tk.Label(subframe, textvariable=device['current_var'],font=("Helvetica", 16) )
         device['current_label'].pack(side = Tk.TOP)
-        device['time_var'] = Tk.StringVar()
-        device['time_label'] = Tk.Label(subframe, textvariable=device['time_var'],font=("Helvetica", 16) )
-        device['time_label'].pack(side = Tk.TOP)
+        
         device['status_var'] = Tk.StringVar()
         device['status_label'] = Tk.Label(subframe, textvariable=device['status_var'],font=("Helvetica", 16) )
         device['status_label'].pack(side = Tk.TOP)
+        
+        sf = Tk.Frame(master = subframe)
+        sf.pack(side = Tk.TOP)
+        device['time_var'] = Tk.StringVar()
+        Tk.Label(sf, text='Last measurement: ',font=("Helvetica", 9) ).pack(side=Tk.LEFT)
+        device['time_label'] = Tk.Label(sf, textvariable=device['time_var'],font=("Helvetica", 9) )
+        device['time_label'].pack(side = Tk.LEFT)
+        
         Tk.Frame(frame,width=10,     bd=0, relief=Tk.FLAT).pack(side = Tk.LEFT,fill=Tk.Y)
         Tk.Frame(frame,width=4,     bd=2, relief=Tk.GROOVE).pack(side = Tk.LEFT,fill=Tk.Y)
         Tk.Frame(frame,width=10,     bd=0, relief=Tk.FLAT).pack(side = Tk.LEFT,fill=Tk.Y)
+        
         return subframe
     
     @staticmethod
@@ -210,12 +235,21 @@ class HVGui():
         return retVal
     @staticmethod
     def get_time_string(t):
-        return datetime.datetime.fromtimestamp(t).strftime('%H:%M:%S')
+        try:
+            ts = datetime.datetime.fromtimestamp(t)
+        except:
+            ts = t
+        try:
+            return ts.strftime('%H:%M:%S')
+        except:
+            print 'ERROR: ',type(t)
+            
 
     def update_clock(self):
 #         for name,device in sorted(self.devices.items()):
 #             device['time_var'].set(self.get_time_string(time()))
         delta_t = time()-self.last_update
+        self.time.set(self.get_time_string(datetime.datetime.now()))
         
         t = self.update_interval.get() - float(delta_t)
         str_t = '%d s'%int(t)
@@ -229,6 +263,10 @@ class HVGui():
             duration = plot_box['optionFrame']['varDuration'].get()
             device = plot_box['optionFrame']['varDevice'].get()
             range =  plot_box['optionFrame']['varMaxRange'].get()
+            unit = plot_box['optionFrame']['varUnit'].get()
+            stop = plot_box['optionFrame']['varBreak'].get()
+            if stop:
+                continue
             plot_box['currentDevice'] = device
             plot_box['currentDuration'] = duration
             try:
@@ -246,7 +284,7 @@ class HVGui():
                     if plot_box['last_measurement'] == last:
                         continue
             plot_box['last_measurement'] = last
-            PlotCreation.update_plot(plot_data,plot_box['f'],current_range = 10**range)
+            PlotCreation.update_plot(plot_data,plot_box['f'],current_range = 10**range,unit=unit)
             plot_box['canvas'].draw()
         self.root.after(self.update_interval.get()*1000, self.update_plots)
         self.last_update = time()
@@ -274,9 +312,22 @@ class HVGui():
         retVal['varMaxRange'].set(-3)
         retVal['labelMaxRange'] =  Tk.Label(text='Max Current Range\n (Exponent)',master = retVal['optionFrame'],fg='red')
         retVal['labelMaxRange'].pack(side=Tk.TOP)
-        current_range_options = ['A',]
         retVal['optMaxRange'] = Tk.Spinbox(master=retVal['optionFrame'],from_=-10 , to=10,width = 5, textvariable=retVal['varMaxRange'],fg='red')
         retVal['optMaxRange'].pack(sid=Tk.TOP)
+        
+        unit_options = ['fA','nA','μA','mA','A']
+        retVal['varUnit']= Tk.StringVar()
+        retVal['varUnit'].set('nA')
+        retVal['labelUnit'] =  Tk.Label(text='Unit of Current',master = retVal['optionFrame'])
+        retVal['labelUnit'].pack(side=Tk.TOP)
+        retVal['optUnit'] = Tk.OptionMenu(retVal['optionFrame'], retVal['varUnit'],*unit_options)
+        retVal['optUnit'].pack(side=Tk.TOP)
+        
+        retVal['varBreak'] = Tk.BooleanVar()
+        retVal['varBreak'].set(False)
+        retVal['optBreak'] = Tk.Checkbutton(retVal['optionFrame'], text="Break Update", variable=retVal['varBreak'])
+        retVal['optBreak'].pack(side=Tk.TOP)
+        
         return retVal
         
     def add_plot_box(self,frame):
