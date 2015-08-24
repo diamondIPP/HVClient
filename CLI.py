@@ -73,7 +73,7 @@ class CLI(cmd.Cmd, Thread):
         """
         name = line.split()[0]
         device_name = line.split()[1]
-        self.set_device_name(line, name,device_name)
+        self.set_device_name(name,device_name)
 
     #######################################
     # do_ON / do_OFF
