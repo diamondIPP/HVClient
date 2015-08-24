@@ -37,15 +37,14 @@ class CLI(cmd.Cmd, Thread):
 
     def do_exit(self, line=''):
         """Quit CLI"""
-
+        print 'Quitting CLI'
         # Turn off the devices
         for k in self.devices.keys():
             self.devices[k].isKilled = True
-
         self.running = False
         return True
 
-    def do_EOF(self, line):
+    def do_EOF(self, line=''):
         for k in self.devices.keys():
             self.devices[k].isKilled = True
         self.running = False
