@@ -17,6 +17,7 @@ import ConfigParser
 import argparse
 import datetime
 import Tkinter
+from HVGui import HVGui
 
 # Command Line Interface
 from CLI import CLI
@@ -92,28 +93,8 @@ signal.signal(signal.SIGINT, signal_handler)
 #######################################
 # Prepare GUI
 #######################################
-
-root = Tkinter.Tk()
-root.minsize(1000, 200)  # x/y
-root.maxsize(1000, 200)
-
-# Create Tk-variable and -label objects for each keithley
-# A label is an object and the variable is the content
-di_vars = {}
-di_labels = {}
-
-# create labels and hook them up with variables
-for name in devices.keys():
-    tmp = Tkinter.StringVar()
-    di_vars[name] = tmp
-    di_labels[name] = Tkinter.Label(root, textvariable=tmp, font="Courier", justify=Tkinter.LEFT)
-    # if di_labels[name]:
-    #    di_labels[name].pack(side='left')
-
-# add the labels to the output window
-for k in sorted(di_labels.keys()):
-    di_labels[k].pack(padx=10)
-
+# devices = {'HV4':{'name':'TEST','voltage':-200,'current':13e-6,}}
+root = HVGui(devices)
 
 #######################################
 # Main GUI loop
@@ -121,10 +102,13 @@ for k in sorted(di_labels.keys()):
 
 now = time.time()
 while myCLI.running:
-
+    try:
+        root.update()
+    except:
+        break
     # Make sure enough time has passed before we poll again
-    while time.time() - now < 1:
-        time.sleep(.2)
+#     while time.time() - now < 1:
+#         time.sleep(.1)
     now = time.time()
 
     # Loop over the keithleys, get the voltages and update the display
@@ -138,41 +122,41 @@ while myCLI.running:
 
         status = v.get_status()
         # v.serial.flushInput()
-
+        root.set_status(k,status)
         if status:
-
             # First try to change the voltage
             # v.ramp()
             # Then update GUI and display
             value = datetime.datetime.fromtimestamp(v.get_update_time())
             voltage = v.get_bias()
             current = v.get_current()
-
-            # Build display string
-            display_string = '%s | %s'%(v.get_device_name().rjust(string_len),k)
-            display_string = '%s | %s'%(v.get_device_name().rjust(string_len),k)
-            if abs(current) < 1e-6:
-                display_string += ": U: {0:7.1f} V      I: {1:10.2e} nA     ".format(voltage, current / 1e-9)
+#             print 'add measurement',k,v.get_update_time(),v.get_current(),v.get_bias(),v.get_device_name()
+            root.add_measurement(k,v.get_update_time(),v.get_bias(),v.get_current(),v.get_device_name())
+            if v.manual:
+                root.set_mode(k,"MANUAL")
+            elif v.is_ramping():
+                root.set_mode(k,"RAMPING")
             else:
-                display_string += ": U: {0:7.1f} V      I: {1:10.2e} muA    ".format(voltage, current / 1e-6)
-            display_string += value.strftime('%H:%M:%S')
-            if v.manual:
-                display_string = ' MANUAL'
-            setBias = v.get_target_bias()
-            if v.is_ramping():
-                display_string += " ramping to " + str(setBias)
+                root.set_mode(k,"NORMAL")
+            root.set_target_bias(k,v.target_bias)
+root._quit()
+#             if v.manual:
+#                 display_string = ' MANUAL'
+#             setBias = v.get_target_bias()
+#             if v.is_ramping():
+#                 display_string += " ramping to " + str(setBias)
+# 
+#             # Display
+#             di_vars[k].set(display_string)
 
-            # Display
-            di_vars[k].set(display_string)
+#         else:
+#             value = datetime.datetime.fromtimestamp(time.time())
+#             display_string = k + ": OFF " + value.strftime('%H:%M:%S')
+#             if v.manual:
+#                 display_string = ' MANUAL'
+#             di_vars[k].set(display_string)
 
-        else:
-            value = datetime.datetime.fromtimestamp(time.time())
-            display_string = k + ": OFF " + value.strftime('%H:%M:%S')
-            if v.manual:
-                display_string = ' MANUAL'
-            di_vars[k].set(display_string)
-
-        v.isBusy = False
-        root.update()
+#         v.isBusy = False
+#         root.update()
         # end of Keithley loop
 # End of Main GUI loop
