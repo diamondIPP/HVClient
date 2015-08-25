@@ -95,6 +95,7 @@ class HVGui():
         else:
             self.devices[device_name]['status_var'].set('ON')
             self.device[device_name]['status_color'].set('green')
+        self.devices[device_name]['status_label'].config(fg=self.devices[device_name]['status_color'])
         
     def add_multiple_measurements(self,device_name,measurements):
         if not self.devices[device_name].has_key('measurements'):
@@ -215,7 +216,7 @@ class HVGui():
         device['status_var'] = Tk.StringVar()
         device['status_label'] = Tk.Label(subframe, 
                                           textvariable=device['status_var'],
-                                          font=("Helvetica", 16),
+                                          font=("Helvetica bold", 16),
                                           fg = self.device[device_name]['status_color'].get() )
         device['status_label'].pack(side = Tk.TOP)
         
