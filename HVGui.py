@@ -82,14 +82,19 @@ class HVGui():
     def update_status_display(self,device_name):
         if not self.devices[device_name].has_key('status'):
             self.devices[device_name]['status_var'].set('NAN')
+            self.devices[device_name]['status_label'].config(color='yellow')
         elif not self.devices[device_name]['status']:
             self.devices[device_name]['status_var'].set('OFF')
+            self.devices[device_name]['status_label'].config(color='red')
         elif  self.devices[device_name]['mode'] == 'MANUAL':
             self.devices[device_name]['status_var'].set('MANUAL')
+            self.devices[device_name]['status_label'].config(color='green')
         elif self.devices[device_name]['mode'] == 'RAMPING':
             self.devices[device_name]['status_var'].set('Ramping to %.1f V'%self.devices[device_name]['target_bias'])
+            self.devices[device_name]['status_label'].config(color='green')
         else:
             self.devices[device_name]['status_var'].set('ON')
+            self.devices[device_name]['status_label'].config(color='green')
         
     def add_multiple_measurements(self,device_name,measurements):
         if not self.devices[device_name].has_key('measurements'):
