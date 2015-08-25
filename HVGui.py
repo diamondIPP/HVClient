@@ -96,6 +96,7 @@ class HVGui():
             self.devices[device_name]['status_var'].set('ON')
             self.device[device_name]['status_color'].set('green')
         self.devices[device_name]['status_label'].config(fg=self.devices[device_name]['status_color'])
+        self.update()
         
     def add_multiple_measurements(self,device_name,measurements):
         if not self.devices[device_name].has_key('measurements'):
