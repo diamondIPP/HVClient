@@ -56,26 +56,37 @@ def update_plot(plot_data,fig,current_range=None,unit='nA'):
     myFmt = mdates.DateFormatter('%H:%M:%S')
     ax1.xaxis.set_major_formatter(myFmt)
     ax2.xaxis.set_major_formatter(myFmt)
-    ax1.ticklabel_format(axis='y', style='sci')
-    ax2.ticklabel_format(axis='y', style='sci')
+    ax1.ticklabel_format(axis='y')#, style='sci')
+    ax2.ticklabel_format(axis='y')#, style='sci')
 #     fig, ax1 = plt.subplots()
     times = [x[0] for x in plot_data]
     voltages = [x[1] for x in plot_data]
-    if unit == 'fA':
-        currents = [x[2]*1e12 for x in plot_data]
-        ax1.set_ylabel('current/fA', color='r')
-    elif unit == 'nA':
-        currents = [x[2]*1e9 for x in plot_data]
-        ax1.set_ylabel('current/nA', color='r')
-    elif unit == 'μA':
-        currents = [x[2]*1e6 for x in plot_data]
-        ax1.set_ylabel('current/μA', color='r')
-    elif unit == 'μA':
-        currents = [x[2]*1e3 for x in plot_data]
-        ax1.set_ylabel('current/mA', color='r')
+    sign = math.copysign(1,voltages[0])
+    if sign == -1:
+        label_prefix = '-1 * '
+    elif sign == 1:
+        label_prefix = ''
     else:
-        currents = [x[2] for x in plot_data]
-        ax1.set_ylabel('current/A', color='r') 
+        raise Exception()
+    if unit == 'fA':
+        factor = 1e12
+        label = 'fA'
+    elif unit == 'nA':
+        factor = 1e9
+        label = 'nA'
+    elif unit == 'μA' or unit == 'muA':
+        factor = 1e6
+        label = 'μA'
+    elif unit == 'mA':
+        factor = 1e3
+        label = 'mA'
+    else:
+        factor = 1
+        label = 'A'
+    label = label_prefix + 'current/' + label
+    ax1.set_ylabel(label , color='r') 
+    factor = sign * factor
+    currents = [x[2]*factor for x in plot_data]
 #     print len(times),len(voltages),len(currents)
     max_v = max(voltages)
     min_v = min(voltages)
@@ -113,7 +124,10 @@ def update_plot(plot_data,fig,current_range=None,unit='nA'):
         tl.set_color('b')
     ax1.grid(True)
     fig.autofmt_xdate(bottom=.25)
-    ax1.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
+    if factor == 1:
+        ax1.ticklabel_format(style='sci',axis='y', scilimits=(0,0))
+    else:
+        ax1.ticklabel_format(axis='y')
 #     ax2.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
     
     return fig,ax1,ax2

@@ -82,20 +82,20 @@ class HVGui():
     def update_status_display(self,device_name):
         if not self.devices[device_name].has_key('status'):
             self.devices[device_name]['status_var'].set('NAN')
-            self.device[device_name]['status_color'].set('yellow')
+            self.devices[device_name]['status_color'].set('yellow')
         elif not self.devices[device_name]['status']:
             self.devices[device_name]['status_var'].set('OFF')
-            self.device[device_name]['status_color'].set('red')
+            self.devices[device_name]['status_color'].set('black')
         elif  self.devices[device_name]['mode'] == 'MANUAL':
             self.devices[device_name]['status_var'].set('MANUAL')
-            self.device[device_name]['status_color'].set('green')
+            self.devices[device_name]['status_color'].set('red')
         elif self.devices[device_name]['mode'] == 'RAMPING':
             self.devices[device_name]['status_var'].set('Ramping to %.1f V'%self.devices[device_name]['target_bias'])
-            self.device[device_name]['status_color'].set('green')
+            self.devices[device_name]['status_color'].set('red')
         else:
             self.devices[device_name]['status_var'].set('ON')
-            self.device[device_name]['status_color'].set('green')
-        self.devices[device_name]['status_label'].config(fg=self.devices[device_name]['status_color'])
+            self.devices[device_name]['status_color'].set('red')
+        self.devices[device_name]['status_label'].config(fg=self.devices[device_name]['status_color'].get())
         self.update()
         
     def add_multiple_measurements(self,device_name,measurements):
@@ -212,13 +212,13 @@ class HVGui():
         device['current_label'] = Tk.Label(subframe, textvariable=device['current_var'],font=("Helvetica", 16) )
         device['current_label'].pack(side = Tk.TOP)
         
-        self.device[device_name]['status_color'] = Tk.StringVar()
-        self.device[device_name]['status_color'].set('black')
+        device['status_color'] = Tk.StringVar()
+        device['status_color'].set('black')
         device['status_var'] = Tk.StringVar()
         device['status_label'] = Tk.Label(subframe, 
                                           textvariable=device['status_var'],
-                                          font=("Helvetica bold", 16),
-                                          fg = self.device[device_name]['status_color'].get() )
+                                          font=("Helvetica", 16,"bold"),
+                                          fg = device['status_color'].get() )
         device['status_label'].pack(side = Tk.TOP)
         
         sf = Tk.Frame(master = subframe)
@@ -274,8 +274,10 @@ class HVGui():
             #self.plot_boxes
             duration = plot_box['optionFrame']['varDuration'].get()
             device = plot_box['optionFrame']['varDevice'].get()
-            range =  plot_box['optionFrame']['varMaxRange'].get()
+            maxrange =  plot_box['optionFrame']['varMaxRange'].get()
             unit = plot_box['optionFrame']['varUnit'].get()
+            if 'μA' == plot_box['optionFrame']['varUnit'].get():
+                unit = 'muA'
             stop = plot_box['optionFrame']['varBreak'].get()
             if stop:
                 continue
@@ -296,7 +298,7 @@ class HVGui():
                     if plot_box['last_measurement'] == last:
                         continue
             plot_box['last_measurement'] = last
-            PlotCreation.update_plot(plot_data,plot_box['f'],current_range = 10**range,unit=unit)
+            PlotCreation.update_plot(plot_data,plot_box['f'],current_range = 10**maxrange,unit=unit)
             plot_box['canvas'].draw()
         self.root.after(self.update_interval.get()*1000, self.update_plots)
         self.last_update = time()
@@ -321,7 +323,7 @@ class HVGui():
         retVal['optDuration'] = Tk.OptionMenu(retVal['optionFrame'], retVal['varDuration'],*retVal['optionlist2'])
         retVal['optDuration'].pack(side=Tk.TOP)
         retVal['varMaxRange']= Tk.IntVar()
-        retVal['varMaxRange'].set(-3)
+        retVal['varMaxRange'].set(3)
         retVal['labelMaxRange'] =  Tk.Label(text='Max Current Range\n (Exponent)',master = retVal['optionFrame'],fg='red')
         retVal['labelMaxRange'].pack(side=Tk.TOP)
         retVal['optMaxRange'] = Tk.Spinbox(master=retVal['optionFrame'],from_=-10 , to=10,width = 5, textvariable=retVal['varMaxRange'],fg='red')
