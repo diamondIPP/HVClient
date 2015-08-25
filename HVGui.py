@@ -82,19 +82,19 @@ class HVGui():
     def update_status_display(self,device_name):
         if not self.devices[device_name].has_key('status'):
             self.devices[device_name]['status_var'].set('NAN')
-            self.devices[device_name]['status_label'].config(color='yellow')
+            self.device[device_name]['status_color'].set('yellow')
         elif not self.devices[device_name]['status']:
             self.devices[device_name]['status_var'].set('OFF')
-            self.devices[device_name]['status_label'].config(color='red')
+            self.device[device_name]['status_color'].set('red')
         elif  self.devices[device_name]['mode'] == 'MANUAL':
             self.devices[device_name]['status_var'].set('MANUAL')
-            self.devices[device_name]['status_label'].config(color='green')
+            self.device[device_name]['status_color'].set('green')
         elif self.devices[device_name]['mode'] == 'RAMPING':
             self.devices[device_name]['status_var'].set('Ramping to %.1f V'%self.devices[device_name]['target_bias'])
-            self.devices[device_name]['status_label'].config(color='green')
+            self.device[device_name]['status_color'].set('green')
         else:
             self.devices[device_name]['status_var'].set('ON')
-            self.devices[device_name]['status_label'].config(color='green')
+            self.device[device_name]['status_color'].set('green')
         
     def add_multiple_measurements(self,device_name,measurements):
         if not self.devices[device_name].has_key('measurements'):
@@ -210,8 +210,13 @@ class HVGui():
         device['current_label'] = Tk.Label(subframe, textvariable=device['current_var'],font=("Helvetica", 16) )
         device['current_label'].pack(side = Tk.TOP)
         
+        self.device[device_name]['status_color'] = Tk.StringVar()
+        self.device[device_name]['status_color'].set('black')
         device['status_var'] = Tk.StringVar()
-        device['status_label'] = Tk.Label(subframe, textvariable=device['status_var'],font=("Helvetica", 16) )
+        device['status_label'] = Tk.Label(subframe, 
+                                          textvariable=device['status_var'],
+                                          font=("Helvetica", 16),
+                                          fg = self.device[device_name]['status_color'].get() )
         device['status_label'].pack(side = Tk.TOP)
         
         sf = Tk.Frame(master = subframe)
