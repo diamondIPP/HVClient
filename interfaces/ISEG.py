@@ -134,6 +134,7 @@ class ISEG(HVInterface):
         raise AttributeError('invalid channel no %s'%channel)
 
     def get_channel_string(self, channel):
+        print 'get channel string', channel
         if channel == 'all':
             return '0-5'
         if not type(channel)==list:
@@ -142,7 +143,7 @@ class ISEG(HVInterface):
         if not all(valid_channels):
             raise AttributeError('Invalid channel in list')
         channel = [str(x) for x in channel]
-            return ','.join(channel)
+        return ','.join(channel)
 
 
     # ============================
@@ -219,7 +220,7 @@ class ISEG(HVInterface):
         if len(ramp_type) > 4:
             ramp_type = ramp_type[:4]
         ramp_type = ramp_type.upper()
-        if not ramp_type in ['VOLT','CURR']
+        if not ramp_type in ['VOLT','CURR']:
             raise AttributeError('Invalid Type of ramp speed')
         if not 0< speed <= 100:
             AttributeError('Invalid speed for ramp speed')
@@ -238,7 +239,7 @@ class ISEG(HVInterface):
         if not filterSteps in valid_steps:
             raise AttributeError('FilterSteps must be in %s'%valid_steps)
         data = ':CONF:AVER %d'%filterSteps
-        print 'Set Average Filter Steps to %d'filterSteps
+        print 'Set Average Filter Steps to %d'%filterSteps
         return self.write(data)
 
     def get_average_filter_steps(self):
@@ -264,12 +265,14 @@ class ISEG(HVInterface):
     #todo :CONF:EV:CHANMASK
 
     def read_current(self,channel=-1):
-        retVal = (self.get_answer_for_query(':MEAS:CURR? (@%s)')%self.get_channel_string(channel)).split()
+        ch = self.get_channel_string(channel)
+        retVal = (self.get_answer_for_query(':MEAS:CURR? (@%s)'%ch)).split()
         retVal = [k[:-1] for k in retVal]
         return retVal
 
     def read_voltage(self,channel=-1):
-        retVal = (self.get_answer_for_query(':MEAS:CURR? (@%s)')%self.get_channel_string(channel)).split()
+        ch = self.get_channel_string(channel)
+        retVal = (self.get_answer_for_query(':MEAS:CURR? (@%s)'%ch)).split()
         retVal = [k[:-1] for k in retVal]
         return retVal
 
