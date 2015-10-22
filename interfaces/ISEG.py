@@ -134,7 +134,7 @@ class ISEG(HVInterface):
         raise AttributeError('invalid channel no %s'%channel)
 
     def get_channel_string(self, channel):
-        if channel == 'all'
+        if channel == 'all':
             return '0-5'
         if not type(channel)==list:
             channel = [channel]
