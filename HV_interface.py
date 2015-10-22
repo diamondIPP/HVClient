@@ -3,7 +3,7 @@
 # ============================
 # IMPORTS
 # ============================
-
+from string import maketrans
 
 # ============================
 # CONSTANTS
@@ -84,3 +84,9 @@ class HVInterface:
             return True
         except ValueError:
             return False
+
+    @staticmethod
+    def clear_string(data):
+        data = data.translate(None, '\r\n\x00\x13\x11\x10')
+        data = data.translate(maketrans(',', ' '))
+        return data.strip()

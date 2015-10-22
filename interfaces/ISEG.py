@@ -18,7 +18,6 @@ from HV_interface import HVInterface
 import serial
 from time import sleep, time
 from collections import deque
-from string import maketrans
 
 # ============================
 # CONSTANTS
@@ -35,23 +34,20 @@ class ISEG(HVInterface):
         self.Busy = False
         self.commandEndCharacter = '\r\n'
         self.readSleepTime = .1
+        self.writeSleepTime = .1
         HVInterface.__init__(self, config, device_no,hot_start)
         self.bOpen = False
         self.read_config(config)
         self.lastVoltage = 0
         self.serial = None
-        self.model = self.get_model_name()
+        # self.model = self.get_model_name()
         self.identifier = None
         self.answer_time = 0.1
         self.open_serial_port()
         self.init_keithley(hot_start)
         pass
 
-    @staticmethod
-    def clear_string(data):
-        data = data.translate(None, '\r\n\x00\x13\x11\x10')
-        data = data.translate(maketrans(',', ' '))
-        return data.strip()
+
 
     def open_serial_port(self):
         try:
@@ -71,17 +67,32 @@ class ISEG(HVInterface):
             pass
 
     def init_keithley(self, hot_start):
+        if hot_start:
+            sleep(1)
+            self.clear_buffer()
+            self.identify()
+            # self.set_measurement_speed(2)  # was 10 before
+            self.clear_error_queue()
+            sleep(1)
+        else:
+            sleep(.1)
+            self.set_output(False)
+            self.reset()
+            self.clear_buffer()
+            self.identify()
+            self.set_max_voltage()
+            # self.set_standard_output_format(':FORM:ELEM VOLT,CURR,RES,TIME,STAT')
+            # self.set_concurrent_measurement(True)
+            # self.set_filter_type('REP')
+            # self.set_average_filter(True)
+            # self.set_average_filter_count(3)
+            # self.set_current_protection(100e-6)
+            # self.set_measurement_speed(2)  # was 10 before
+            self.clear_error_queue()
+            # self.set_compliance_abort_level('LATE')
+            # self.setComplianceAbortLevel('NEVER')
+            sleep(.1)
         return
-        self.set_source_voltage_dc()
-        self.set_1100V_range(True)
-        self.set_output_sense_local()
-        self.set_integration_time(self.integration_time)
-        self.set_averaging_filter(self.n_average_filter)
-        self.set_output_data_format()
-        self.set_compliance(self.measure_range_current,self.compliance)
-        if not hot_start:
-            self.set_off()
-        pass
 
     def read_config(self,config):
         self.serialPortName = config.get(self.section_name, 'address')
@@ -91,6 +102,41 @@ class ISEG(HVInterface):
     def identify(self):
         self.identifier = self.get_answer_for_query('*IDN?')
         self.get_model_name()
+
+    # ============================
+    # DEVICE FUNCTIONS
+    def set_output(self, status, channel='all'):
+        ch_str = str(channel)
+        all_str = 'of channel ' + ch_str
+        if channel=='all':
+            ch_str = '0-5'
+            all_str = 'of all channels'
+        print_value = 'set Output {all} to '.format(all=all_str)
+        data = ':VOLT '
+        data += ('ON' if status else 'OFF')
+        data += ',(@{ch})'.format(ch=ch_str)
+        print_value += ('ON' if status else 'OFF')
+        print print_value
+        return self.write(data)
+
+    def reset(self):
+        self.write('*RST')
+        self.serial.readall()
+        return self.serial.inWaiting()
+
+    def clear_error_queue(self):
+        self.write('*CLS')
+        self.serial.readall()
+        return self.serial.inWaiting()
+
+    def clear_buffer(self):
+        if self.bOpen:
+            while self.serial.inWaiting():
+                self.read()
+                sleep(self.readSleepTime)
+        else:
+            pass
+        return self.serial.inWaiting()
 
     # ============================
     # ACCESS FUNCTIONS
@@ -110,6 +156,9 @@ class ISEG(HVInterface):
         return output == len(data)
 
     def read(self, min_lenght=0):
+        # if not self.serial.inWaiting():
+        #     print 'there is nothing in the queue'
+        #     return
         out = ''
         if not self.bOpen:
             if not self.bOpenInformed:
@@ -119,12 +168,19 @@ class ISEG(HVInterface):
         ts = time()
         max_time = 300
         k = 0
+        clear_first = False
         while True:
             while self.serial.inWaiting() > 0 and time() - ts < max_time and not out.endswith(self.commandEndCharacter):
                 out += self.serial.read(1)
                 k += 1
-            if out.endswith(self.commandEndCharacter):
+            if out == '':
                 break
+            if out.endswith(self.commandEndCharacter):
+                if out.startswith('*') or out.startswith(':'):
+                    out = ''
+                    continue
+                else:
+                    break
             if time() - ts > max_time:
                 break
             if 0 < min_lenght <= len(out):
@@ -141,8 +197,28 @@ class ISEG(HVInterface):
         # print 'received after %s tries: %s' % (k, out)
         return out
 
+    # ============================
+    # GET-FUNCTIONS
+    def get_model_name(self):
+        self.model = 9999
+        if self.identifier == '':
+            self.identify()
+        else:
+            ident_list = self.identifier.split()
+            if len(ident_list) > 5:
+                mod = ident_list[3] + ident_list[4]
+                self.model = int(mod) if self.is_number(mod) else mod
+            print 'Connected iseg model', self.model
+        self.set_max_voltage()
+
+    # ============================
+    # SET-FUNCTIONS
+    def set_max_voltage(self):
+        self.max_voltage = 3000
+
+
 
 if __name__ == '__main__':
     conf = ConfigParser.ConfigParser()
     conf.read('../config/keithley.cfg')
-    iseg = ISEG(conf, 7, False)
+    i = ISEG(conf, 7, False)
