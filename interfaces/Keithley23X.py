@@ -25,7 +25,7 @@ OFF = 0
 # MAIN CLASS
 # ============================
 class Keithley23X(HVInterface):
-    def __init__(self, config, device_no=1, hot_start=False):
+    def __init__(self, config, device_no=1, hot_start=False,init=True):
         self.Busy = False
         HVInterface.__init__(self, config, device_no,hot_start)
         self.bOpen = False
@@ -36,7 +36,10 @@ class Keithley23X(HVInterface):
         self.identifier = None
         self.answer_time = 0.1
         self.open_serial_port()
-        self.init_keithley(hot_start)
+        if init:
+            self.init_keithley(hot_start)
+        else:
+            print 'keithley initialisation is disabled, please run device.init_ketihley(hotstart)'
         pass
 
     def open_serial_port(self):
@@ -56,6 +59,13 @@ class Keithley23X(HVInterface):
             self.bOpen = False
             pass
         self.set_gbip_address()
+        self.enable_system_controller()
+
+    def enable_system_controller(self):
+        if self.bOpen:
+             self.serial.write('++ifc %d'%self.gbip)
+             print 'Sending InterFaceClear (IFC) to force the instruments to listen to the system controller'
+        sleep(.2)
 
     def set_gbip_address(self):
         if self.bOpen:
@@ -180,8 +190,8 @@ class Keithley23X(HVInterface):
         retVal = self.__write(message)
         try:
              return retVal[1][-1]
-        except Exception, e:
-            print retVal
+        except Exception as e:
+            print retVal,e
             raise e
         return self.__write(message)[1][-1]
 
@@ -219,6 +229,10 @@ class Keithley23X(HVInterface):
                 raise e
         self.Busy = False
         return retVal,retMsg
+
+    def set_eoi_and_bus_hold_off(self,eoi,hold_off):
+        val = ((not eoi)<<0)+((not hold_off)<<1)
+        self.__execute('K%d'%val)
 
     def set_output(self, status):
         if status == True or status == 1:
@@ -772,4 +786,4 @@ class Keithley23X(HVInterface):
 if __name__ == '__main__':
     conf = ConfigParser.ConfigParser()
     conf.read('../config/keithley.cfg')
-    k237 = Keithley23X(conf, 3, False)
+    k237 = Keithley23X(conf, 5, True,False)
