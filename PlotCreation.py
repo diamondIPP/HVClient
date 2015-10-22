@@ -74,13 +74,14 @@ def update_plot(plot_data,fig,current_range=None,unit='nA'):
     elif unit == 'nA':
         factor = 1e9
         label = 'nA'
-    elif unit == 'μA' or unit == 'muA':
+    elif unicode(unit) == unicode('μA') or unicode(unit) == unicode('muA'):
         factor = 1e6
         label = 'μA'
     elif unit == 'mA':
         factor = 1e3
         label = 'mA'
     else:
+        print 'ERROR: ',unit, type(unit)
         factor = 1
         label = 'A'
     label = label_prefix + 'current/' + label
