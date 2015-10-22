@@ -35,6 +35,7 @@ class ISEG(HVInterface):
         self.Busy = False
         self.commandEndCharacter = '\r\n'
         self.readSleepTime = .1
+        self.writeSleepTime = .1
         HVInterface.__init__(self, config, device_no,hot_start)
         self.bOpen = False
         self.read_config(config)
