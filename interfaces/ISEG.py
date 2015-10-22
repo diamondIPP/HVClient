@@ -57,11 +57,11 @@ class ISEG(HVInterface):
         try:
             self.serial = serial.Serial(
                 port=self.serialPortName,
-                baudrate=57600,
+                baudrate=9600,
                 parity=serial.PARITY_NONE,
                 stopbits=serial.STOPBITS_ONE,
                 bytesize=serial.EIGHTBITS,
-                timeout=1,
+                timeout=.5,
             )
             self.bOpen = True
             print 'Open serial port: \'%s\'' % self.serialPortName
@@ -145,4 +145,4 @@ class ISEG(HVInterface):
 if __name__ == '__main__':
     conf = ConfigParser.ConfigParser()
     conf.read('../config/keithley.cfg')
-    k237 = ISEG(conf, 7, False)
+    iseg = ISEG(conf, 7, False)
