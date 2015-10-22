@@ -55,15 +55,9 @@ class ISEG(HVInterface):
             print 'Could not open serial Port: \'%s\'' % self.serialPortName
             self.bOpen = False
             pass
-        self.set_gbip_address()
-
-    def set_gbip_address(self):
-        if self.bOpen:
-             self.serial.write('++addr %d'%self.gbip)
-             retVal = self.__write('++addr ',1)
-             print 'Set GBIP Address to %d'%self.gbip
 
     def init_keithley(self, hot_start):
+        return
         self.set_source_voltage_dc()
         self.set_1100V_range(True)
         self.set_output_sense_local()
@@ -77,19 +71,6 @@ class ISEG(HVInterface):
 
     def read_config(self,config):
         self.serialPortName = config.get(self.section_name, 'address')
-        self.gbip = config.getint(self.section_name, 'gbip')
-        self.integration_time = 3
-        if config.has_option(self.section_name,'integration_time'):
-            self.integration_time = config.getint(  self.section_name,'integration_time')
-        self.n_average_filter = 32
-        if config.has_option(self.section_name,'n_average_filter'):
-            self.n_average_filter = config.getint(  self.section_name,'n_average_filter')
-        self.compliance = 1e-6
-        if self.config.has_option(self.section_name,'compliance'):
-            self.compliance = float(self.config.get(self.section_name,'compliance'))
-        self.measure_range_current = 1e-6
-        if self.config.has_option(self.section_name,'measure_range'):
-            self.measure_range_current = float(self.config.get(self.section_name,'measure_range'))
         pass
 
 
