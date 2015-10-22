@@ -96,4 +96,4 @@ class ISEG(HVInterface):
 if __name__ == '__main__':
     conf = ConfigParser.ConfigParser()
     conf.read('../config/keithley.cfg')
-    k237 = Keithley23X(conf, 3, False)
+    k237 = ISEG(conf, 7, False)
