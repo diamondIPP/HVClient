@@ -126,26 +126,27 @@ while myCLI.running:
 
         if not myCLI.running:
             break
+        for ch in (v.get_n_channels()):
 
-        status = v.get_status()
-        # v.serial.flushInput()
-        root.set_status(k,status)
-        if status:
-            # First try to change the voltage
-            # v.ramp()
-            # Then update GUI and display
-            value = datetime.datetime.fromtimestamp(v.get_update_time())
-            voltage = v.get_bias()
-            current = v.get_current()
-#             print 'add measurement',k,v.get_update_time(),v.get_current(),v.get_bias(),v.get_device_name()
-            root.add_measurement(k,v.get_update_time(),v.get_bias(),v.get_current(),v.get_device_name())
-            if v.manual:
-                root.set_mode(k,"MANUAL")
-            elif v.is_ramping():
-                root.set_mode(k,"RAMPING")
-            else:
-                root.set_mode(k,"NORMAL")
-            root.set_target_bias(k,v.target_bias)
+            status = v.get_status()
+            # v.serial.flushInput()
+            root.set_status(k,status)
+            if status:
+                # First try to change the voltage
+                # v.ramp()
+                # Then update GUI and display
+                value = datetime.datetime.fromtimestamp(v.get_update_time())
+                voltage = v.get_bias()
+                current = v.get_current()
+    #             print 'add measurement',k,v.get_update_time(),v.get_current(),v.get_bias(),v.get_device_name()
+                root.add_measurement(k,v.get_update_time(),v.get_bias(),v.get_current(),v.get_device_name())
+                if v.manual:
+                    root.set_mode(k,"MANUAL")
+                elif v.is_ramping():
+                    root.set_mode(k,"RAMPING")
+                else:
+                    root.set_mode(k,"NORMAL")
+                root.set_target_bias(k,v.target_bias)
             
 root._quit()
 myCLI.onecmd('exit\n')

@@ -28,15 +28,17 @@ import os
 class HVDevice(Thread):
     def __init__(self, config, device_no, hot_start):
         Thread.__init__(self)
+        self.interface = None
+        self.init_interface(config, device_no, hot_start)
+        self.nchannels = self.interface.nchannels
 
-        self.isKilled = False
+        self.isKilled = self.nchannels*[False]
 
         self.config = config
-        self.keithley = None
-        self.bias_now = -0
+        self.bias_now = self.nchannels*[-0]
 
         self.section_name = 'HV%d' % device_no
-        self.bias_now = 0
+        self.bias_now = self.nchannels*[0]
         try:
             self.model_number = int(self.config.get(self.section_name, 'model'))
             self.ramp_speed = float(self.config.get(self.section_name, 'ramp'))
@@ -52,8 +54,6 @@ class HVDevice(Thread):
         else:
             self.__device_name = "UNKNOWN"
 
-        self.interface = None
-        self.init_interface(config, device_no, hot_start)
 
         self.isBusy = False
         self.maxTime = 20
@@ -214,47 +214,47 @@ class HVDevice(Thread):
 
     # ============================
     # GET-FUNCTIONS
-    def get_current(self):
-        return self.current_now
+    def get_current(self,ch=1):
+        return self.current_now[ch]
 
-    def get_bias(self):
-        return self.bias_now
+    def get_bias(self,ch=1):
+        return self.bias_now[ch]
 
-    def get_target_bias(self):
-        return self.target_bias
+    def get_target_bias(self,ch=1):
+        return self.target_bias[ch]
 
-    def get_status(self):
-        return self.status
+    def get_status(self,ch=1):
+        return self.status[ch]
 
-    def get_last_status(self):
-        return self.last_status
+    def get_last_status(self,ch=1):
+        return self.last_status[ch]
 
-    def get_update_time(self):
-        return self.last_update
+    def get_update_time(self,ch=1):
+        return self.last_update[ch]
 
-    def get_last_ramp(self):
-        return self.last_ramp
+    def get_last_ramp(self,ch=1):
+        return self.last_ramp[ch]
 
     # ============================
     # SET-FUNCTIONS
-    def set_target_bias(self, target):
-        self.target_bias = target
-        self.last_v_change = time()
+    def set_target_bias(self, target,ch=1):
+        self.target_bias[ch] = target
+        self.last_v_change[ch] = time()
         log = 'SET_BIAS_TO' + '{0:7.1f}'.format(target)
         self.add_log_entry(log)
 
-    def set_to_manual(self, status):
-        self.target_bias = self.interface.set_to_manual(status)
-        self.manual = status
+    def set_to_manual(self, status,ch=1):
+        self.target_bias[ch] = self.interface.set_to_manual(status,ch)
+        self.manual[ch] = status[ch]
 
     # ============================
     # MISCELLANEOUS FUNCTIONS
-    def is_ramping(self):
-        return abs(self.bias_now - self.target_bias) > 0.1 if self.get_status() else False
+    def is_ramping(self,ch=1):
+        return abs(self.bias_now[ch] - self.target_bias[ch]) > 0.1 if self.get_status(ch) else False
 
-    def power_down(self):
-        self.set_target_bias(0)
-        self.powering_down = True
+    def power_down(self,ch=1):
+        self.set_target_bias(0,ch)
+        self.powering_down[ch] = True
 
     def wait_for_device(self):
         now = time()
@@ -274,27 +274,35 @@ class HVDevice(Thread):
         if self.status:
             #print 'status',self.status,
             try:
-                iv = self.interface.read_iv()
-                #print 'iv: ',iv,
-                self.bias_now = iv['voltage']
-                #print 'bias_now',self.bias_now,
-                self.current_now = iv['current']
-                #print 'current_now',self.current_now
-                self.last_update = time()
-                #print 'readIV',voltage,current,self.targetBias,rest
+                if self.interface.nchannels == 1:
+                    iv = self.interface.read_iv()
+                    #print 'iv: ',iv,
+                    self.bias_now[0] = iv['voltage']
+                    #print 'bias_now',self.bias_now,
+                    self.current_now[0] = iv['current']
+                    #print 'current_now',self.current_now
+                    self.last_update[0] = time()
+                    #print 'readIV',voltage,current,self.targetBias,rest
+                else:
+                    ivs = self.interface.read_iv()
+                    for iv in ivs:
+                        ch = iv['channel']
+                        self.bias_now[ch] = iv['voltage']
+                        self.current_now[ch] = iv['current']
+
             except Exception as inst:
                 print 'Could not read valid iv', type(inst), inst
         self.isBusy = False
 
-    def ramp(self):
+    def ramp(self,ch=1):
         # Try to update voltage (we remember the measurement from the last loop)
         # (the step we can make in voltage is the ramp-speed times
         # how many seconds passed since last change)
-        if not self.status:
+        if not self.status[ch]:
             return
         #self.update_voltage_current()
         tries = 0
-        while abs(self.interface.target_voltage - self.bias_now) > 1:
+        while abs(self.interface.get_target_voltage(ch) - self.bias_now[ch]) > 1:
             msg =  '\033[91m'
             msg += 'Did not reach the current set voltage on the power supply:'
             msg += ' set_voltage: %f V'%self.interface.target_voltage 
@@ -308,36 +316,36 @@ class HVDevice(Thread):
             if tries > 10:
                 raise ValueError(msg)
                                 
-        delta_v = self.target_bias - self.interface.target_voltage
+        delta_v = self.target_bias[ch] - self.interface.target_voltage[ch]
 
         #print 'target: %f \t bias: %f ==> %f V'%(self.target_bias,self.bias_now,delta_v)
         t_now = time()
-        delta_t = t_now - self.last_v_change
-        step_size = abs(self.ramp_speed * (delta_t))
+        delta_t = t_now - self.last_v_change[ch]
+        step_size = abs(self.ramp_speed[ch] * (delta_t))
         #print 'step_size: %f \t %f - %f = %f \t %f'%(step_size,t_now,self.last_v_change,delta_t,self.ramp_speed),
 
         # Limit the maximal voltage step size
-        if step_size > self.max_step:
-            step_size = self.max_step
+        if step_size > self.max_step[ch]:
+            step_size = self.max_step[ch]
         #print step_size
 
         # print 'delta U ',delta_v,step_size
         newtime = time()
         if abs(delta_v) > 0.1:
             if abs(delta_v) <= step_size:
-                new_bias = self.target_bias
+                new_bias = self.target_bias[ch]
             else:
-                new_bias = self.bias_now + copysign(step_size, delta_v)
+                new_bias = self.bias_now[ch] + copysign(step_size, delta_v)
             #print 'new bias: ',new_bias
             self.isBusy = True
-            self.interface.set_voltage(new_bias)
-            if new_bias == self.target_bias and not self.powering_down:
+            self.interface.set_voltage(new_bias,ch)
+            if new_bias == self.target_bias[ch] and not self.powering_down[ch]:
                 print '%s is done with ramping to %d' % (self.interface.name, self.target_bias)
-            self.last_v_change = newtime
+            self.last_v_change[ch] = newtime
             self.isBusy = False
-        if self.powering_down and abs(self.bias_now) < .1:
-            self.interface.set_output(0)
-            self.powering_down = False
+        if self.powering_down[ch] and abs(self.bias_now[ch]) < .1:
+            self.interface.set_output(0,ch)
+            self.powering_down[ch] = False
             print '%s has ramped down and turned off' % self.interface.name
             # End of ramp
 

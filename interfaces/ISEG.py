@@ -142,7 +142,7 @@ class ISEG(HVInterface):
         if not all(valid_channels):
             raise AttributeError('Invalid channel in list')
         channel = [str(x) for x in channel]
-            return ','.join(channel)
+        return ','.join(channel)
 
 
     # ============================
@@ -269,9 +269,16 @@ class ISEG(HVInterface):
         return retVal
 
     def read_voltage(self,channel=-1):
-        retVal = (self.get_answer_for_query(':MEAS:CURR? (@%s)')%self.get_channel_string(channel)).split()
+        retVal = (self.get_answer_for_query(':MEAS:VOLT? (@%s)')%self.get_channel_string(channel)).split()
         retVal = [k[:-1] for k in retVal]
         return retVal
+
+    def read_iv(self):
+        currents = self.read_current("all")
+        voltages = self.read_voltage("all")
+        channels = range(self.nchannels)
+        return map(lambda x,y,z: {"voltage":x,"current":y,"channel":z},voltages,currents,channels)
+
 
     def reset(self):
         self.write('*RST')
