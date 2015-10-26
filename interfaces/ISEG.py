@@ -145,18 +145,11 @@ class ISEG(HVInterface):
 
     # ============================
     # DEVICE FUNCTIONS
-    def set_output(self, status, channel='all'):
-        ch_str = str(channel)
-        all_str = 'of channel ' + ch_str
-        if channel == 'all':
-            ch_str = '0-5'
-            all_str = 'of all channels'
-        print_value = 'set Output {all} to '.format(all=all_str)
+    def set_output(self, status, channel=-1):
+        ch_str = self.get_channel_string(channel)
         data = ':VOLT '
         data += ('ON' if status else 'OFF')
-        data += ',(@{ch})'.format(ch=ch_str)
-        print_value += ('ON' if status else 'OFF')
-        print print_value
+        data += ch_str
         return self.write(data)
 
     def set_channel_voltage(self, voltage, channel=-1):
@@ -373,6 +366,9 @@ class ISEG(HVInterface):
             print 'Connected iseg model', self.model
         self.set_max_voltage()
 
+    def get_channel_voltage(self,ch):
+        return self.query_set_voltage(ch)
+
     def query_set_voltage(self,ch=-1):
         ch_str = self.get_channel_string(ch)
         retVal = self.get_answer_for_query(':READ:VOLT?%s' % ch_str).split()
@@ -434,11 +430,10 @@ class ISEG(HVInterface):
         return retval
 
     '''
-        Unit: %/s
+        Unit: %/s TODO
     '''
     def query_module_voltage_ramp_speed(self):
-        ch_str = self.get_channel_string(ch)
-        retval = self.get_answer_for_query(':READ:RAMP:VOLT?' % ch_str)
+        retval = self.get_answer_for_query(':READ:RAMP:VOLT?')
         retval = float(retval[:-3])
         return retval
 
@@ -452,11 +447,10 @@ class ISEG(HVInterface):
         return retval
 
     '''
-        Unit: %/s
+        Unit: %/s TODO
     '''
     def query_module_current_ramp_speed(self):
-        ch_str = self.get_channel_string(ch)
-        retval = self.get_answer_for_query(':READ:RAMP:CURR?' % ch_str)
+        retval = self.get_answer_for_query(':READ:RAMP:CURR?')
         retval = float(retval[:-3])
         return retval
 
@@ -475,8 +469,9 @@ class ISEG(HVInterface):
     def query_module_supply_voltage_n24(self):
         return float(self.get_answer_for_query(':READ:MOD:SUP:N24V?')[:-1])
 
+    # TODO
     def query_module_supply_voltage_p5(self):
-        return float(self.get_answer_for_query(':READ:MOD:SUP:N5V?')[:-1])
+        return float(self.get_answer_for_query(':READ:MOD:SUP:P5V?')[:-1])
 
     def query_module_temperature(self):
         return float(self.get_answer_for_query(':READ:MOD:TEMP?')[:-1])
