@@ -542,14 +542,14 @@ class ISEG(HVInterface):
         IsSafetyLoopGood, IsNoRamp and IsNoSumError indicate the single status for the complete module.
     '''
     def get_module_status(self):
-        retVal = self.get_answer_for_query(':READ:MODule:STATus?')
+        retVal = int(self.get_answer_for_query(':READ:MODule:STATus?'))
         return self.convert_module_status(retVal)
 
     ''' Module Event Status (read access)
         :READ:MODule:EVent:STATus?
     '''
     def get_module_event_status(self):
-        retVal = self.get_answer_for_query(':READ:MODule:EV:STATus?')
+        retVal = int(self.get_answer_for_query(':READ:MODule:EV:STATus?'))
         return self.convert_module_event_status(retVal)
 
     ''' Module Event Mask (read-write access)
@@ -563,7 +563,7 @@ class ISEG(HVInterface):
     possible
     '''
     def get_module_event_mask(self):
-        retVal = self.get_answer_for_query(':READ:MODule:EV:MASK?')
+        retVal = int(self.get_answer_for_query(':READ:MODule:EV:MASK?'))
         return self.convert_module_event_mask(retVal)
 
     ''' Module Event Channel Status (read-write access)
@@ -574,14 +574,14 @@ class ISEG(HVInterface):
     Reset of a bit is done by writing a 1 to this bit
     '''
     def get_module_event_channel_status(self):
-        retVal = self.get_answer_for_query(':READ:MODule:EVent:CHANSTATus?')
+        retVal = int(self.get_answer_for_query(':READ:MODule:EVent:CHANSTATus?'))
         return bin(retVal)
 
     ''' Module Control (read-write access)
         :READ:MODule:CONTRol?
     '''
     def get_module_control(self):
-        retVal = self.get_answer_for_query(':READ:MODule:CONTRol?')
+        retVal = int(self.get_answer_for_query(':READ:MODule:CONTRol?'))
         return self.convert_module_control(retVal)
 
 
