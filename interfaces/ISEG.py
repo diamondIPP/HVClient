@@ -367,8 +367,11 @@ class ISEG(HVInterface):
             print 'Connected iseg model', self.model
         self.set_max_voltage()
 
-    def get_channel_voltage(self,ch):
+    def get_channel_voltage(self,ch=-1):
         return self.query_set_voltage(ch)
+
+    def get_output_status(self,ch=-1):
+        return [k['On'] for k in i.get_channel_status(ch)]
 
     def query_set_voltage(self,ch=-1):
         ch_str = self.get_channel_string(ch)
