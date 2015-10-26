@@ -646,6 +646,8 @@ class ISEG(HVInterface):
                 ]
         retVal = {}
         for i in range(len(bits)):
+            if bits[i].startswith('Reserved'):
+                continue
             retVal[bits[i]] = ISEG.check_bit(status, i)
         return retVal
 
@@ -670,6 +672,8 @@ class ISEG(HVInterface):
                 ]
         retVal = {}
         for i in range(len(bits)):
+            if bits[i].startswith('Reserved'):
+                continue
             retVal[bits[i]] = ISEG.check_bit(status, i)
         return retVal
 
@@ -694,6 +698,8 @@ class ISEG(HVInterface):
                 ]
         retVal = {}
         for i in range(len(bits)):
+            if bits[i].startswith('Reserved'):
+                continue
             retVal[bits[i]] = ISEG.check_bit(status, i)
         return retVal
 
@@ -720,6 +726,8 @@ class ISEG(HVInterface):
                 ]
         retVal = {}
         for i in range(len(bits)):
+            if bits[i].startswith('Reserved'):
+                continue
             retVal[bits[i]] = ISEG.check_bit(status, i)
         return retVal
 
@@ -744,6 +752,8 @@ class ISEG(HVInterface):
                 ]
         retVal = {}
         for i in range(len(bits)):
+            if bits[i].startswith('Reserved'):
+                continue
             retVal[bits[i]] = ISEG.check_bit(status, i)
         return retVal
 
@@ -768,6 +778,8 @@ class ISEG(HVInterface):
                 ]
         retVal = {}
         for i in range(len(bits)):
+            if bits[i].startswith('Reserved'):
+                continue
             retVal[bits[i]] = ISEG.check_bit(status, i)
         return retVal
 
@@ -792,6 +804,8 @@ class ISEG(HVInterface):
                 ]
         retVal = {}
         for i in range(len(bits)):
+            if bits[i].startswith('Reserved'):
+                continue
             retVal[bits[i]] = ISEG.check_bit(status, i)
         return retVal
 
