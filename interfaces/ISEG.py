@@ -155,7 +155,8 @@ class ISEG(HVInterface):
     def set_channel_voltage(self, voltage, channel=-1):
         self.is_valid_channel_string(channel)
         self.is_valid_voltage(voltage, channel)
-        data = ':VOLT %.3f (@%d)' % (voltage, channel)
+        ch_str = self.get_channel_string(channel)
+        data = ':VOLT %.3f,%s' % (voltage, ch_str)
         print 'set Voltage of channel %d to %.3f V' % (channel, voltage)
         return self.write(data)
 
