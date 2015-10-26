@@ -385,20 +385,22 @@ class ISEG(HVInterface):
         ch_str = self.get_channel_string(ch)
         retVal = self.get_answer_for_query(':READ:CHAN:STAT?%s'%ch_str).split()
         retVal = [int(k) for k in retVal]
-        return self.convert_channel_status(retVal)
+        retVal = [self.convert_channel_status(i) for i in retVal]
+        return retVal
 
     def get_channel_event_status(self,ch = -1):
         ch_str = self.get_channel_string(ch)
         retVal = self.get_answer_for_query(':READ:CHAN:EV:STAT?%s'%ch_str).split()
         retVal = [int(k) for k in retVal]
-        return self.convert_channel_event_status(retVal)
+        retVal = [self.convert_channel_event_status(i) for i in retVal]
+        return retVal
 
     def get_channel_event_mask(self,ch = -1):
-        def get_channel_event_status(self,ch = -1):
         ch_str = self.get_channel_string(ch)
         retVal = self.get_answer_for_query(':READ:CHAN:EV:MASK?%s'%ch_str).split()
         retVal = [int(k) for k in retVal]
-        return self.convert_channel_event_mask(retVal)
+        retVal = [self.convert_channel_event_mask(i) for i in retVal]
+        return retVal
 
 
     # ============================
@@ -520,7 +522,7 @@ class ISEG(HVInterface):
                 "isHwVLgd",#5
                 "IsInputError",#6       0: no input error in connection with a module access
                 "Reserved7",#7
-                "IsNoSumError",#8       1: evaluation of the ‘Channel Status’ over all channelsto a sum error flag ⇒LIM&CLIM&CTRP&EINH&VBND&CBND=0 ⇒ no errors
+                "IsNoSumError",#8       1: evaluation of the "Channel Status" over all channels to a sum error flag ==> no errors
                 "IsNoRamp",#9           1: no channel is ramping
                 "IsSafetyLoopGood",#10  1: safety loop is closed
                 "IsEventActive",#11     1: any Event is active
