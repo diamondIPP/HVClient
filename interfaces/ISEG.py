@@ -376,25 +376,25 @@ class ISEG(HVInterface):
     def query_set_voltage(self,ch=-1):
         ch_str = self.get_channel_string(ch)
         retVal = self.get_answer_for_query(':READ:VOLT?%s' % ch_str).split()
-        retVal = [float(k[-1]) for k in retVal]
+        retVal = [float(k[:-1]) for k in retVal]
         return retVal
 
     def query_voltage_limit(self,ch=-1):
         ch_str = self.get_channel_string(ch)
         retVal = self.get_answer_for_query(':READ:VOLT:LIM?%s' % ch_str).split()
-        retVal = [float(k[-1]) for k in retVal]
+        retVal = [float(k[:-1]) for k in retVal]
         return retVal
 
     def query_voltage_nominal(self,ch=-1):
         ch_str = self.get_channel_string(ch)
         retVal = self.get_answer_for_query(':READ:VOLT:NOM?%s' % ch_str).split()
-        retVal = [float(k[-1]) for k in retVal]
+        retVal = [float(k[:-1]) for k in retVal]
         return retVal
 
     def query_voltage_bounds(self,ch=-1):
         ch_str = self.get_channel_string(ch)
         retVal = self.get_answer_for_query(':READ:VOLT:BOU?%s' % ch_str).split()
-        retVal = [float(k[-1]) for k in retVal]
+        retVal = [float(k[:-1]) for k in retVal]
         return retVal
 
     def query_channel_on(self,ch=-1):
@@ -412,25 +412,25 @@ class ISEG(HVInterface):
     def query_set_current(self,ch=-1):
         ch_str = self.get_channel_string(ch)
         retVal = self.get_answer_for_query(':READ:CURR?%s' % ch_str).split()
-        retVal = [float(k[-1]) for k in retVal]
+        retVal = [float(k[:-1]) for k in retVal]
         return retVal
 
     def query_set_current_limit(self,ch=-1):
         ch_str = self.get_channel_string(ch)
         retVal = self.get_answer_for_query(':READ:CURR:LIM?%s' % ch_str).split()
-        retVal = [float(k[-1]) for k in retVal]
+        retVal = [float(k[:-1]) for k in retVal]
         return retVal
 
     def query_set_current_nominal(self,ch=-1):
         ch_str = self.get_channel_string(ch)
         retval = self.get_answer_for_query(':READ:CURR:NOM?%s' % ch_str).split()
-        retval = [float(k[-1]) for k in retval]
+        retval = [float(k[:-1]) for k in retval]
         return retval
 
     def query_set_current_bounds(self,ch=-1):
         ch_str = self.get_channel_string(ch)
         retval = self.get_answer_for_query(':READ:CURR:BOU?%s' % ch_str).split()
-        retval = [float(k[-1]) for k in retval]
+        retval = [float(k[:-1]) for k in retval]
         return retval
 
     '''
@@ -439,7 +439,7 @@ class ISEG(HVInterface):
     def query_module_voltage_ramp_speed(self):
         ch_str = self.get_channel_string(ch)
         retval = self.get_answer_for_query(':READ:RAMP:VOLT?' % ch_str)
-        retval = float(retval[-3])
+        retval = float(retval[:-3])
         return retval
 
     '''
@@ -448,7 +448,7 @@ class ISEG(HVInterface):
     def query_channel_voltage_ramp_speed(self,ch=-1):
         ch_str = self.get_channel_string(ch)
         retval = self.get_answer_for_query(':READ:RAMP:VOLT?%s' % ch_str).split()
-        retval = [float(k[-1]) for k in retval]
+        retval = [float(k[:-3]) for k in retval]
         return retval
 
     '''
@@ -457,7 +457,7 @@ class ISEG(HVInterface):
     def query_module_current_ramp_speed(self):
         ch_str = self.get_channel_string(ch)
         retval = self.get_answer_for_query(':READ:RAMP:CURR?' % ch_str)
-        retval = float(retval[-3])
+        retval = float(retval[:-3])
         return retval
 
     '''
@@ -466,23 +466,23 @@ class ISEG(HVInterface):
     def query_channel_current_ramp_speed(self,ch=-1):
         ch_str = self.get_channel_string(ch)
         retval = self.get_answer_for_query(':READ:RAMP:CURR?%s' % ch_str).split()
-        retval = [float(k[-1]) for k in retval]
+        retval = [float(k[:-3]) for k in retval]
         return retval
 
     def query_module_supply_voltage_p24(self):
-        return float(self.get_answer_for_query(':READ:MOD:SUP:P24V?'))
+        return float(self.get_answer_for_query(':READ:MOD:SUP:P24V?')[:-1])
 
     def query_module_supply_voltage_n24(self):
-        return float(self.get_answer_for_query(':READ:MOD:SUP:N24V?'))
+        return float(self.get_answer_for_query(':READ:MOD:SUP:N24V?')[:-1])
 
     def query_module_supply_voltage_p5(self):
-        return float(self.get_answer_for_query(':READ:MOD:SUP:N5V?'))
+        return float(self.get_answer_for_query(':READ:MOD:SUP:N5V?')[:-1])
 
     def query_module_temperature(self):
-        return float(self.get_answer_for_query(':READ:MOD:TEMP?'))
+        return float(self.get_answer_for_query(':READ:MOD:TEMP?')[:-1])
 
     def query_module_channels(self):
-        return float(self.get_answer_for_query(':READ:MOD:CHAN?'))
+        return int(self.get_answer_for_query(':READ:MOD:CHAN?'))
 
     def query_firmware_name(self):
         return self.get_answer_for_query(':READ:FIRM:NAME?')
