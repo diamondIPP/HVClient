@@ -383,8 +383,23 @@ class ISEG(HVInterface):
 
     def get_channel_status(self,ch = -1):
         ch_str = self.get_channel_string(ch)
-        retVal = self.get_answer_for_query(':READ:CHANnel:STATus?%s'%ch_str)
-        return retVal
+        retVal = self.get_answer_for_query(':READ:CHAN:STAT?%s'%ch_str).split()
+        retVal = [int(k) for k in retVal]
+        return self.convert_channel_status(retVal)
+
+    def get_channel_event_status(self,ch = -1):
+        ch_str = self.get_channel_string(ch)
+        retVal = self.get_answer_for_query(':READ:CHAN:EV:STAT?%s'%ch_str).split()
+        retVal = [int(k) for k in retVal]
+        return self.convert_channel_event_status(retVal)
+
+    def get_channel_event_mask(self,ch = -1):
+        def get_channel_event_status(self,ch = -1):
+        ch_str = self.get_channel_string(ch)
+        retVal = self.get_answer_for_query(':READ:CHAN:EV:MASK?%s'%ch_str).split()
+        retVal = [int(k) for k in retVal]
+        return self.convert_channel_event_mask(retVal)
+
 
     # ============================
     # SET-FUNCTIONS
@@ -396,10 +411,176 @@ class ISEG(HVInterface):
     # ============================
     # STATIC CONVERSION FUCNTIONS
     @staticmethod
+    def check_bit(status,bit):
+        return (status & (1<<bit)) == (1<<bit)
+    @staticmethod
     def convert_channel_status(status):
-        retVa ={}
+        #Bit15  Bit14   Bit13   Bit12 Bit11 Bit10 Bit9 Bit8 Bit7 Bit6 Bit5 Bit4 Bit3 Bit2 Bit1 Bit0
+        retVal ={
+            "VoltageLimitExceeded": ISEG.check_bit(status,15),   # 0 for OK, 1 the hardware voltage limit is exceeded
+            "CurrentLimitExceeded": ISEG.check_bit(status,14),   # 0 for OK, 1 the hardware current limit is exceeded
+            "TripExceeded": ISEG.check_bit(status,13),           # 0 for OK, 1 VO is shut off to 0V without ramp because the channel has tripped.
+            "ExtInhibit": ISEG.check_bit(status,12),             # 0 for OK, 1 External Inhibit was scanned
+            "VoltageBoundsExceeded": ISEG.check_bit(status,11),  # 0 for OK, 1 |Vmeas - Vset| > Vbounds
+            "CurrentBoundsExceeded": ISEG.check_bit(status,10),  # 0 for OK, 1 |Imeas - Iset| > Ibounds
+            "Reserved2": ISEG.check_bit(status,9),
+            "LowCurrentRange": ISEG.check_bit(status,8),         #
+            "ControlledVoltage": ISEG.check_bit(status,7),       # 1 Channel is in state of voltage control
+            "ControlledCurrent": ISEG.check_bit(status,6),       # 1 channel is in state of current contro
+            "EmergencyOff": ISEG.check_bit(status,5),            # 1 channel is in state of emergency off, VO has been shut off to 0V without ramp
+            "Ramping": ISEG.check_bit(status,4),                 # 0, no voltage is in change, 1 voltage is in change with the stored ramp speed value
+            "On": ISEG.check_bit(status,3),                      # 0 channel is off, 1  channel voltage follows the Vset value
+            "InputError": ISEG.check_bit(status,2),              # 0 no input-error, 1 incorrect message to control the module
+            "IsPositive": ISEG.check_bit(status,0),              # 0 negative polarity, 1 positive polarity
+            "Reserved": ISEG.check_bit(status,1),
+
+        }
+        #VLIM   CLIM    TRP     EINH VBND CBND res LCR CV CC EMCY RAMP ON IERR res POS
         return retVal
 
+    @staticmethod
+    def convert_channel_event_status(status):
+        bits = ["Reserved", #0
+                "Reserved1",#1
+                "EventInputError",#2
+                "EventOnToOff",#3
+                "EventEndOfRamp",#4
+                "EventEmergencyOff",#5
+                "EventControlledCurrent",#6
+                "EventControlledVoltage",#7
+                "Reserved2",#8
+                "Reserved3",#9
+                "EventCurrentBounds",#10
+                "EventVoltageBounds",#11
+                "EventExtInhibit",#12
+                "EventTrip",#13
+                "EventCurrentLimit",#14
+                "EventVoltageLimit",#15
+                ]
+        retVal = {}
+        for i in range(len(bits)):
+            retVal[bits[i]] = ISEG.check_bit(status,i)
+        return retVal
+
+    @staticmethod
+    def convert_channel_event_mask(status):
+        bits = ["Reserved", #0
+                "Reserved1",#1
+                "MaskEventInputError",#2
+                "MaskEventOnToOff",#3
+                "MaskEventEndOfRamp",#4
+                "MaskEventEmergencyOff",#5
+                "MaskEventControlledCurrent",#6
+                "MaskEventControlledVoltage",#7
+                "Reserved2",#8
+                "Reserved3",#9
+                "MaskEventCurrentBounds",#10
+                "MaskEventVoltageBounds",#11
+                "MaskEventExtInhibit",#12
+                "MaskEventTrip",#13
+                "MaskEventCurrentLimit",#14
+                "MaskEventVoltageLimit",#15
+                ]
+        retVal = {}
+        for i in range(len(bits)):
+            retVal[bits[i]] = ISEG.check_bit(status,i)
+        return retVal
+
+    @staticmethod
+    def convert_channel_control(status):
+        bits = ["Reserved", #0
+                "Reserved1",#1
+                "Reserved2",#2
+                "SetOn",#3
+                "Reserved3",#4
+                "SetEmergencyOff",#5
+                "Reserved6",#6
+                "Reserved7",#7
+                "Reserved8",#8
+                "Reserved9",#9
+                "Reserved10",#10
+                "Reserved11",#11
+                "Reserved12",#12
+                "Reserved13",#13
+                "Reserved14",#14
+                "Reserved15",#15
+                ]
+        retVal = {}
+        for i in range(len(bits)):
+            retVal[bits[i]] = ISEG.check_bit(status,i)
+        return retVal
+
+    @staticmethod
+    def convert_module_status(status):
+        bits = ["IsFineAdjustment", #0  0: Fine adjustment is off.
+                "Reserved",#1
+                "Reserved2",#2
+                "Reserved3",#3
+                "IsService",#4          1: Hardware failure detected 
+                "isHwVLgd",#5
+                "IsInputError",#6       0: no input error in connection with a module access
+                "Reserved7",#7
+                "IsNoSumError",#8       1: evaluation of the ‘Channel Status’ over all channelsto a sum error flag ⇒LIM&CLIM&CTRP&EINH&VBND&CBND=0 ⇒ no errors
+                "IsNoRamp",#9           1: no channel is ramping
+                "IsSafetyLoopGood",#10  1: safety loop is closed
+                "IsEventActive",#11     1: any Event is active
+                "IsModuleGood",#12      1: module is good, that means (isnoSERR AND NOT(ETMPngd OR ESPLYngd ORESFLPngd))==1
+                "IsSupplyGood",#13      1: supply voltages are within range
+                "IsTemperatureGood",#14 1: module temperature is within working range
+                "IsKillEnable",#15  -   0: Module in state kill disable
+                ]
+        retVal = {}
+        for i in range(len(bits)):
+            retVal[bits[i]] = ISEG.check_bit(status,i)
+        return retVal
+
+    @staticmethod
+    def convert_module_event_status(status):
+        bits = ["Reserved0", #0
+                "Reserved1",#1
+                "Reserved2",#2
+                "Reserved3",#3
+                "EventService",#4
+                "EventHardwareVoltageLimitNotGood",#5
+                "EventInputError",#6
+                "Reserved7",#7
+                "Reserved8",#8
+                "Reserved9",#9
+                "EventTemperatureNotGood",#10
+                "Reserved11",#11
+                "Reserved12",#12
+                "EventSupplyNotGood",#13
+                "EventSafetyLoopNotGood",#14
+                "Reserved15",#15
+                ]
+        retVal = {}
+        for i in range(len(bits)):
+            retVal[bits[i]] = ISEG.check_bit(status,i)
+        return retVal
+
+    @staticmethod
+    def convert_module_event_mask(status):
+        bits = ["Reserved0", #0
+                "Reserved1",#1
+                "Reserved2",#2
+                "Reserved3",#3
+                "Reserved4",#4
+                "MaskEventHardwareVoltageLimitNotGood",#5
+                "MaskEventInputError",#6
+                "Reserved7",#7
+                "Reserved8",#8
+                "Reserved9",#9
+                "MaskEventSafetyLoopNotGood",#10
+                "Reserved11",#11
+                "Reserved12",#12
+                "MaskEventSupplyNotGood",#13
+                "MaskEventTemperatureNotGood",#14
+                "Reserved15",#15
+                ]
+        retVal = {}
+        for i in range(len(bits)):
+            retVal[bits[i]] = ISEG.check_bit(status,i)
+        return retVal
 
 
 
