@@ -31,6 +31,7 @@ OFF = 0
 # ============================
 class ISEG(HVInterface):
     def __init__(self, config, device_no=1, hot_start=False):
+        self.nchannels = 6
         self.Busy = False
         self.commandEndCharacter = '\r\n'
         self.readSleepTime = .1
@@ -44,7 +45,8 @@ class ISEG(HVInterface):
         self.identifier = None
         self.answer_time = 0.1
         self.open_serial_port()
-        self.init_keithley(hot_start)
+        self.init_device(hot_start)
+        self.nchannels = 6
         pass
 
 
@@ -66,7 +68,7 @@ class ISEG(HVInterface):
             self.bOpen = False
             pass
 
-    def init_keithley(self, hot_start):
+    def init_device(self, hot_start):
         if hot_start:
             sleep(1)
             self.clear_buffer()
@@ -134,16 +136,18 @@ class ISEG(HVInterface):
         raise AttributeError('invalid channel no %s'%channel)
 
     def get_channel_string(self, channel):
-        print 'get channel string', channel
+        print 'get channel string:', channel
         if channel == 'all':
-            return '0-5'
-        if not type(channel)==list:
-            channel = [channel]
-        valid_channels =  [0<=ch <= 5 for ch in channel]
-        if not all(valid_channels):
-            raise AttributeError('Invalid channel in list')
-        channel = [str(x) for x in channel]
-        return ','.join(channel)
+            retVal =  '0-5'
+        else: 
+            if not type(channel)==list:
+                channel = [channel]
+            valid_channels =  [0<=ch <= 5 for ch in channel]
+            if not all(valid_channels):
+                raise AttributeError('Invalid channel in list')
+            channel = [str(x) for x in channel]
+            retVal =  ','.join(channel)
+        return '(@{ch})'.format(ch=retVal)
 
 
     # ============================
@@ -266,20 +270,20 @@ class ISEG(HVInterface):
 
     def read_current(self,channel=-1):
         ch = self.get_channel_string(channel)
-        retVal = (self.get_answer_for_query(':MEAS:CURR? (@%s)'%ch)).split()
-        retVal = [k[:-1] for k in retVal]
+        retVal = (self.get_answer_for_query(':MEAS:CURR?%s'%ch)).split()
+        retVal = [float(k[:-1]) for k in retVal]
         return retVal
 
     def read_voltage(self,channel=-1):
         ch = self.get_channel_string(channel)
-        retVal = (self.get_answer_for_query(':MEAS:CURR? (@%s)'%ch)).split()
-        retVal = [k[:-1] for k in retVal]
+        retVal = (self.get_answer_for_query(':MEAS:VOLT?%s'%ch)).split()
+        retVal = [float(k[:-1]) for k in retVal]
         return retVal
 
     def read_iv(self):
         currents = self.read_current("all")
         voltages = self.read_voltage("all")
-        channels = range(self.nchannels)
+        channels = list(range(self.nchannels))
         return map(lambda x,y,z: {"voltage":x,"current":y,"channel":z},voltages,currents,channels)
 
 
@@ -311,6 +315,7 @@ class ISEG(HVInterface):
         return self.clear_string(data)
 
     def write(self, data):
+        print 'write: "%s"'%data
         data += self.commandEndCharacter
         if self.bOpen:
             output = self.serial.write(data)
@@ -358,7 +363,7 @@ class ISEG(HVInterface):
                 print "Error trying: 'print ord(out[-2]),ord(out[-1])," \
                       "ord(self.commandEndCharacter[0]),ord(self.commandEndCharacter[1]),len(out)'"
             return ''
-        # print 'received after %s tries: %s' % (k, out)
+        print 'received after %s tries: %s' % (k, out)
         return out
 
     # ============================
@@ -375,10 +380,26 @@ class ISEG(HVInterface):
             print 'Connected iseg model', self.model
         self.set_max_voltage()
 
+
+    def get_channel_status(self,ch = -1):
+        ch_str = self.get_channel_string(ch)
+        retVal = self.get_answer_for_query(':READ:CHANnel:STATus?%s'%ch_str)
+        return retVal
+
     # ============================
     # SET-FUNCTIONS
     def set_max_voltage(self):
+        #TODO
         self.max_voltage = 3000
+
+
+    # ============================
+    # STATIC CONVERSION FUCNTIONS
+    @staticmethod
+    def convert_channel_status(status):
+        retVa ={}
+        return retVal
+
 
 
 
