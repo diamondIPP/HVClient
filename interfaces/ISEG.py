@@ -73,7 +73,7 @@ class ISEG(HVInterface):
             sleep(1)
         else:
             sleep(.1)
-            self.set_output(False)
+            self.set_output(False,'all')
             self.reset()
             self.clear_buffer()
             self.identify()
