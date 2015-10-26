@@ -149,7 +149,7 @@ class ISEG(HVInterface):
         ch_str = self.get_channel_string(channel)
         data = ':VOLT '
         data += ('ON' if status else 'OFF')
-        data += ch_str
+        data += ','+ch_str
         return self.write(data)
 
     def set_channel_voltage(self, voltage, channel=-1):
