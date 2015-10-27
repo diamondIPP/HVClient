@@ -289,7 +289,8 @@ class HVDevice(Thread):
         return iv
 
     def update_voltage_current(self):
-        print 'update_voltage_current'
+        verb = False
+        if verb: print 'update_voltage_current'
         self.wait_for_device()
         self.isBusy = True
         try:
@@ -298,21 +299,21 @@ class HVDevice(Thread):
             print 'Could not update voltage/current- get output status:', inst
             self.isBusy = False
             return
-        print '\tstatus',self.status,
+        if verb: print '\tstatus',self.status,
         if self.status:
             try:
                 iv = self.read_iv()
-                print '\tiv: ',iv,
+                if verb: print '\tiv: ',iv,
                 self.bias_now = iv['voltage']
-                print '\tbias_now',self.bias_now,
+                if verb: print '\tbias_now',self.bias_now,
                 self.current_now = iv['current']
-                print '\tcurrent_now',self.current_now
+                if verb: print '\tcurrent_now',self.current_now
                 self.last_update = time()
-                print '\treadIV',iv,self.target_bias
+                if verb: print '\treadIV',iv,self.target_bias
             except Exception as inst:
                 print 'Could not read valid iv', type(inst), inst
         self.isBusy = False
-        print '\tDONE'
+        if verb: print '\tDONE'
 
     def get_new_bias(self):
         new_bias = 0
