@@ -274,6 +274,7 @@ class ISEG(HVInterface):
     def read_iv(self):
         now = time()
         if now - self.last_iv_measurement['time'] > 1:
+            self.clear_buffer()
             currents = self.read_current("all")
             voltages = self.read_voltage("all")
             channels = list(range(self.nchannels))
@@ -292,23 +293,42 @@ class ISEG(HVInterface):
         return self.serial.inWaiting()
 
     def clear_buffer(self):
+        busy = self.Busy
+        self.Busy=True
         if self.bOpen:
+            sleep(self.readSleepTime)
             while self.serial.inWaiting():
                 self.read()
-                sleep(self.readSleepTime)
         else:
             pass
+        self.Busy=busy
         return self.serial.inWaiting()
 
     # ============================
     # ACCESS FUNCTIONS
+    def wait_for_unbusy(self):
+        now = time()
+        while self.Busy:
+            sleep(.1)
+            if time()-now > 20:
+                raise Exception('Device stucked. Waiting for more than 20sec to unbusy')
+
     def get_answer_for_query(self, data, minlength=1):
-        self.write(data)
+        self.wait_for_unbusy()
+        self.Busy = True
+        self.__write(data)
         sleep(self.readSleepTime)
-        data = self.read(minlength)
+        data = self.__read(minlength)
+        self.Busy = False
         return self.clear_string(data)
 
     def write(self, data):
+        self.wait_for_unbusy()
+        self.Busy = True
+        self.__write(data)
+        self.Busy =  False
+
+    def __write(self,data):
         #print 'write: "%s"' % data
         data += self.commandEndCharacter
         if self.bOpen:
@@ -316,9 +336,16 @@ class ISEG(HVInterface):
         else:
             output = True
         sleep(self.writeSleepTime)
+        self.Busy = busy
         return output == len(data)
 
     def read(self, min_lenght=0):
+        self.wait_for_unbusy()
+        self.Busy = True
+        self.__read(min_lenght)
+        self.Busy = False
+
+    def __read(self,min_lenght = 0):
         # if not self.serial.inWaiting():
         #     print 'there is nothing in the queue'
         #     return
