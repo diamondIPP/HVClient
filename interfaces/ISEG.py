@@ -29,6 +29,7 @@ OFF = 0
 class ISEG(HVInterface):
     def __init__(self, config, device_no=1, hot_start=False):
         self.nchannels = 6
+        self.last_iv_measurement = {'time':-1, 'ivs':None}
         self.Busy = False
         self.commandEndCharacter = '\r\n'
         self.readSleepTime = .1
@@ -269,10 +270,14 @@ class ISEG(HVInterface):
         return retVal
 
     def read_iv(self):
-        currents = self.read_current("all")
-        voltages = self.read_voltage("all")
-        channels = list(range(self.nchannels))
-        return map(lambda x, y, z: {"voltage": x, "current": y, "channel": z}, voltages, currents, channels)
+        now = time.time()
+        if now - self.last_iv_measurement['time'] > 1:
+            currents = self.read_current("all")
+            voltages = self.read_voltage("all")
+            channels = list(range(self.nchannels))
+            ivs =  map(lambda x, y, z: {"voltage": x, "current": y, "channel": z}, voltages, currents, channels)
+            self.last_iv_measurement = {'time': now, 'ivs': ivs}
+        return self.last_iv_measurement['ivs']
 
     def reset(self):
         self.write('*RST')
@@ -473,7 +478,6 @@ class ISEG(HVInterface):
     def query_module_supply_voltage_n24(self):
         return float(self.get_answer_for_query(':READ:MOD:SUP:N24V?')[:-1])
 
-    # TODO
     def query_module_supply_voltage_p5(self):
         return float(self.get_answer_for_query(':READ:MOD:SUP:P5V?')[:-1])
 
@@ -575,6 +579,7 @@ class ISEG(HVInterface):
     '''
     def get_module_event_channel_status(self):
         retVal = int(self.get_answer_for_query(':READ:MODule:EVent:CHANSTATus?'))
+        #TODO
         return bin(retVal)
 
     ''' Module Control (read-write access)
