@@ -495,18 +495,30 @@ class ISEG(HVInterface):
     def query_firmware_release(self):
         return self.get_answer_for_query(':READ:FIRM:REL?')
 
-
-    def get_channel_status(self, ch=-1):
+    def get_all_channel_status(self):
         now = time()
         if now - self.last_channel_status['time'] > 1:
-            ch_str = self.get_channel_string(ch)
+            ch_str = self.get_channel_string('all')
             retVal = self.get_answer_for_query(':READ:CHAN:STAT?%s' % ch_str).split()
             retVal = [int(k) for k in retVal]
             retVal = [self.convert_channel_status(i) for i in retVal]
             self.last_channel_status['status'] = retVal
             self.last_channel_status['time'] = now
-
         return self.last_channel_status['status']
+
+    def get_channel_status(self, ch=-1):
+        self.get_all_channel_status()
+        if type(ch) == int:
+            return self.last_channel_status['status'][ch]
+        if type(ch) == list:
+            return [self.last_channel_status['status'][i] for i in ch]
+        try:
+            if ch == 'all':
+                return self.last_channel_status['status']
+            ch = ch.split()
+            return [self.last_channel_status['status'][int(k)] for k in ch]
+        except:
+            return self.last_channel_status['status']
 
 
 
