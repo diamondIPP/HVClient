@@ -22,6 +22,11 @@ import sys
 import logging
 import os
 
+# ============================
+# CONSTANTS
+# ============================
+ON = 1
+OFF = 0
 # for *_interface do import bla
 
 # U = Keithley24XX("blub")
@@ -293,8 +298,8 @@ class HVDevice(Thread):
             print 'Could not update voltage/current- get output status:', inst
             self.isBusy = False
             return
+        print '\tstatus',self.status,
         if self.status:
-            print '\tstatus',self.status,
             try:
                 iv = self.read_iv()
                 print '\tiv: ',iv,
@@ -309,11 +314,36 @@ class HVDevice(Thread):
         self.isBusy = False
         print '\tDONE'
 
+    def get_new_bias(self):
+        change = False
+        delta_v = self.target_bias - self.interface.target_voltage
+
+        #print 'target: %f \t bias: %f ==> %f V'%(self.target_bias,self.bias_now,delta_v)
+        t_now = time()
+        delta_t = t_now - self.last_v_change
+        step_size = abs(self.ramp_speed * (delta_t))
+        #print 'step_size: %f \t %f - %f = %f \t %f'%(step_size,t_now,self.last_v_change,delta_t,self.ramp_speed),
+
+        # Limit the maximal voltage step size
+        if step_size > self.max_step:
+            step_size = self.max_step
+        #print step_size
+
+        # print 'delta U ',delta_v,step_size
+        if abs(delta_v) > 0.1:
+            if abs(delta_v) <= step_size:
+                new_bias = self.target_bias
+            else:
+                new_bias = self.bias_now + copysign(step_size, delta_v)
+            change = True
+        return change, new_bias
     def ramp(self):
         # Try to update voltage (we remember the measurement from the last loop)
         # (the step we can make in voltage is the ramp-speed times
         # how many seconds passed since last change)
         if not self.status:
+            change, new_bias = self.get_new_bias()
+            self.interface.set_voltage(new_bias)
             return
         #self.update_voltage_current()
         tries = 0
@@ -330,27 +360,13 @@ class HVDevice(Thread):
             tries += 1
             if tries > 10:
                 raise ValueError(msg)
-                                
-        delta_v = self.target_bias - self.interface.target_voltage
 
-        #print 'target: %f \t bias: %f ==> %f V'%(self.target_bias,self.bias_now,delta_v)
-        t_now = time()
-        delta_t = t_now - self.last_v_change
-        step_size = abs(self.ramp_speed * (delta_t))
-        #print 'step_size: %f \t %f - %f = %f \t %f'%(step_size,t_now,self.last_v_change,delta_t,self.ramp_speed),
-
-        # Limit the maximal voltage step size
-        if step_size > self.max_step:
-            step_size = self.max_step
+        change, new_bias = self.get_new_bias()
+        newtime = time()
         #print step_size
 
         # print 'delta U ',delta_v,step_size
-        newtime = time()
-        if abs(delta_v) > 0.1:
-            if abs(delta_v) <= step_size:
-                new_bias = self.target_bias
-            else:
-                new_bias = self.bias_now + copysign(step_size, delta_v)
+        if change:
             #print 'new bias: ',new_bias
             self.isBusy = True
             self.interface.set_voltage(new_bias)
