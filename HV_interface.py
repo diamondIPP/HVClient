@@ -27,6 +27,7 @@ class HVInterface:
         self.model_number = self.config.get(self.section_name, 'model')
         self.name = self.config.get(self.section_name, 'name')
         self.model = ''
+        self.can_ramp = False
         pass
     def get_n_channels(self):
         return self.nchannels
