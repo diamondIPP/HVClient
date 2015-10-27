@@ -160,7 +160,7 @@ class ISEG(HVInterface):
         self.is_valid_voltage(voltage, channel)
         ch_str = self.get_channel_string(channel)
         data = ':VOLT %.3f,%s' % (voltage, ch_str)
-        print 'set Voltage of channel %d to %.3f V' % (channel, voltage)
+        # print 'set Voltage of channel %d to %.3f V' % (channel, voltage)
         return self.write(data)
 
     def set_emergency_off(self, channel='all'):
