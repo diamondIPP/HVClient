@@ -242,6 +242,9 @@ class HVDevice(Thread):
     def get_target_bias(self):
         return self.target_bias
 
+    def get_output(self):
+        return self.get_status()
+
     def get_status(self):
         return self.status
 
