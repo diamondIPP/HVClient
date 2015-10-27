@@ -54,6 +54,7 @@ class ISEG_channel(HVInterface):
         return self.set_channel_voltage(voltage)
 
     def set_channel_voltage(self, voltage):
+        self.target_voltage = voltage
         return self.iseg.set_channel_voltage(voltage, self.ch)
 
     def set_emergency_off(self):

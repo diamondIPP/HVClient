@@ -64,7 +64,7 @@ class HVInterface:
     def get_set_voltage(self):
         return self.target_voltage
 
-    def get_target_voltage(self,ch=1):
+    def get_target_voltage(self):
         return self.target_voltage
 
 
