@@ -9,6 +9,8 @@ from interfaces.Keithley24XX import Keithley24XX
 from interfaces.Keithley23X import Keithley23X
 from interfaces.Keithley6517B import Keithley6517B
 from interfaces.Keithley2657 import Keithley2657
+from interfaces.ISEG import ISEG
+from interfaces.ISEG_channel import ISEG_channel
 from threading import Thread
 from ConfigParser import ConfigParser, NoOptionError
 from time import time, sleep, strftime
@@ -26,7 +28,7 @@ import os
 # MAIN CLASS
 # ============================
 class HVDevice(Thread):
-    def __init__(self, config, device_no, hot_start):
+    def __init__(self, config, device_no, hot_start, module = None, channel = 0):
         Thread.__init__(self)
 
         self.isKilled = False
@@ -53,7 +55,7 @@ class HVDevice(Thread):
             self.__device_name = "UNKNOWN"
 
         self.interface = None
-        self.init_interface(config, device_no, hot_start)
+        self.init_interface(config, device_no, hot_start, module = module, channel = channel)
         self.nchannels = self.interface.nchannels
 
         self.isBusy = False
@@ -100,7 +102,7 @@ class HVDevice(Thread):
 
     # ============================
     # INIT DEVICE INTERFACE
-    def init_interface(self, config, device_no, hot_start):
+    def init_interface(self, config, device_no, hot_start, module=None, channel = 0):
         # if statements for model name
         try:
             print '\nInstantiation:', self.config.get(self.section_name, 'name')
@@ -116,6 +118,10 @@ class HVDevice(Thread):
             self.interface = Keithley6517B(config, device_no, hot_start)
         elif model == '2657A' or model == 2657:
             self.interface = Keithley2657(config, device_no, hot_start)
+        elif model == 'NHS-6220x':
+            if module == None:
+                raise Exception('Need to get a valid module to create channel')
+            self.interface = ISEG_channel(conf, channel=channel, iseg_module = module, hot_start=hot_start)
         else:
             print "unknown model number: could not instantiate any device", '--> exiting program'
             sys.exit(-2)
@@ -353,7 +359,13 @@ class HVDevice(Thread):
 if __name__ == '__main__':
     conf = ConfigParser()
     conf.read('config/keithley.cfg')
-    keithley1 = HVDevice(conf, 6, False)
-    #keithley2 = HVDevice(conf, 2, False)
-    keithley1.logger.warning("HALLO")
-    #keithley2.logger.warning("HALLO")
+    device_no = 7
+    iseg_module = ISEG(conf, device_no , False)
+    iseg_channels = {}
+    for ch in range(iseg_module.get_n_channels()):
+        iseg_channels[i] = HVDevice(conf,device_no, False, module=iseg_module,channel=ch)
+    #
+    # keithley1 = HVDevice(conf, 6, False)
+    # #keithley2 = HVDevice(conf, 2, False)
+    # keithley1.logger.warning("HALLO")
+    # #keithley2.logger.warning("HALLO")
