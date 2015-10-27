@@ -16,12 +16,13 @@ OFF = 0
 # MAIN CLASS
 # ============================
 class HVInterface:
-    def __init__(self, config, device_no, hot_start):
+    def __init__(self, config, device_no, hot_start,channel = 0):
         self.nchannels = 1
         self.hot_start = hot_start
         self.device_no = device_no
         self.target_voltage = 0
         self.config = config
+        self.channel = channel
         self.section_name = 'HV%d' % self.device_no
         self.model_number = self.config.get(self.section_name, 'model')
         self.name = self.config.get(self.section_name, 'name')
