@@ -273,7 +273,7 @@ class ISEG(HVInterface):
 
     def read_iv(self):
         now = time()
-        if now - self.last_iv_measurement['time'] > 1:
+        if now - self.last_iv_measurement['time'] > .5:
             self.clear_buffer()
             currents = self.read_current("all")
             voltages = self.read_voltage("all")
