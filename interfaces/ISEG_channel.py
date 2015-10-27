@@ -32,6 +32,8 @@ class ISEG_channel(HVInterface):
     def __init__(self, config, channel, iseg_module = None, hot_start=False):
         self.nchannels = 1
         self.iseg = iseg_module
+        device_no = self.iseg.device_no
+        HVInterface.__init__(self, config, device_no, hot_start,channel=channel)
         self.ch = channel
         self.name = self.iseg.name+'_CH%d'%self.ch
         self.section_name = self.iseg.section_name
@@ -44,6 +46,9 @@ class ISEG_channel(HVInterface):
 
     def set_output(self, status):
         return self.iseg.set_output(status, self.ch)
+
+    def get_output(self):
+        return self.get_output_status()
 
     def set_bias(self, voltage):
         return self.set_channel_voltage(voltage)
