@@ -30,6 +30,7 @@ class ISEG(HVInterface):
     def __init__(self, config, device_no=1, hot_start=False):
         self.nchannels = 6
         self.last_iv_measurement = {'time':-1, 'ivs':None}
+        self.last_channel_status = {'time':-1, 'status':None}
         self.Busy = False
         self.commandEndCharacter = '\r\n'
         self.readSleepTime = .1
@@ -40,6 +41,7 @@ class ISEG(HVInterface):
         self.lastVoltage = 0
         self.serial = None
         # self.model = self.get_model_name()
+
         self.identifier = None
         self.answer_time = 0.1
         self.open_serial_port()
@@ -495,11 +497,16 @@ class ISEG(HVInterface):
 
 
     def get_channel_status(self, ch=-1):
-        ch_str = self.get_channel_string(ch)
-        retVal = self.get_answer_for_query(':READ:CHAN:STAT?%s' % ch_str).split()
-        retVal = [int(k) for k in retVal]
-        retVal = [self.convert_channel_status(i) for i in retVal]
-        return retVal
+        now = time()
+        if now - self.last_channel_status['time'] > 1:
+            ch_str = self.get_channel_string(ch)
+            retVal = self.get_answer_for_query(':READ:CHAN:STAT?%s' % ch_str).split()
+            retVal = [int(k) for k in retVal]
+            retVal = [self.convert_channel_status(i) for i in retVal]
+            self.last_channel_status['status'] = retVal
+            self.last_channel_status['time'] = now
+
+        return self.last_channel_status['status']
 
 
 

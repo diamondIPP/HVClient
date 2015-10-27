@@ -85,16 +85,16 @@ class CLI(cmd.Cmd, Thread):
                 self.set_output(k, status)
             return
         if self.devices.has_key(name):
-            keithley = self.devices[name]
-            keithley.wait_for_device()
-            keithley.isBusy = True
+            device = self.devices[name]
+            device.wait_for_device()
+            device.isBusy = True
             try:
-                keithley.interface.set_output(status)
-                keithley.last_v_change = time.time()
-                keithley.powering_down = False
+                device.interface.set_output(status)
+                device.last_v_change = time.time()
+                device.powering_down = False
             except Exception as inst:
                 print type(inst), inst
-            keithley.isBusy = False
+            device.isBusy = False
         else:
             print 'cannot find %s' % name
 
