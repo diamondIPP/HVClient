@@ -29,8 +29,8 @@ OFF = 0
 # MAIN CLASS
 # ============================
 class ISEG_channel(HVInterface):
-    def __init__(self, config, iseg_device,channel, hot_start=False):
-        self.iseg = iseg_device
+    def __init__(self, config, channel, iseg_module = None, hot_start=False):
+        self.iseg = iseg_module
         self.ch = channel
         self.init_channel(hot_start)
 
@@ -126,5 +126,5 @@ if __name__ == '__main__':
     channels = {}
     hot_start = False
     for i in range(iseg.get_n_channels()):
-        channels[i] = ISEG_channel(conf,iseg,i,hot_start)
+        channels[i] = ISEG_channel(conf, channel=i, iseg_module = iseg, hot_start=hot_start)
 
