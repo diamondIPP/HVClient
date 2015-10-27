@@ -45,6 +45,9 @@ class ISEG_channel(HVInterface):
     def set_output(self, status):
         return self.iseg.set_output(status, self.ch)
 
+    def set_bias(self, voltage):
+        return self.set_channel_voltage(voltage)
+
     def set_channel_voltage(self, voltage):
         return self.iseg.set_channel_voltage(voltage, self.ch)
 
