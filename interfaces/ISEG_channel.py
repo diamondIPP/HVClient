@@ -30,9 +30,14 @@ OFF = 0
 # ============================
 class ISEG_channel(HVInterface):
     def __init__(self, config, channel, iseg_module = None, hot_start=False):
+        self.nchannels = 1
         self.iseg = iseg_module
         self.ch = channel
+        self.name = self.iseg.name+'_CH%d'%self.ch
+        self.section_name = self.iseg.section_name
+        self.model_number = self.iseg.model_number
         self.init_channel(hot_start)
+
 
     def init_channel(self,hot_start):
         pass
