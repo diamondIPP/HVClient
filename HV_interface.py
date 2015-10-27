@@ -31,25 +31,25 @@ class HVInterface:
         return self.nchannels
 
     def set_to_manual(self, status):
-        pass
+        raise Exception("set_to_manual not yet implemented")
 
     def set_output(self, status):
-        pass
+        raise Exception("set_output not yet implemented")
 
     def set_bias(self, voltage):
-        pass
+        raise Exception("set_bias not yet implemented")
 
     def get_output(self):
-        pass
+        raise Exception("get_output not yet implemented")
 
     def read_current(self):
-        pass
+        raise Exception("read_current not yet implemented")
 
     def read_voltage(self):
-        pass
+        raise Exception("read_voltage not yet implemented")
 
     def read_iv(self):
-        pass
+        raise Exception("read_iv not yet implemented")
 
     def set_voltage(self, value):
         return self.set_bias(value)
