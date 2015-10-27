@@ -275,6 +275,10 @@ class HVDevice(Thread):
         while time() - now < self.maxTime and self.isBusy:
             sleep(.2)
 
+    def read_iv(self):
+        iv = self.interface.read_iv()
+        return iv
+
     def update_voltage_current(self):
         #print 'update_voltage_current'
         self.wait_for_device()
@@ -288,14 +292,14 @@ class HVDevice(Thread):
         if self.status:
             #print 'status',self.status,
             try:
-                iv = self.interface.read_iv()
-                #print 'iv: ',iv,
+                iv = self.read_iv()
+                print 'iv: ',iv,
                 self.bias_now = iv['voltage']
-                #print 'bias_now',self.bias_now,
+                print 'bias_now',self.bias_now,
                 self.current_now = iv['current']
-                #print 'current_now',self.current_now
+                print 'current_now',self.current_now
                 self.last_update = time()
-                #print 'readIV',voltage,current,self.targetBias,rest
+                print 'readIV',voltage,current,self.targetBias,rest
             except Exception as inst:
                 print 'Could not read valid iv', type(inst), inst
         self.isBusy = False
