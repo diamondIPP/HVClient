@@ -376,7 +376,7 @@ class ISEG(HVInterface):
         return self.query_set_voltage(ch)
 
     def get_output_status(self,ch=-1):
-        return [k['On'] for k in i.get_channel_status(ch)]
+        return [k['On'] for k in self.get_channel_status(ch)]
 
     def query_set_voltage(self,ch=-1):
         ch_str = self.get_channel_string(ch)
