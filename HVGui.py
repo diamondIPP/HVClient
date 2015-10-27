@@ -3,12 +3,16 @@
 
 import matplotlib
 import os
+try:
+    import matplotlib.backends.backend_tkagg
+except:
+    pass
 matplotlib.use('TkAgg')
 import numpy as np
 from numpy import arange, sin, pi,cos
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
 # implement the default mpl key bindings
-from matplotlib.backend_bases import key_press_handler
+#from matplotlib.backend_bases import key_press_handler
 
 from matplotlib.figure import Figure
 import matplotlib.dates as mdates
