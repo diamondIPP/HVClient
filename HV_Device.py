@@ -339,10 +339,21 @@ class HVDevice(Thread):
                 new_bias = self.bias_now + copysign(step_size, delta_v)
             change = True
         return change, new_bias
+
     def ramp(self):
         # Try to update voltage (we remember the measurement from the last loop)
         # (the step we can make in voltage is the ramp-speed times
         # how many seconds passed since last change)
+        if self.powering_down and abs(self.bias_now) < .1:
+            self.interface.set_output(0)
+            self.powering_down = False
+            print '%s has ramped down and turned off' % self.interface.name
+            # End of ramp
+            return
+        if self.interface.can_ramp:
+            self.interface.set_voltage(self.target_bias)
+            return
+
         if not self.status:
             change, new_bias = self.get_new_bias()
             self.interface.set_voltage(new_bias)
@@ -382,11 +393,6 @@ class HVDevice(Thread):
                 print '%s is done with ramping to %d' % (self.interface.name, self.target_bias)
             self.last_v_change = newtime
             self.isBusy = False
-        if self.powering_down and abs(self.bias_now) < .1:
-            self.interface.set_output(0)
-            self.powering_down = False
-            print '%s has ramped down and turned off' % self.interface.name
-            # End of ramp
 
 # ============================
 # MAIN
