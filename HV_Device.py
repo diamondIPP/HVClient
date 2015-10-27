@@ -308,7 +308,7 @@ class HVDevice(Thread):
                 self.current_now = iv['current']
                 print '\tcurrent_now',self.current_now
                 self.last_update = time()
-                print '\treadIV',voltage,current,self.targetBias,rest
+                print '\treadIV',voltage,current,self.target_bias
             except Exception as inst:
                 print 'Could not read valid iv', type(inst), inst
         self.isBusy = False
@@ -348,13 +348,14 @@ class HVDevice(Thread):
         #self.update_voltage_current()
         tries = 0
         while abs(self.interface.target_voltage - self.bias_now) > 1:
-            msg =  '\033[91m'
-            msg += 'Did not reach the current set voltage on the power supply:'
-            msg += ' set_voltage: %f V'%self.interface.target_voltage 
-            msg += ', measured_voltage: %f V'%self.bias_now
-            msg += '\033[99m'
-            print msg,'\033[99m'
-            print "\033[99m" +' '+ '\033[0m'
+            if not self.interface.can_ramp:
+                msg =  '\033[91m'
+                msg += 'Did not reach the current set voltage on the power supply:'
+                msg += ' set_voltage: %f V'%self.interface.target_voltage
+                msg += ', measured_voltage: %f V'%self.bias_now
+                msg += '\033[99m'
+                print msg,'\033[99m'
+                print "\033[99m" +' '+ '\033[0m'
             sleep(1)
             self.update_voltage_current()
             tries += 1

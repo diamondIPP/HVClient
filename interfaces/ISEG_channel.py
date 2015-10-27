@@ -38,6 +38,7 @@ class ISEG_channel(HVInterface):
         self.name = self.iseg.name+'_CH%d'%self.ch
         self.section_name = self.iseg.section_name
         self.model_number = self.iseg.model_number
+        self.can_ramp = True
         self.init_channel(hot_start)
 
 
