@@ -8,7 +8,10 @@ from interfaces import *
 from interfaces.Keithley24XX import Keithley24XX
 from interfaces.Keithley23X import Keithley23X
 from interfaces.Keithley6517B import Keithley6517B
-from interfaces.Keithley2657 import Keithley2657
+try:
+    from interfaces.Keithley2657 import Keithley2657
+except:
+    print 'Cannot include Keithley 2657'
 from interfaces.ISEG import ISEG
 from interfaces.ISEG_channel import ISEG_channel
 from threading import Thread
@@ -40,7 +43,7 @@ class HVDevice(Thread):
         self.section_name = 'HV%d' % device_no
         self.bias_now = 0
         try:
-            self.model_number = int(self.config.get(self.section_name, 'model'))
+            retval = self.config.get(self.section_name, 'model')
             self.ramp_speed = float(self.config.get(self.section_name, 'ramp'))
             self.target_bias = float(self.config.get(self.section_name, 'bias'))
             self.min_bias = float(self.config.get(self.section_name, 'min_bias'))
@@ -49,6 +52,10 @@ class HVDevice(Thread):
         except NoOptionError, err:
             print err, '--> exiting program'
             sys.exit(-1)
+        try:
+            self.model_number = int(retval)
+        except:
+            self.model_number = retval
         if self.config.has_option('Names',self.section_name):
             self.__device_name = self.config.get('Names',self.section_name)
         else:
@@ -275,25 +282,20 @@ class HVDevice(Thread):
         try:
             self.status = self.interface.get_output_status()
         except Exception as inst:
-            print 'Couldn not update voltage/current- get output status:', inst
+            print 'Could not update voltage/current- get output status:', inst
             self.isBusy = False
             return
         if self.status:
             #print 'status',self.status,
             try:
-                if self.interface.nchannels == 1:
-                    iv = self.interface.read_iv()
-                    #print 'iv: ',iv,
-                    self.bias_now = iv['voltage']
-                    #print 'bias_now',self.bias_now,
-                    self.current_now = iv['current']
-                    #print 'current_now',self.current_now
-                    self.last_update = time()
-                    #print 'readIV',voltage,current,self.targetBias,rest
-                else:
-                    ivs = self.interface.read_iv()
-                    for i in range(len(ivs)):
-
+                iv = self.interface.read_iv()
+                #print 'iv: ',iv,
+                self.bias_now = iv['voltage']
+                #print 'bias_now',self.bias_now,
+                self.current_now = iv['current']
+                #print 'current_now',self.current_now
+                self.last_update = time()
+                #print 'readIV',voltage,current,self.targetBias,rest
             except Exception as inst:
                 print 'Could not read valid iv', type(inst), inst
         self.isBusy = False
@@ -363,7 +365,7 @@ if __name__ == '__main__':
     iseg_module = ISEG(conf, device_no , False)
     iseg_channels = {}
     for ch in range(iseg_module.get_n_channels()):
-        iseg_channels[i] = HVDevice(conf,device_no, False, module=iseg_module,channel=ch)
+        iseg_channels[ch] = HVDevice(conf,device_no, False, module=iseg_module,channel=ch)
     #
     # keithley1 = HVDevice(conf, 6, False)
     # #keithley2 = HVDevice(conf, 2, False)
