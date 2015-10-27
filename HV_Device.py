@@ -308,13 +308,14 @@ class HVDevice(Thread):
                 self.current_now = iv['current']
                 print '\tcurrent_now',self.current_now
                 self.last_update = time()
-                print '\treadIV',voltage,current,self.target_bias
+                print '\treadIV',iv,self.target_bias
             except Exception as inst:
                 print 'Could not read valid iv', type(inst), inst
         self.isBusy = False
         print '\tDONE'
 
     def get_new_bias(self):
+        new_bias = 0
         change = False
         delta_v = self.target_bias - self.interface.target_voltage
 
@@ -392,6 +393,8 @@ if __name__ == '__main__':
     iseg_channels = {}
     for ch in range(iseg_module.get_n_channels()):
         iseg_channels[ch] = HVDevice(conf,device_no, False, module=iseg_module,channel=ch)
+
+    d = iseg_channels[0]
     #
     # keithley1 = HVDevice(conf, 6, False)
     # #keithley2 = HVDevice(conf, 2, False)

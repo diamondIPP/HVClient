@@ -296,9 +296,10 @@ class ISEG(HVInterface):
         busy = self.Busy
         self.Busy=True
         if self.bOpen:
-            sleep(self.readSleepTime)
             while self.serial.inWaiting():
-                self.read()
+                while self.serial.inWaiting():
+                    self.__read()
+                sleep(self.readSleepTime)
         else:
             pass
         self.Busy=busy
@@ -336,7 +337,6 @@ class ISEG(HVInterface):
         else:
             output = True
         sleep(self.writeSleepTime)
-        self.Busy = busy
         return output == len(data)
 
     def read(self, min_lenght=0):

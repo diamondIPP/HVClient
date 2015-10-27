@@ -143,3 +143,4 @@ if __name__ == '__main__':
     for i in range(iseg.get_n_channels()):
         channels[i] = ISEG_channel(conf, channel=i, iseg_module = iseg, hot_start=hot_start)
 
+    d = channels[0]
