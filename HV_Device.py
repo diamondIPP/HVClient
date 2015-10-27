@@ -349,18 +349,23 @@ class HVDevice(Thread):
             return
         #self.update_voltage_current()
         tries = 0
+        last_bias = self.bias_now
         while abs(self.interface.target_voltage - self.bias_now) > 1:
+            msg =  '\033[91m'
+            msg += 'Did not reach the current set voltage on the power supply:'
+            msg += ' set_voltage: %f V'%self.interface.target_voltage
+            msg += ', measured_voltage: %f V'%self.bias_now
+            msg += '\033[99m'
             if not self.interface.can_ramp:
-                msg =  '\033[91m'
-                msg += 'Did not reach the current set voltage on the power supply:'
-                msg += ' set_voltage: %f V'%self.interface.target_voltage
-                msg += ', measured_voltage: %f V'%self.bias_now
-                msg += '\033[99m'
                 print msg,'\033[99m'
                 print "\033[99m" +' '+ '\033[0m'
             sleep(1)
             self.update_voltage_current()
-            tries += 1
+            if abs(self.bias_now - last_bias) < .1:
+                tries += 1
+            else:
+                last_bias = self.bias_now
+
             if tries > 10:
                 raise ValueError(msg)
 
