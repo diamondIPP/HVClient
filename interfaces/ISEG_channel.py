@@ -124,7 +124,7 @@ class ISEG_channel(HVInterface):
         return self.iseg.query_channel_current_ramp_speed(self.ch)[0]
 
     def get_channel_status(self):
-        return self.iseg.get_channel_status(self.ch)[0]
+        return self.iseg.get_channel_status(self.ch)
 
 
 if __name__ == '__main__':
