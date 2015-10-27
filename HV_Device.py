@@ -133,7 +133,7 @@ class HVDevice(Thread):
         elif model == 'NHS-6220x':
             if module == None:
                 raise Exception('Need to get a valid module to create channel')
-            self.interface = ISEG_channel(conf, channel=channel, iseg_module = module, hot_start=hot_start)
+            self.interface = ISEG_channel(config, channel=channel, iseg_module = module, hot_start=hot_start)
         else:
             print "unknown model number: could not instantiate any device", '--> exiting program'
             sys.exit(-2)
