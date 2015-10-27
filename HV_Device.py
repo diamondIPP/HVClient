@@ -249,6 +249,7 @@ class HVDevice(Thread):
     def get_last_ramp(self):
         return self.last_ramp
 
+
     # ============================
     # SET-FUNCTIONS
     def set_target_bias(self, target):
@@ -260,6 +261,9 @@ class HVDevice(Thread):
     def set_to_manual(self, status):
         self.target_bias = self.interface.set_to_manual(status)
         self.manual = status
+
+    def set_output(self,status):
+        return self.interface.set_output(status)
 
     # ============================
     # MISCELLANEOUS FUNCTIONS
@@ -280,7 +284,7 @@ class HVDevice(Thread):
         return iv
 
     def update_voltage_current(self):
-        #print 'update_voltage_current'
+        print 'update_voltage_current'
         self.wait_for_device()
         self.isBusy = True
         try:
@@ -290,19 +294,20 @@ class HVDevice(Thread):
             self.isBusy = False
             return
         if self.status:
-            #print 'status',self.status,
+            print '\tstatus',self.status,
             try:
                 iv = self.read_iv()
-                print 'iv: ',iv,
+                print '\tiv: ',iv,
                 self.bias_now = iv['voltage']
-                print 'bias_now',self.bias_now,
+                print '\tbias_now',self.bias_now,
                 self.current_now = iv['current']
-                print 'current_now',self.current_now
+                print '\tcurrent_now',self.current_now
                 self.last_update = time()
-                print 'readIV',voltage,current,self.targetBias,rest
+                print '\treadIV',voltage,current,self.targetBias,rest
             except Exception as inst:
                 print 'Could not read valid iv', type(inst), inst
         self.isBusy = False
+        print '\tDONE'
 
     def ramp(self):
         # Try to update voltage (we remember the measurement from the last loop)
