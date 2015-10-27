@@ -131,7 +131,7 @@ class ISEG(HVInterface):
         raise AttributeError('invalid channel no %s' % channel)
 
     def get_channel_string(self, channel):
-        print 'get channel string:', channel
+        #print 'get channel string:', channel
         if channel == 'all':
             retVal = '0-5'
         else:
@@ -270,7 +270,7 @@ class ISEG(HVInterface):
         return retVal
 
     def read_iv(self):
-        now = time.time()
+        now = time()
         if now - self.last_iv_measurement['time'] > 1:
             currents = self.read_current("all")
             voltages = self.read_voltage("all")

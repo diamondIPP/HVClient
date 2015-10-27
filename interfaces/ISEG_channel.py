@@ -122,7 +122,7 @@ class ISEG_channel(HVInterface):
 if __name__ == '__main__':
     conf = ConfigParser.ConfigParser()
     conf.read('../config/keithley.cfg')
-    iseg = ISEG(conf, 7, False)
+    iseg = ISEG.ISEG(conf, 7, False)
     channels = {}
     hot_start = False
     for i in range(iseg.get_n_channels()):
