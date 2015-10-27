@@ -302,7 +302,7 @@ class ISEG(HVInterface):
         return self.clear_string(data)
 
     def write(self, data):
-        print 'write: "%s"' % data
+        #print 'write: "%s"' % data
         data += self.commandEndCharacter
         if self.bOpen:
             output = self.serial.write(data)
@@ -350,7 +350,7 @@ class ISEG(HVInterface):
                 print "Error trying: 'print ord(out[-2]),ord(out[-1])," \
                       "ord(self.commandEndCharacter[0]),ord(self.commandEndCharacter[1]),len(out)'"
             return ''
-        print 'received after %s tries: %s' % (k, out)
+        #print 'received after %s tries: %s' % (k, out)
         return out
 
     # ============================
@@ -531,7 +531,7 @@ class ISEG(HVInterface):
     '''
     def get_channel_control(self, ch=-1):
         ch_str = self.get_channel_string(ch)
-        retVal = self.get_answer_for_query(':READ:CHANnel:CONTRrol?%s' % ch_str).split()
+        retVal = self.get_answer_for_query(':READ:CHANnel:CONTrol?%s' % ch_str).split()
         retVal = [int(k) for k in retVal]
         retVal = [self.convert_channel_control(i) for i in retVal]
         return retVal
