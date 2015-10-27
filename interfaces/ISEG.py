@@ -378,7 +378,7 @@ class ISEG(HVInterface):
         return self.query_set_voltage(ch)
 
     def get_output_status(self,ch=-1):
-        return [k['On'] for k in self.get_channel_status(ch)]
+        return [k['On'] for k in list(self.get_channel_status(ch))]
 
     def query_set_voltage(self,ch=-1):
         ch_str = self.get_channel_string(ch)
@@ -509,7 +509,7 @@ class ISEG(HVInterface):
     def get_channel_status(self, ch=-1):
         self.get_all_channel_status()
         if type(ch) == int:
-            return self.last_channel_status['status'][ch]
+            return [self.last_channel_status['status'][ch]]
         if type(ch) == list:
             return [self.last_channel_status['status'][i] for i in ch]
         try:
