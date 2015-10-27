@@ -74,9 +74,9 @@ def update_plot(plot_data,fig,current_range=None,unit='nA'):
     elif unit == 'nA':
         factor = 1e9
         label = 'nA'
-    elif unicode(unit) == unicode('μA') or unicode(unit) == unicode('muA'):
+    elif unicode(unit) == u'μA' or unicode(unit) == u'muA':
         factor = 1e6
-        label = 'μA'
+        label = u'μA'
     elif unit == 'mA':
         factor = 1e3
         label = 'mA'

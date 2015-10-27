@@ -101,10 +101,11 @@ class HVDevice(Thread):
     # INIT DEVICE INTERFACE
     def init_interface(self, config, device_no, hot_start):
         # if statements for model name
+        print '\n=============INSTANTIATION============='
         try:
-            print '\nInstantiation:', self.config.get(self.section_name, 'name')
+            print 'Instantiation:', self.config.get(self.section_name, 'name')
         except NoOptionError:
-            print '\nInstantiation:', self.section_name
+            print 'Instantiation:', self.section_name
         model = self.model_number
         self.isBusy = True
         if model == 2400 or model == 2410:

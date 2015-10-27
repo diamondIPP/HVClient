@@ -58,11 +58,11 @@ def query(hot=0):
 
 if args.hotstart:
     print '\nENABLED HOTSTART. All Keitlheys should already be ON\n'
-    print 'You want to have HOTSTART enabled? (yes/no)',
+    print 'You want to proceed? (yes/no)',
     hotstart = query(1)
 else:
     print '\nDISABLED HOTSTART. All Keitlheys will be reset.\n'
-    print 'You want to have HOTSTART disabled? (yes/no)',
+    print 'You want to proceed? (yes/no)',
     hotstart = query(0)
 
 
@@ -85,7 +85,7 @@ myCLI.start()
 #######################################
 def signal_handler(signal, frame):
     print 'Received SIGINT'
-    print 'press ctrl + D to exit the interpreter'
+    print 'You have to press ctrl + D to exit the interpreter'
 
 signal.signal(signal.SIGINT, signal_handler)
 

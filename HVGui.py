@@ -154,8 +154,8 @@ class HVGui():
         measurements = filter(lambda x: last_measurement- x[0] < self.max_age, measurements)
         self.devices[device_name]['measurements'] = measurements
         
-    def add_devices(self,devices):
-        print 'add DEVICES: ',devices
+    def add_devices(self, devices):
+        # print 'add DEVICES: ', devices
         for name,device_data in sorted(devices.items()):
             self.devices[name] = {
                                   'name': device_data.get_device_name(),
@@ -276,7 +276,7 @@ class HVGui():
             device = plot_box['optionFrame']['varDevice'].get()
             maxrange =  plot_box['optionFrame']['varMaxRange'].get()
             unit = plot_box['optionFrame']['varUnit'].get()
-            if 'μA' == plot_box['optionFrame']['varUnit'].get():
+            if u'μA' == plot_box['optionFrame']['varUnit'].get():
                 unit = 'muA'
             stop = plot_box['optionFrame']['varBreak'].get()
             if stop:
@@ -298,7 +298,7 @@ class HVGui():
                     if plot_box['last_measurement'] == last:
                         continue
             plot_box['last_measurement'] = last
-            PlotCreation.update_plot(plot_data,plot_box['f'],current_range = 10**maxrange,unit=unit)
+            PlotCreation.update_plot(plot_data,plot_box['f'],current_range = 10**maxrange, unit=unit)
             plot_box['canvas'].draw()
         self.root.after(self.update_interval.get()*1000, self.update_plots)
         self.last_update = time()
@@ -329,7 +329,7 @@ class HVGui():
         retVal['optMaxRange'] = Tk.Spinbox(master=retVal['optionFrame'],from_=-10 , to=10,width = 5, textvariable=retVal['varMaxRange'],fg='red')
         retVal['optMaxRange'].pack(sid=Tk.TOP)
         
-        unit_options = ['fA','nA','μA','mA','A']
+        unit_options = ['fA', 'nA', u'μA', 'mA', 'A']
         retVal['varUnit']= Tk.StringVar()
         retVal['varUnit'].set('nA')
         retVal['labelUnit'] =  Tk.Label(text='Unit of Current',master = retVal['optionFrame'])
@@ -345,8 +345,8 @@ class HVGui():
         return retVal
         
     def add_plot_box(self,frame):
-        print 'ADD Plot Box'
-        plot_box = {}  
+        # print 'ADD Plot Box'
+        # plot_box = {}
         plot_box = {}
         plot_box['f'] =   Figure(figsize=(8,3), dpi=100)
         plot_box['f'].autofmt_xdate()

@@ -273,7 +273,8 @@ class KeithleyHead(HVInterface):
             measurment = [float(x) for x in answer]
             self.measurments.append(measurment)
             return {'current': current, 'voltage': voltage, 'rest': rest}
-        except:
+        except Exception, err:
+            print err
             raise Exception('Could not perform valid IV Measurement, received "%s"' % answer)
 
     # ============================
