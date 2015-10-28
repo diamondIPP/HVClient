@@ -35,7 +35,7 @@ class CLI(cmd.Cmd, Thread):
         print 'Following devices were set up:'
         for name in keithleys:
             print name, keithleys[name].interface.name, keithleys[name].name
-        print '======================================='
+        print '=======================================\n'
 
     def do_exit(self, line=''):
         """Quit CLI"""
