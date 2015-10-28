@@ -36,12 +36,14 @@ class HVGui():
         
     def _quit(self):
         self.destroyed = True
-        print 'QUITTING',self.destroyed
+        # print 'QUITTING',self.destroyed
+        print 'Closing GUI'
         self.root.quit()     # stops mainloop
         try:
             self.root.destroy()  # this is necessary on Windows to prevent
         except:
             pass
+        print '======================================='
         
                         # Fatal Python Error: PyEval_RestoreThread: NULL tstate
     def __init__(self,devices):

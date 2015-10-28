@@ -22,6 +22,7 @@ class CLI(cmd.Cmd, Thread):
     def __init__(self):
         cmd.Cmd.__init__(self)
         Thread.__init__(self)
+        self.prompt = 'HV Cmd =>>> '
         self.running = True
         self.devices = {}
 
@@ -31,14 +32,17 @@ class CLI(cmd.Cmd, Thread):
     def set_keithleys(self, keithleys):
         """ set a map of  keithley devices"""
         self.devices = keithleys
-        print '\nFollowing devices were set up:'
+        print 'Following devices were set up:'
         for name in keithleys:
             print name, keithleys[name].interface.name, keithleys[name].name
+        print '======================================='
 
     def do_exit(self, line=''):
         """Quit CLI"""
+        print '\n=============EXITING==================='
         print 'Quitting CLI'
         # Turn off the devices
+        print 'Turning off all devices'
         for k in self.devices.keys():
             self.devices[k].isKilled = True
         self.running = False
@@ -292,5 +296,9 @@ class CLI(cmd.Cmd, Thread):
         logfile_name = "keithleyLog_" + value.strftime('%Y_%m_%d_%H_%M') + ".txt"
         self.logfile.close()
         self.logfile = open(logfile_name, "w", 1)
+
+    # make sure it does not repeat the last command when pressing enter
+    def emptyline(self):
+        pass
 
 # End of Class CLI

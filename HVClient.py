@@ -56,6 +56,7 @@ def query(hot=0):
         sys.exit(-2)
     return hot_start
 
+
 if args.hotstart:
     print '\nENABLED HOTSTART. All Keitlheys should already be ON\n'
     print 'You want to proceed? (yes/no)',
@@ -87,6 +88,7 @@ def signal_handler(signal, frame):
     print 'Received SIGINT'
     print 'You have to press ctrl + D to exit the interpreter'
 
+
 signal.signal(signal.SIGINT, signal_handler)
 
 
@@ -100,7 +102,7 @@ root = HVGui(devices)
 # Main GUI loop
 #######################################
 
-now = time.time()
+# now = time.time()
 while myCLI.running:
     if root.destroyed:
         print 'ROOT DEstroyed'
@@ -111,17 +113,15 @@ while myCLI.running:
     except:
         myCLI.do_exit()
         myCLI.do_EOF()
-        
+
         break
     # Make sure enough time has passed before we poll again
-#     while time.time() - now < 1:
-#         time.sleep(.1)
-    now = time.time()
+    #     while time.time() - now < 1:
+    #         time.sleep(.1)
+    # now = time.time()
 
     # Loop over the keithleys, get the voltages and update the display
-
-    string_len = max([len(v.get_device_name()) for k,v in devices.items()])
-
+    string_len = max([len(v.get_device_name()) for k, v in devices.items()])
     for k, v in sorted(devices.iteritems(), key=lambda x: x[0]):
 
         if not myCLI.running:
@@ -129,7 +129,7 @@ while myCLI.running:
 
         status = v.get_status()
         # v.serial.flushInput()
-        root.set_status(k,status)
+        root.set_status(k, status)
         if status:
             # First try to change the voltage
             # v.ramp()
@@ -137,21 +137,25 @@ while myCLI.running:
             value = datetime.datetime.fromtimestamp(v.get_update_time())
             voltage = v.get_bias()
             current = v.get_current()
-#             print 'add measurement',k,v.get_update_time(),v.get_current(),v.get_bias(),v.get_device_name()
-            root.add_measurement(k,v.get_update_time(),v.get_bias(),v.get_current(),v.get_device_name())
+            #             print 'add measurement',k,v.get_update_time(),v.get_current(),v.get_bias(),v.get_device_name()
+            root.add_measurement(k, v.get_update_time(), v.get_bias(), v.get_current(), v.get_device_name())
             if v.manual:
-                root.set_mode(k,"MANUAL")
+                root.set_mode(k, "MANUAL")
             elif v.is_ramping():
-                root.set_mode(k,"RAMPING")
+                root.set_mode(k, "RAMPING")
             else:
-                root.set_mode(k,"NORMAL")
-            root.set_target_bias(k,v.target_bias)
-            
+                root.set_mode(k, "NORMAL")
+            root.set_target_bias(k, v.target_bias)
+
 root._quit()
-myCLI.onecmd('exit\n')
-myCLI.cmdqueue.append('exit\n')
-print myCLI.cmdqueue,type(myCLI.cmdqueue)
-print 'Press enter to quit'
+if myCLI.running:
+    myCLI.onecmd('exit\n')
+    # myCLI.cmdqueue.append('exit\n')
+    # print myCLI.cmdqueue,type(myCLI.cmdqueue)
+    # print 'Press enter to quit'
+
+# ===================================
+# HISTORICAL??
 #             if v.manual:
 #                 display_string = ' MANUAL'
 #             setBias = v.get_target_bias()
@@ -170,5 +174,5 @@ print 'Press enter to quit'
 
 #         v.isBusy = False
 #         root.update()
-        # end of Keithley loop
+# end of Keithley loop
 # End of Main GUI loop

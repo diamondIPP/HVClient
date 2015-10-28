@@ -3,8 +3,7 @@ __author__ = 'testbeam'
 # ============================
 # IMPORTS
 # ============================
-import interfaces
-from interfaces import *
+from termcolor import colored
 from interfaces.Keithley24XX import Keithley24XX
 from interfaces.Keithley23X import Keithley23X
 from interfaces.Keithley6517B import Keithley6517B
@@ -47,8 +46,8 @@ class HVDevice(Thread):
         except NoOptionError, err:
             print err, '--> exiting program'
             sys.exit(-1)
-        if self.config.has_option('Names',self.section_name):
-            self.__device_name = self.config.get('Names',self.section_name)
+        if self.config.has_option('Names', self.section_name):
+            self.__device_name = self.config.get('Names', self.section_name)
         else:
             self.__device_name = "UNKNOWN"
 
@@ -63,7 +62,7 @@ class HVDevice(Thread):
             self.status = self.interface.get_output_status()
             self.update_voltage_current()
             voltage = self.get_bias()
-            print voltage
+            print 'Measured voltage: {0:6.2f} V'.format(voltage)
             self.interface.set_bias(voltage)
             # self.immidiateVoltage = voltage
             self.target_bias = voltage
@@ -128,7 +127,7 @@ class HVDevice(Thread):
         if self.__device_name != device_name:
             self.__device_name = device_name
             self.create_new_log_file()
-            print 'Setting device name of %s to "%s"'%(self.section_name,self.__device_name)
+            print 'Setting device name of %s to "%s"' % (self.section_name, self.__device_name)
 
     # ============================
     # LOGGGING CONTROL
@@ -172,7 +171,7 @@ class HVDevice(Thread):
     def add_log_entry(self, log_entry):
         if not self.logger:
             self.configure_log()
-        self.logger.warning(log_entry+'\t%s'%self.__device_name)
+        self.logger.warning(log_entry + '\t%s' % self.__device_name)
 
     def write_log(self):
         # write when device is turned ON or OFF
@@ -263,7 +262,7 @@ class HVDevice(Thread):
             sleep(.2)
 
     def update_voltage_current(self):
-        #print 'update_voltage_current'
+        # print 'update_voltage_current'
         self.wait_for_device()
         self.isBusy = True
         try:
@@ -273,16 +272,16 @@ class HVDevice(Thread):
             self.isBusy = False
             return
         if self.status:
-            #print 'status',self.status,
+            # print 'status',self.status,
             try:
                 iv = self.interface.read_iv()
-                #print 'iv: ',iv,
+                # print 'iv: ',iv,
                 self.bias_now = iv['voltage']
-                #print 'bias_now',self.bias_now,
+                # print 'bias_now',self.bias_now,
                 self.current_now = iv['current']
-                #print 'current_now',self.current_now
+                # print 'current_now',self.current_now
                 self.last_update = time()
-                #print 'readIV',voltage,current,self.targetBias,rest
+                # print 'readIV',voltage,current,self.targetBias,rest
             except Exception as inst:
                 print 'Could not read valid iv', type(inst), inst
         self.isBusy = False
@@ -293,34 +292,33 @@ class HVDevice(Thread):
         # how many seconds passed since last change)
         if not self.status:
             return
-        #self.update_voltage_current()
         tries = 0
         while abs(self.interface.target_voltage - self.bias_now) > 1:
-            msg =  '\033[91m'
-            msg += 'Did not reach the current set voltage on the power supply:'
-            msg += ' set_voltage: %f V'%self.interface.target_voltage 
-            msg += ', measured_voltage: %f V'%self.bias_now
-            msg += '\033[99m'
-            print msg,'\033[99m'
-            print "\033[99m" +' '+ '\033[0m'
+            print colored('\nWARNING:', 'yellow'),
+            msg = 'Did not reach the current set voltage on the power supply:\n'
+            msg += 'set_voltage:\t  {0:6.2f} V\n'.format(self.interface.target_voltage)
+            msg += 'measured_voltage: {0:6.2f} V'.format(self.bias_now)
+            print colored(msg, 'red')
             sleep(1)
             self.update_voltage_current()
             tries += 1
             if tries > 10:
                 raise ValueError(msg)
-                                
+        if tries:
+            self.mimic_cmd()
+
         delta_v = self.target_bias - self.interface.target_voltage
 
-        #print 'target: %f \t bias: %f ==> %f V'%(self.target_bias,self.bias_now,delta_v)
+        # print 'target: %f \t bias: %f ==> %f V'%(self.target_bias,self.bias_now,delta_v)
         t_now = time()
         delta_t = t_now - self.last_v_change
-        step_size = abs(self.ramp_speed * (delta_t))
-        #print 'step_size: %f \t %f - %f = %f \t %f'%(step_size,t_now,self.last_v_change,delta_t,self.ramp_speed),
+        step_size = abs(self.ramp_speed * delta_t)
+        # print 'step_size: %f \t %f - %f = %f \t %f'%(step_size,t_now,self.last_v_change,delta_t,self.ramp_speed),
 
         # Limit the maximal voltage step size
         if step_size > self.max_step:
             step_size = self.max_step
-        #print step_size
+        # print step_size
 
         # print 'delta U ',delta_v,step_size
         newtime = time()
@@ -329,18 +327,25 @@ class HVDevice(Thread):
                 new_bias = self.target_bias
             else:
                 new_bias = self.bias_now + copysign(step_size, delta_v)
-            #print 'new bias: ',new_bias
+            # print 'new bias: ',new_bias
             self.isBusy = True
             self.interface.set_voltage(new_bias)
             if new_bias == self.target_bias and not self.powering_down:
-                print '%s is done with ramping to %d' % (self.interface.name, self.target_bias)
+                print '\n%s is done with ramping to %d' % (self.interface.name, self.target_bias)
+                self.mimic_cmd()
             self.last_v_change = newtime
             self.isBusy = False
         if self.powering_down and abs(self.bias_now) < .1:
             self.interface.set_output(0)
             self.powering_down = False
-            print '%s has ramped down and turned off' % self.interface.name
+            print '\n%s has ramped down and turned off' % self.interface.name
+            self.mimic_cmd()
             # End of ramp
+
+    @staticmethod
+    def mimic_cmd():
+        print 'HV Cmd =>>> ',
+        sys.stdout.flush()
 
 # ============================
 # MAIN
@@ -349,6 +354,6 @@ if __name__ == '__main__':
     conf = ConfigParser()
     conf.read('config/keithley.cfg')
     keithley1 = HVDevice(conf, 6, False)
-    #keithley2 = HVDevice(conf, 2, False)
+    # keithley2 = HVDevice(conf, 2, False)
     keithley1.logger.warning("HALLO")
-    #keithley2.logger.warning("HALLO")
+    # keithley2.logger.warning("HALLO")

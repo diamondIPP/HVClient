@@ -28,5 +28,5 @@ def get_devices(config, hot_start):
         if config.has_section(name):
             devices[name] = HVDevice(config, i, hot_start)
         pass
-    print '======================================='
+    print '---------------------------------------'
     return devices
