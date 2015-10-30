@@ -43,6 +43,11 @@ class ISEG_channel(HVInterface):
 
 
     def init_channel(self,hot_start):
+        if hot_start:
+            pass
+        else:
+            sleep(.1)
+            self.set_output(False)
         pass
 
     def set_output(self, status):
