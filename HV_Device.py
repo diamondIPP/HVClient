@@ -121,7 +121,7 @@ class HVDevice(Thread):
         # if statements for model name
         print '\n=============INSTANTIATION============='
         try:
-            print 'Instantiation:', self.config.get(self.section_name, 'name')
+            print 'Instantiation:', self.section_name, self.config.get(self.section_name, 'name')
         except NoOptionError:
             print 'Instantiation:', self.section_name
         model = self.model_number
