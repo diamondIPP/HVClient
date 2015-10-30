@@ -317,7 +317,7 @@ class ISEG(HVInterface):
             sleep(.1)
             if time()-now > 20:
                 self.Busy = False
-                warnings.warn('Device stucked. Waiting for more than 20sec to unbusy - Reset')
+                warnings.warn('Device stucked. Waiting for more than 20sec to unbusy - Reset Busy')
 
     def get_answer_for_query(self, data, minlength=1):
         self.wait_for_unbusy()
@@ -412,7 +412,7 @@ class ISEG(HVInterface):
 
     def get_output_status(self,ch=-1):
         valid_output_status = False
-        while valid_output_status:
+        while not valid_output_status:
             try:
                 try:
                     channel_status = self.get_channel_status(ch)
@@ -426,9 +426,9 @@ class ISEG(HVInterface):
                     retval = [k['On'] for k in l_ch_status]
                 except:
                     raise Exception('get_output_status: Cannot extract channel status from list "%s"'%l_ch_status)
+                valid_output_status = True
             except Exception as e:
                 print e
-            valid_output_status = True
         return retval
 
     def query_set_voltage(self,ch=-1):
@@ -550,9 +550,15 @@ class ISEG(HVInterface):
         now = time()
         if now - self.last_channel_status['time'] > 1:
             ch_str = self.get_channel_string('all')
-            retVal = self.get_answer_for_query(':READ:CHAN:STAT?%s' % ch_str).split()
-            retVal = [int(k) for k in retVal]
-            retVal = [self.convert_channel_status(i) for i in retVal]
+            valid_answer = False
+            while not valid_answer:
+                try:
+                    retVal = self.get_answer_for_query(':READ:CHAN:STAT?%s' % ch_str).split()
+                    retVal = [int(k) for k in retVal]
+                    retVal = [self.convert_channel_status(i) for i in retVal]
+                    valid_answer = True
+                except:
+                    pass
             self.last_channel_status['status'] = retVal
             self.last_channel_status['time'] = now
         return self.last_channel_status['status']
@@ -569,6 +575,7 @@ class ISEG(HVInterface):
             ch = ch.split()
             return [self.last_channel_status['status'][int(k)] for k in ch]
         except:
+            print 'error',ch
             return self.last_channel_status['status']
 
 
