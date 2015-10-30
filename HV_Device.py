@@ -426,6 +426,7 @@ if __name__ == '__main__':
     channels = iseg_module.get_list_of_active_channels()
     print 'CHannels: ',channels
     for ch in channels:
+        print 'adding channel ',ch
         iseg_channels[ch] = HVDevice(conf,device_no, False, module=iseg_module,channel=ch)
 
     d = iseg_channels[0]
