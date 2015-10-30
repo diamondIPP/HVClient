@@ -296,13 +296,16 @@ class ISEG(HVInterface):
     def clear_buffer(self):
         busy = self.Busy
         self.Busy=True
+        retval = ''
         if self.bOpen:
             while self.serial.inWaiting():
                 while self.serial.inWaiting():
-                    self.__read()
+                    retval += self.__read()
                 sleep(self.readSleepTime)
         else:
             pass
+        if retval != '':
+            warnings.warn('Buffer was not empty: "%s"'%retval)
         self.Busy=busy
         return self.serial.inWaiting()
 
@@ -314,11 +317,12 @@ class ISEG(HVInterface):
             sleep(.1)
             if time()-now > 20:
                 self.Busy = False
-                warning.warn('Device stucked. Waiting for more than 20sec to unbusy - Reset')
+                warnings.warn('Device stucked. Waiting for more than 20sec to unbusy - Reset')
 
     def get_answer_for_query(self, data, minlength=1):
         self.wait_for_unbusy()
         self.Busy = True
+        self.clear_buffer()
         self.__write(data)
         sleep(self.readSleepTime)
         data = self.__read(minlength)
