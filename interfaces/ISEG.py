@@ -407,7 +407,19 @@ class ISEG(HVInterface):
         return self.query_set_voltage(ch)
 
     def get_output_status(self,ch=-1):
-        return [k['On'] for k in list(self.get_channel_status(ch))]
+        try:
+            channel_status = self.get_channel_status(ch)
+        except:
+            raise Exception('get_output_status: Cannot get channel status')
+        try:
+            l_ch_status = list(channel_status)
+        except:
+            raise Exception('get_output_status: Cannot convert channel status to list "%s"'%channel_status)
+        try:
+            retval = [k['On'] for k in l_ch_status]
+        except:
+            raise Exception('get_output_status: Cannot extract channel status from list "%s"'%l_ch_status)
+        return retval
 
     def query_set_voltage(self,ch=-1):
         ch_str = self.get_channel_string(ch)
