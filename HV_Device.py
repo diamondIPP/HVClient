@@ -325,6 +325,15 @@ class HVDevice(Thread):
         self.isBusy = False
         if verb: print '\tDONE'
 
+    def get_bias_now(self):
+        return self.bias_now
+
+    def get_current_now(self):
+        return self.current_now
+
+    def get_last_update(self):
+        return self.last_update
+
     def get_new_bias(self):
         new_bias = 0
         change = False

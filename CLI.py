@@ -94,6 +94,9 @@ class CLI(cmd.Cmd, Thread):
                 print '  * current voltage: %.1f V'%device.get_bias_now()
                 print '  * current current: %.2e A'%device.get_current_now()
                 print '  * last updated before  %ds'%(time.time() - device.get_last_update())
+                device.interface.set_output(status)
+                device.last_v_change = time.time()
+                device.powering_down = False
             except Exception as inst:
                 print type(inst), inst
             device.isBusy = False
