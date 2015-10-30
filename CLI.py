@@ -211,16 +211,16 @@ class CLI(cmd.Cmd, Thread):
 
         try:
             if self.devices.has_key(name):
-                keithley = self.devices[name]
+                device = self.devices[name]
 
-                min_bias = keithley.min_bias
-                max_bias = keithley.max_bias
+                min_bias = device.min_bias
+                max_bias = device.max_bias
                 if not min_bias <= target_bias <= max_bias:
                     print "This bias voltage", target_bias, "is not allowed! Boundaries are: ", \
                         min_bias, max_bias
                     return
 
-                keithley.set_target_bias(target_bias)
+                device.set_target_bias(target_bias)
 
         except Exception as inst:
             print type(inst), inst
