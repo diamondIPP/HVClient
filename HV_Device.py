@@ -280,7 +280,10 @@ class HVDevice(Thread):
     # ============================
     # MISCELLANEOUS FUNCTIONS
     def is_ramping(self):
-        return abs(self.bias_now - self.target_bias) > 0.1 if self.get_status() else False
+        try:
+            return abs(self.bias_now - self.target_bias) > 0.1 if self.get_status() else False
+        except:
+            return False
 
     def power_down(self):
         self.set_target_bias(0)
@@ -303,7 +306,7 @@ class HVDevice(Thread):
         try:
             self.status = self.interface.get_output_status()
         except Exception as inst:
-            print 'Could not update voltage/current- get output status:', inst
+            print 'Could not update voltage/current- get output status:', inst,inst.args
             self.isBusy = False
             return
         if verb: print '\tstatus',self.status,
