@@ -7,6 +7,7 @@
 import ConfigParser
 import os
 import sys
+import warnings
 import inspect
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
@@ -312,7 +313,8 @@ class ISEG(HVInterface):
         while self.Busy:
             sleep(.1)
             if time()-now > 20:
-                raise Exception('Device stucked. Waiting for more than 20sec to unbusy')
+                self.Busy = False
+                warning.warn('Device stucked. Waiting for more than 20sec to unbusy - Reset')
 
     def get_answer_for_query(self, data, minlength=1):
         self.wait_for_unbusy()
