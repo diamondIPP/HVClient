@@ -91,7 +91,7 @@ class Keithley6517B(KeithleyHead):
 
     # ============================
     # SET-FUNCTIONS
-    def set_voltage(self, voltage):
+    def set_bias(self, voltage):
         voltage = self.validate_voltage(voltage)
         self.set_range_voltage('low') if abs(voltage) <= 100 else self.set_range_voltage('high')
         data = ':SOUR:VOLT ' + str(voltage)

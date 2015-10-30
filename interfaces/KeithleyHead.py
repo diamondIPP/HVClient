@@ -109,8 +109,8 @@ class KeithleyHead(HVInterface):
     def set_bias(self, voltage):
         self.set_voltage(voltage)
 
-    def set_voltage(self, value):
-        pass
+    # def set_voltage(self, value):
+    #     pass
 
     def set_immediate_voltage(self, voltage):
         voltage = self.validate_voltage(voltage)
@@ -273,7 +273,8 @@ class KeithleyHead(HVInterface):
             measurment = [float(x) for x in answer]
             self.measurments.append(measurment)
             return {'current': current, 'voltage': voltage, 'rest': rest}
-        except:
+        except Exception, err:
+            print err
             raise Exception('Could not perform valid IV Measurement, received "%s"' % answer)
 
     # ============================

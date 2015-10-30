@@ -56,7 +56,7 @@ class Keithley24XX(KeithleyHead):
     # ============================
     # SET-FUNCTIONS
 
-    def set_voltage(self, voltage):
+    def set_bias(self, voltage):
         voltage = self.validate_voltage(voltage)
         return self.write(':SOUR:VOLT %s' % voltage)
 
