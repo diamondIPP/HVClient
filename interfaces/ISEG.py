@@ -29,6 +29,7 @@ OFF = 0
 # ============================
 class ISEG(HVInterface):
     def __init__(self, config, device_no=1, hot_start=False):
+        self.last_write = ''
         self.nchannels = 6
         self.last_iv_measurement = {'time':-1, 'ivs':None}
         self.last_channel_status = {'time':-1, 'status':None}
@@ -293,7 +294,7 @@ class ISEG(HVInterface):
         self.serial.readall()
         return self.serial.inWaiting()
 
-    def clear_buffer(self):
+    def clear_buffer(self,warning=True,command=''):
         busy = self.Busy
         self.Busy=True
         retval = ''
@@ -304,8 +305,10 @@ class ISEG(HVInterface):
                 sleep(self.readSleepTime)
         else:
             pass
-        if retval != '':
-            warnings.warn('Buffer was not empty: "%s"'%retval)
+        if retval != '' and warning:
+            msg = 'Buffer was not empty when reading  %s: "%s"'%(command,retval)
+            msg += ',\n\t last command: "%s"'%self.last_write
+            warnings.warn(msg)
         self.Busy=busy
         return self.serial.inWaiting()
 
@@ -322,7 +325,7 @@ class ISEG(HVInterface):
     def get_answer_for_query(self, data, minlength=1):
         self.wait_for_unbusy()
         self.Busy = True
-        self.clear_buffer()
+        self.clear_buffer(command = data)
         self.__write(data)
         sleep(self.readSleepTime)
         data = self.__read(minlength)
@@ -338,6 +341,7 @@ class ISEG(HVInterface):
     def __write(self,data):
         #print 'write: "%s"' % data
         data += self.commandEndCharacter
+        self.last_write = data
         if self.bOpen:
             output = self.serial.write(data)
         else:
@@ -557,6 +561,8 @@ class ISEG(HVInterface):
 
     def get_all_channel_status(self):
         now = time()
+        delta_t =  now - self.last_channel_status['time']
+        #print 'get all channel status, delta t ', delta_t,
         if now - self.last_channel_status['time'] > 1:
             ch_str = self.get_channel_string('all')
             valid_answer = False
@@ -567,21 +573,27 @@ class ISEG(HVInterface):
                     retVal = [self.convert_channel_status(i) for i in retVal]
                     valid_answer = True
                 except:
-                    print 'no valid answer'
+                    print 'no valid channel status, retry'
+                    self.clear_buffer(False)
                     pass
             if self.last_channel_status['status']:
-                print time(),'valid,status',len(self.last_channel_status['status'])
+                #print time(),'valid,status',len(self.last_channel_status['status'])
+                pass
             else:
-                print time(),'valid,status'
+                #print time(),'valid,status'
+                pass
             self.last_channel_status['status'] = retVal
             self.last_channel_status['time'] = now
+            #print 'updated status'
         else:
-            print 'do not update status'
+            pass
+            #print 'do not update status'
         return self.last_channel_status['status']
 
     def get_channel_status(self, ch=-1):
+        self.get_all_channel_status()
         while not self.last_channel_status['status'] or len(self.last_channel_status['status']) == 0:
-                self.get_all_channel_status()
+            self.get_all_channel_status()
         try:
             if type(ch) == int:
                 return [self.last_channel_status['status'][ch]]
