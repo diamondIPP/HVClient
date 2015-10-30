@@ -79,6 +79,34 @@ class CLI(cmd.Cmd, Thread):
         self.set_device_name(name,device_name)
 
     #######################################
+    # do_STATUS
+    #######################################
+
+    def read_status(self, name):
+        if self.devices.has_key(name):
+            device = self.devices[name]
+            device.wait_for_device()
+            device.isBusy = True
+            try:
+                print 'STATUS of %s'%name
+                print '  * status: %s'%device.get_status()
+                print '  * target voltage: %.1f V'%device.get_target_bias()
+                print '  * current voltage: %.1f V'%device.get_bias_now()
+                print '  * current current: %.2e A'%device.get_current_now()
+                print '  * last updated before  %ds'%(time.time() - device.get_last_update())
+            except Exception as inst:
+                print type(inst), inst
+            device.isBusy = False
+        else:
+            print 'cannot find %s' % name
+
+    def do_STATUS(self, line):
+        """ Read the status of the device
+        Usage: STATUS KeithleyName
+        """
+        self.read_status(line)
+
+    #######################################
     # do_ON / do_OFF
     #######################################
 
