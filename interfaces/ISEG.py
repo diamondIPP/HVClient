@@ -861,7 +861,7 @@ class ISEG(HVInterface):
         return retVal
 
     def get_list_of_active_channels(self):
-        mask = config.getint(self.section_name,'active_channels')
+        mask = self.config.getint(self.section_name,'active_channels')
         n_channels  = self.query_module_channels()
         retval = []
         for i in range(n_channels):
