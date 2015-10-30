@@ -107,7 +107,12 @@ class CLI(cmd.Cmd, Thread):
         else:
             print 'cannot find %s' % name
 
-    def do_ON(self, line):
+    def do_STATUS(self, line):
+        """ Read the status of the device
+        Usage: STATUS KeithleyName
+        """
+        self.read_status(line)
+
     #######################################
     # do_ON / do_OFF
     #######################################
