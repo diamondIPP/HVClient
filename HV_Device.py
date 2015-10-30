@@ -44,8 +44,11 @@ class HVDevice(Thread):
         self.config = config
         self.keithley = None
         self.bias_now = -0
-
-        self.section_name = 'HV%d' % device_no
+        if module:
+            self.section_name = module.module_name + '_CH%d'%channel
+            print 'Section Name of Channel %d of Module %s: %s'%(channel,module.module_name,self.section_name)
+        else:
+            self.section_name = 'HV%d' % device_no
         self.bias_now = 0
         try:
             retval = self.config.get(self.section_name, 'model')
