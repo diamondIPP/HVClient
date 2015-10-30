@@ -30,12 +30,14 @@ import DeviceReader
 #######################################
 parser = argparse.ArgumentParser(description='Keithley Power Supply steering and readout software')
 parser.add_argument('--config', '-c', help='Config file', default='config/keithley.cfg')
+parser.add_argument('--nogui',  help='No Gui mode', action='store_true')
 parser.add_argument('--hotstart', '-H', action='store_true',
                     help='Hot start (leave Keithleys ON and current voltage)')
 
 args = parser.parse_args()
 print '\nConfiguration file:', args.config
 print 'Hotstart:', args.hotstart
+print 'No Gui',args.nogui
 
 
 #######################################
@@ -97,7 +99,9 @@ signal.signal(signal.SIGINT, signal_handler)
 # Prepare GUI
 #######################################
 # devices = {'HV4':{'name':'TEST','voltage':-200,'current':13e-6,}}
-root = HVGui(devices)
+with_gui = not args.nogui
+if with_gui:
+    root = HVGui(devices)
 
 #######################################
 # Main GUI loop
@@ -105,12 +109,15 @@ root = HVGui(devices)
 
 # now = time.time()
 while myCLI.running:
-    if root.destroyed:
-        print 'ROOT DEstroyed'
-        myCLI.do_exit()
-        myCLI.do_EOF()
+
+    if with_gui:
+        if root.destroyed:
+            print 'ROOT DEstroyed'
+            myCLI.do_exit()
+            myCLI.do_EOF()
     try:
-        root.update()
+        if with_gui:
+            root.update()
     except:
         myCLI.do_exit()
         myCLI.do_EOF()
@@ -129,7 +136,8 @@ while myCLI.running:
             break
         status = v.get_status()
         # v.serial.flushInput()
-        root.set_status(k, status)
+        if with_gui:
+            root.set_status(k, status)
         if status:
             # First try to change the voltage
             # v.ramp()
@@ -138,16 +146,18 @@ while myCLI.running:
             voltage = v.get_bias()
             current = v.get_current()
             #             print 'add measurement',k,v.get_update_time(),v.get_current(),v.get_bias(),v.get_device_name()
-            root.add_measurement(k, v.get_update_time(), v.get_bias(), v.get_current(), v.get_device_name())
-            if v.manual:
-                root.set_mode(k, "MANUAL")
-            elif v.is_ramping():
-                root.set_mode(k, "RAMPING")
-            else:
-                root.set_mode(k, "NORMAL")
-            root.set_target_bias(k, v.target_bias)
+            if with_gui:
+                root.add_measurement(k, v.get_update_time(), v.get_bias(), v.get_current(), v.get_device_name())
+                if v.manual:
+                    root.set_mode(k, "MANUAL")
+                elif v.is_ramping():
+                    root.set_mode(k, "RAMPING")
+                else:
+                    root.set_mode(k, "NORMAL")
+                root.set_target_bias(k, v.target_bias)
 
-root._quit()
+if with_gui:
+    root._quit()
 if myCLI.running:
     myCLI.onecmd('exit\n')
     # myCLI.cmdqueue.append('exit\n')
