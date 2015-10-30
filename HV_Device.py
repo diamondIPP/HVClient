@@ -376,7 +376,7 @@ class HVDevice(Thread):
                 print "\033[99m" +' '+ '\033[0m'
             if not self.interface.can_ramp:
                 print colored('\nWARNING:', 'yellow'),
-                 print colored(msg, 'red')
+                print colored(msg, 'red')
             sleep(1)
             self.update_voltage_current()
             if abs(self.bias_now - last_bias) < .1:
