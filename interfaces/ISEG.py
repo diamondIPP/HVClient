@@ -416,19 +416,28 @@ class ISEG(HVInterface):
             try:
                 try:
                     channel_status = self.get_channel_status(ch)
-                except:
-                    raise Exception('get_output_status: Cannot get channel status')
+                except Exception as e:
+                    print e, e.args
+                    raise Exception('get_output_status: Cannot get channel status,%s'%e)
                 try:
                     l_ch_status = list(channel_status)
-                except:
+                except Exception as e:
+                    print 'conversion',e, e.args
                     raise Exception('get_output_status: Cannot convert channel status to list "%s"'%channel_status)
                 try:
                     retval = [k['On'] for k in l_ch_status]
-                except:
+                except Exception as e:
+                    print e, e.args,l_ch_status
                     raise Exception('get_output_status: Cannot extract channel status from list "%s"'%l_ch_status)
                 valid_output_status = True
             except Exception as e:
                 print e
+            if not valid_output_status:
+                print 'invalid output status'
+            else:
+        
+                pass
+                #print 'status:',ch,retval
         return retval
 
     def query_set_voltage(self,ch=-1):
@@ -558,24 +567,34 @@ class ISEG(HVInterface):
                     retVal = [self.convert_channel_status(i) for i in retVal]
                     valid_answer = True
                 except:
+                    print 'no valid answer'
                     pass
+            if self.last_channel_status['status']:
+                print time(),'valid,status',len(self.last_channel_status['status'])
+            else:
+                print time(),'valid,status'
             self.last_channel_status['status'] = retVal
             self.last_channel_status['time'] = now
+        else:
+            print 'do not update status'
         return self.last_channel_status['status']
 
     def get_channel_status(self, ch=-1):
-        self.get_all_channel_status()
-        if type(ch) == int:
-            return [self.last_channel_status['status'][ch]]
-        if type(ch) == list:
-            return [self.last_channel_status['status'][i] for i in ch]
+        while not self.last_channel_status['status'] or len(self.last_channel_status['status']) == 0:
+                self.get_all_channel_status()
         try:
+            if type(ch) == int:
+                return [self.last_channel_status['status'][ch]]
+            if type(ch) == list:
+                return [self.last_channel_status['status'][i] for i in ch]
             if ch == 'all':
                 return self.last_channel_status['status']
             ch = ch.split()
             return [self.last_channel_status['status'][int(k)] for k in ch]
-        except:
-            print 'error',ch
+        except Exception as e:
+            if type(self.last_channel_status['status']) == list:
+                print 'len',len(self.last_channel_status['status']),
+            
             return self.last_channel_status['status']
 
 
