@@ -24,6 +24,10 @@ class HVInterface:
         self.config = config
         self.channel = channel
         self.section_name = 'HV%d' % self.device_no
+        if self.config.has_option(self.section_name,'module_name'):
+            self.module_name = self.config.get(self.section_name,'module_name')
+        else:
+            self.module_name = ''
         self.model_number = self.config.get(self.section_name, 'model')
         self.name = self.config.get(self.section_name, 'name')
         self.model = ''
