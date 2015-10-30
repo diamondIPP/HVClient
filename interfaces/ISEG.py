@@ -860,6 +860,17 @@ class ISEG(HVInterface):
             retVal[bits[i]] = ISEG.check_bit(status, i)
         return retVal
 
+    def get_list_of_active_channels(self):
+        mask = config.getint(self.section_name,'active_channels')
+        n_channels  = self.query_module_channels()
+        retval = []
+        for i in range(n_channels):
+            if (mask&(1<<i) == (1<<i)):
+                retval.append(i)
+        return retval
+
+
+
 
 
 if __name__ == '__main__':

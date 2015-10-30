@@ -423,7 +423,9 @@ if __name__ == '__main__':
     device_no = 7
     iseg_module = ISEG(conf, device_no , False)
     iseg_channels = {}
-    for ch in range(iseg_module.get_n_channels()):
+    channels = iseg_module.get_list_of_active_channels()
+    print 'CHannels: ',channels
+    for ch in channels:
         iseg_channels[ch] = HVDevice(conf,device_no, False, module=iseg_module,channel=ch)
 
     d = iseg_channels[0]
