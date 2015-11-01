@@ -29,6 +29,7 @@ class Keithley24XX(KeithleyHead):
             sleep(1)
             self.clear_buffer()
             self.identify()
+            self.set_source_output()
             self.set_measurement_speed(2)  # was 10 before
             self.clear_error_queue()
             sleep(1)

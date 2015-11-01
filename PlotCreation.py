@@ -93,7 +93,6 @@ def update_plot(plot_data, fig, current_range=None, unit='nA'):
         label = 'A'
     label = label_prefix + 'current [' + label + ']'
     ax1.set_ylabel(label, color='r')
-    # factor = sign * factor
     currents = [x[2] * factor for x in plot_data]
     # delete first element which is always 0
     del currents[0]
@@ -104,37 +103,25 @@ def update_plot(plot_data, fig, current_range=None, unit='nA'):
     min_v = min(voltages)
     max_c = max(currents)
     min_c = min(currents)
-    # print max_c, min_c
-    # print current_range
-    # if current_range:
-    #     if abs(max_c) > current_range:
-    #         max_c = math.copysign(max_c, current_range)
-    #     if abs(min_c) > current_range:
-    #         min_c = math.copysign(min_c, current_range)
+
     # plot time vs current in red dots
     ax1.plot_date(times, currents, 'r.', ms=2)
     ax1.set_xlabel('time')
-
     for tl in ax1.get_yticklabels():
         tl.set_color('r')
     # adjust limits of y-axis
-    margin = 0.1 * (max_c - min_c)
-    if margin < 5e-8 * factor:
-        margin = 5e-8 * factor
+    margin = find_margin(currents)
     ax1.set_ylim([min_c - margin, max_c + margin])
-    # if max_c <= 0 and min_c <= 0:
-    #     ax1.set_ylim([min_c * 1.1, -.1 * min_c])
-    # elif max_c >= 0 and min_c >= 0:
-    #     ax1.set_ylim([-max_c * .1, max_c * 1.1])
-    # else:
-    #     ax1.set_ylim([min_c - .1 * (max_c - min_c), max_c + .1 * (max_c - min_c)])
+
+    # plot voltage as blue line
     ax2.plot_date(times, voltages, 'b-')
+    margin_v = 20
     if max_v <= 0:
-        ax2.set_ylim([min_v * 1.2, 0])
+        ax2.set_ylim([min_v * 1.2, margin_v])
     elif min_v < 0:
         ax2.set_ylim([min_v * 1.2, max_v * 1.2])
     else:
-        ax2.set_ylim([0, 1.2 * max_v])
+        ax2.set_ylim([-margin_v, 1.2 * max_v])
     ax2.set_ylabel('voltage/V', color='b')
     for tl in ax2.get_yticklabels():
         tl.set_color('b')
@@ -148,3 +135,14 @@ def update_plot(plot_data, fig, current_range=None, unit='nA'):
     #     ax2.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
 
     return fig, ax1, ax2
+
+def find_margin(vec, fac):
+    diff = max(vec) - min(vec)
+    max_val = max(abs(max(vec)), abs(min(vec)))
+    if max_val > 1e-6 * fac:
+        if diff < 5e-8 * fac:
+            return 5e-8 * fac
+    if diff < 0.5 * max_val :
+        return 0.5 * max_val
+    return 0.1 * diff
+

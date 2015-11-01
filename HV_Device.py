@@ -147,6 +147,7 @@ class HVDevice(Thread):
             os.mkdir(dirs)
         logfile_name = self.interface.get_device_name(1) + strftime('_%Y_%m_%d_%H_%M_%S.log')
         logfile_dest = logfile_dir + logfile_sub_dir + logfile_name
+        print "LOGFILE:", logfile_dest
         if self.fh:
             self.logger.removeHandler(self.fh)
         self.fh = logging.FileHandler(logfile_dest)
