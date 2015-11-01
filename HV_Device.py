@@ -7,7 +7,12 @@ from termcolor import colored
 from interfaces.Keithley24XX import Keithley24XX
 from interfaces.Keithley23X import Keithley23X
 from interfaces.Keithley6517B import Keithley6517B
-from interfaces.Keithley2657 import Keithley2657
+try:
+    from interfaces.Keithley2657 import Keithley2657
+except:
+    print 'Cannot include Keithley 2657'
+from interfaces.ISEG import ISEG
+from interfaces.ISEG_channel import ISEG_channel
 from threading import Thread
 from ConfigParser import ConfigParser, NoOptionError
 from time import time, sleep, strftime
@@ -16,6 +21,11 @@ import sys
 import logging
 import os
 
+# ============================
+# CONSTANTS
+# ============================
+ON = 1
+OFF = 0
 # for *_interface do import bla
 
 # U = Keithley24XX("blub")
@@ -25,7 +35,7 @@ import os
 # MAIN CLASS
 # ============================
 class HVDevice(Thread):
-    def __init__(self, config, device_no, hot_start):
+    def __init__(self, config, device_no, hot_start, module = None, channel = 0):
         Thread.__init__(self)
 
         self.isKilled = False
@@ -33,11 +43,14 @@ class HVDevice(Thread):
         self.config = config
         self.keithley = None
         self.bias_now = -0
-
-        self.section_name = 'HV%d' % device_no
+        if module:
+            self.section_name = module.module_name + '_CH%d'%channel
+            print 'Section Name of Channel %d of Module %s: %s'%(channel,module.module_name,self.section_name)
+        else:
+            self.section_name = 'HV%d' % device_no
         self.bias_now = 0
         try:
-            self.model_number = int(self.config.get(self.section_name, 'model'))
+            retval = self.config.get(self.section_name, 'model')
             self.ramp_speed = float(self.config.get(self.section_name, 'ramp'))
             self.target_bias = float(self.config.get(self.section_name, 'bias'))
             self.min_bias = float(self.config.get(self.section_name, 'min_bias'))
@@ -46,13 +59,19 @@ class HVDevice(Thread):
         except NoOptionError, err:
             print err, '--> exiting program'
             sys.exit(-1)
+        try:
+            self.model_number = int(retval)
+        except:
+            self.model_number = retval
+
         if self.config.has_option('Names', self.section_name):
-            self.__device_name = self.config.get('Names', self.section_name)
+            self.__device_name = self.config.get('Names',self.section_name)
         else:
             self.__device_name = "UNKNOWN"
 
         self.interface = None
-        self.init_interface(config, device_no, hot_start)
+        self.init_interface(config, device_no, hot_start, module = module, channel = channel)
+        self.nchannels = self.interface.nchannels
 
         self.isBusy = False
         self.maxTime = 20
@@ -98,11 +117,11 @@ class HVDevice(Thread):
 
     # ============================
     # INIT DEVICE INTERFACE
-    def init_interface(self, config, device_no, hot_start):
+    def init_interface(self, config, device_no, hot_start, module=None, channel = 0):
         # if statements for model name
         print '\n=============INSTANTIATION============='
         try:
-            print 'Instantiation:', self.config.get(self.section_name, 'name')
+            print 'Instantiation:', self.section_name, self.config.get(self.section_name, 'name')
         except NoOptionError:
             print 'Instantiation:', self.section_name
         model = self.model_number
@@ -115,6 +134,10 @@ class HVDevice(Thread):
             self.interface = Keithley6517B(config, device_no, hot_start)
         elif model == '2657A' or model == 2657:
             self.interface = Keithley2657(config, device_no, hot_start)
+        elif model == 'NHS-6220x':
+            if module == None:
+                raise Exception('Need to get a valid module to create channel')
+            self.interface = ISEG_channel(config, channel=channel, iseg_module = module, hot_start=hot_start)
         else:
             print "unknown model number: could not instantiate any device", '--> exiting program'
             sys.exit(-2)
@@ -224,6 +247,9 @@ class HVDevice(Thread):
     def get_target_bias(self):
         return self.target_bias
 
+    def get_output(self):
+        return self.get_status()
+
     def get_status(self):
         return self.status
 
@@ -235,6 +261,7 @@ class HVDevice(Thread):
 
     def get_last_ramp(self):
         return self.last_ramp
+
 
     # ============================
     # SET-FUNCTIONS
@@ -248,10 +275,16 @@ class HVDevice(Thread):
         self.target_bias = self.interface.set_to_manual(status)
         self.manual = status
 
+    def set_output(self,status):
+        return self.interface.set_output(status)
+
     # ============================
     # MISCELLANEOUS FUNCTIONS
     def is_ramping(self):
-        return abs(self.bias_now - self.target_bias) > 0.1 if self.get_status() else False
+        try:
+            return abs(self.bias_now - self.target_bias) > 0.1 if self.get_status() else False
+        except:
+            return False
 
     def power_down(self):
         self.set_target_bias(0)
@@ -262,73 +295,119 @@ class HVDevice(Thread):
         while time() - now < self.maxTime and self.isBusy:
             sleep(.2)
 
+    def read_iv(self):
+        iv = self.interface.read_iv()
+        return iv
+
     def update_voltage_current(self):
-        # print 'update_voltage_current'
+        verb = False
+        if verb: print 'update_voltage_current'
         self.wait_for_device()
         self.isBusy = True
         try:
             self.status = self.interface.get_output_status()
         except Exception as inst:
-            print 'Couldn not update voltage/current- get output status:', inst
+            print 'Could not update voltage/current- get output status:', inst,inst.args
             self.isBusy = False
             return
+        if verb: print '\tstatus',self.status,
         if self.status:
-            # print 'status',self.status,
             try:
-                iv = self.interface.read_iv()
-                # print 'iv: ',iv,
+                iv = self.read_iv()
+                if verb: print '\tiv: ',iv,
                 self.bias_now = iv['voltage']
-                # print 'bias_now',self.bias_now,
+                if verb: print '\tbias_now',self.bias_now,
                 self.current_now = iv['current']
-                # print 'current_now',self.current_now
+                if verb: print '\tcurrent_now',self.current_now
                 self.last_update = time()
-                # print 'readIV',voltage,current,self.targetBias,rest
+                if verb: print '\treadIV',iv,self.target_bias
             except Exception as inst:
                 print 'Could not read valid iv', type(inst), inst
         self.isBusy = False
+        if verb: print '\tDONE'
 
-    def ramp(self):
-        # Try to update voltage (we remember the measurement from the last loop)
-        # (the step we can make in voltage is the ramp-speed times
-        # how many seconds passed since last change)
-        if not self.status:
-            return
-        tries = 0
-        while abs(self.interface.target_voltage - self.bias_now) > 1:
-            print colored('\nWARNING:', 'yellow'),
-            msg = 'Did not reach the current set voltage on the power supply:\n'
-            msg += 'set_voltage:\t  {0:6.2f} V\n'.format(self.interface.target_voltage)
-            msg += 'measured_voltage: {0:6.2f} V'.format(self.bias_now)
-            print colored(msg, 'red')
-            sleep(1)
-            self.update_voltage_current()
-            tries += 1
-            if tries > 10:
-                raise ValueError(msg)
-        if tries:
-            self.mimic_cmd()
+    def get_bias_now(self):
+        return self.bias_now
 
+    def get_current_now(self):
+        return self.current_now
+
+    def get_last_update(self):
+        return self.last_update
+
+    def get_new_bias(self):
+        new_bias = 0
+        change = False
         delta_v = self.target_bias - self.interface.target_voltage
 
-        # print 'target: %f \t bias: %f ==> %f V'%(self.target_bias,self.bias_now,delta_v)
+        #print 'target: %f \t bias: %f ==> %f V'%(self.target_bias,self.bias_now,delta_v)
         t_now = time()
         delta_t = t_now - self.last_v_change
-        step_size = abs(self.ramp_speed * delta_t)
-        # print 'step_size: %f \t %f - %f = %f \t %f'%(step_size,t_now,self.last_v_change,delta_t,self.ramp_speed),
+        step_size = abs(self.ramp_speed * (delta_t))
+        #print 'step_size: %f \t %f - %f = %f \t %f'%(step_size,t_now,self.last_v_change,delta_t,self.ramp_speed),
 
         # Limit the maximal voltage step size
         if step_size > self.max_step:
             step_size = self.max_step
-        # print step_size
+        #print step_size
 
         # print 'delta U ',delta_v,step_size
-        newtime = time()
         if abs(delta_v) > 0.1:
             if abs(delta_v) <= step_size:
                 new_bias = self.target_bias
             else:
                 new_bias = self.bias_now + copysign(step_size, delta_v)
-            # print 'new bias: ',new_bias
+            change = True
+        return change, new_bias
+
+    def ramp(self):
+        # Try to update voltage (we remember the measurement from the last loop)
+        # (the step we can make in voltage is the ramp-speed times
+        # how many seconds passed since last change)
+        if self.powering_down and abs(self.bias_now) < .1:
+            self.interface.set_output(0)
+            self.powering_down = False
+            print '%s has ramped down and turned off' % self.interface.name
+            # End of ramp
+            return
+        if self.interface.can_ramp:
+            self.interface.set_voltage(self.target_bias)
+            return
+
+        if not self.status:
+            change, new_bias = self.get_new_bias()
+            self.interface.set_voltage(new_bias)
+            return
+        tries = 0
+        last_bias = self.bias_now
+        while abs(self.interface.target_voltage - self.bias_now) > 1:
+            msg = 'Did not reach the current set voltage on the power supply:\n'
+            msg += '\tset_voltage:\t  {0:6.2f} V\n'.format(self.interface.target_voltage)
+            msg += '\tmeasured_voltage: {0:6.2f} V'.format(self.bias_now)
+            if not self.interface.can_ramp:
+                print msg,'\033[99m'
+                print "\033[99m" +' '+ '\033[0m'
+            if not self.interface.can_ramp:
+                print colored('\nWARNING:', 'yellow'),
+                print colored(msg, 'red')
+            sleep(1)
+            self.update_voltage_current()
+            if abs(self.bias_now - last_bias) < .1:
+                tries += 1
+            else:
+                last_bias = self.bias_now
+
+            if tries > 10:
+                raise ValueError(msg)
+
+        change, new_bias = self.get_new_bias()
+        newtime = time()
+        #print step_size
+        #if tries:
+            # self.mimic_cmd()
+        # print 'delta U ',delta_v,step_size
+        if change:
+            #print 'new bias: ',new_bias
             self.isBusy = True
             self.interface.set_voltage(new_bias)
             if new_bias == self.target_bias and not self.powering_down:
@@ -354,7 +433,18 @@ class HVDevice(Thread):
 if __name__ == '__main__':
     conf = ConfigParser()
     conf.read('config/keithley.cfg')
-    keithley1 = HVDevice(conf, 6, False)
-    # keithley2 = HVDevice(conf, 2, False)
-    keithley1.logger.warning("HALLO")
-    # keithley2.logger.warning("HALLO")
+    device_no = 7
+    iseg_module = ISEG(conf, device_no , False)
+    iseg_channels = {}
+    channels = iseg_module.get_list_of_active_channels()
+    print 'CHannels: ',channels
+    for ch in channels:
+        print 'adding channel ',ch
+        iseg_channels[ch] = HVDevice(conf,device_no, False, module=iseg_module,channel=ch)
+
+    d = iseg_channels[0]
+    #
+    # keithley1 = HVDevice(conf, 6, False)
+    # #keithley2 = HVDevice(conf, 2, False)
+    # keithley1.logger.warning("HALLO")
+    # #keithley2.logger.warning("HALLO")

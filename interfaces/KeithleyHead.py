@@ -109,8 +109,8 @@ class KeithleyHead(HVInterface):
     def set_bias(self, voltage):
         self.set_voltage(voltage)
 
-    def set_voltage(self, value):
-        pass
+    # def set_voltage(self, value):
+    #     pass
 
     def set_immediate_voltage(self, voltage):
         voltage = self.validate_voltage(voltage)

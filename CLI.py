@@ -79,6 +79,34 @@ class CLI(cmd.Cmd, Thread):
         self.set_device_name(name,device_name)
 
     #######################################
+    # do_STATUS
+    #######################################
+
+    def read_status(self, name):
+        if self.devices.has_key(name):
+            device = self.devices[name]
+            device.wait_for_device()
+            device.isBusy = True
+            try:
+                print 'STATUS of %s'%name
+                print '  * status: %s'%device.get_status()
+                print '  * target voltage: %.1f V'%device.get_target_bias()
+                print '  * current voltage: %.1f V'%device.get_bias_now()
+                print '  * current current: %.2e A'%device.get_current_now()
+                print '  * last updated before  %ds'%(time.time() - device.get_last_update())
+            except Exception as inst:
+                print type(inst), inst
+            device.isBusy = False
+        else:
+            print 'cannot find %s' % name
+
+    def do_STATUS(self, line):
+        """ Read the status of the device
+        Usage: STATUS KeithleyName
+        """
+        self.read_status(line)
+
+    #######################################
     # do_ON / do_OFF
     #######################################
 
@@ -89,16 +117,16 @@ class CLI(cmd.Cmd, Thread):
                 self.set_output(k, status)
             return
         if self.devices.has_key(name):
-            keithley = self.devices[name]
-            keithley.wait_for_device()
-            keithley.isBusy = True
+            device = self.devices[name]
+            device.wait_for_device()
+            device.isBusy = True
             try:
-                keithley.interface.set_output(status)
-                keithley.last_v_change = time.time()
-                keithley.powering_down = False
+                device.interface.set_output(status)
+                device.last_v_change = time.time()
+                device.powering_down = False
             except Exception as inst:
                 print type(inst), inst
-            keithley.isBusy = False
+            device.isBusy = False
         else:
             print 'cannot find %s' % name
 
@@ -211,16 +239,16 @@ class CLI(cmd.Cmd, Thread):
 
         try:
             if self.devices.has_key(name):
-                keithley = self.devices[name]
+                device = self.devices[name]
 
-                min_bias = keithley.min_bias
-                max_bias = keithley.max_bias
+                min_bias = device.min_bias
+                max_bias = device.max_bias
                 if not min_bias <= target_bias <= max_bias:
                     print "This bias voltage", target_bias, "is not allowed! Boundaries are: ", \
                         min_bias, max_bias
                     return
 
-                keithley.set_target_bias(target_bias)
+                device.set_target_bias(target_bias)
 
         except Exception as inst:
             print type(inst), inst

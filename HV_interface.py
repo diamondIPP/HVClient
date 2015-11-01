@@ -3,7 +3,7 @@
 # ============================
 # IMPORTS
 # ============================
-
+from string import maketrans
 
 # ============================
 # CONSTANTS
@@ -16,37 +16,46 @@ OFF = 0
 # MAIN CLASS
 # ============================
 class HVInterface:
-    def __init__(self, config, device_no, hot_start):
+    def __init__(self, config, device_no, hot_start,channel = 0):
+        self.nchannels = 1
         self.hot_start = hot_start
         self.device_no = device_no
         self.target_voltage = 0
         self.config = config
+        self.channel = channel
         self.section_name = 'HV%d' % self.device_no
+        if self.config.has_option(self.section_name,'module_name'):
+            self.module_name = self.config.get(self.section_name,'module_name')
+        else:
+            self.module_name = ''
         self.model_number = self.config.get(self.section_name, 'model')
         self.name = self.config.get(self.section_name, 'name')
         self.model = ''
+        self.can_ramp = False
         pass
+    def get_n_channels(self):
+        return self.nchannels
 
     def set_to_manual(self, status):
-        pass
+        raise Exception("set_to_manual not yet implemented")
 
     def set_output(self, status):
-        pass
+        raise Exception("set_output not yet implemented")
 
     def set_bias(self, voltage):
-        pass
+        raise Exception("set_bias not yet implemented")
 
     def get_output(self):
-        pass
+        raise Exception("get_output not yet implemented")
 
     def read_current(self):
-        pass
+        raise Exception("read_current not yet implemented")
 
     def read_voltage(self):
-        pass
+        raise Exception("read_voltage not yet implemented")
 
     def read_iv(self):
-        pass
+        raise Exception("read_iv not yet implemented")
 
     def set_voltage(self, value):
         return self.set_bias(value)
@@ -59,6 +68,10 @@ class HVInterface:
 
     def get_set_voltage(self):
         return self.target_voltage
+
+    def get_target_voltage(self):
+        return self.target_voltage
+
 
     def get_device_name(self, log=0):
         space = ("_" if log else " ")
@@ -84,3 +97,9 @@ class HVInterface:
             return True
         except ValueError:
             return False
+
+    @staticmethod
+    def clear_string(data):
+        data = data.translate(None, '\r\n\x00\x13\x11\x10')
+        data = data.translate(maketrans(',', ' '))
+        return data.strip()

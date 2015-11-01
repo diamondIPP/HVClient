@@ -3,13 +3,16 @@
 
 import matplotlib
 import os
-
+try:
+    import matplotlib.backends.backend_tkagg
+except:
+    pass
 matplotlib.use('TkAgg')
 import numpy as np
 from numpy import arange, sin, pi, cos
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
 # implement the default mpl key bindings
-from matplotlib.backend_bases import key_press_handler
+#from matplotlib.backend_bases import key_press_handler
 
 from matplotlib.figure import Figure
 import matplotlib.dates as mdates
@@ -242,15 +245,18 @@ class HVGui():
 
     @staticmethod
     def get_current_string(current):
-        if abs(current) < 1e-6:
-            retVal = '%5.1f nA' % (current / 1e-9)
-        elif abs(current) < 1e-3:
-            retVal = '%5.1f μA' % (current / 1e-6)
-        elif abs(current) < 1:
-            retVal = '%5.1f mA' % (current / 1e-3)
-        else:
-            retVal = '%5.1f A' % (current)
-        return retVal
+        try:
+            if abs(current) < 1e-6:
+                retVal = '%5.1f nA'%(current/1e-9)
+            elif abs(current) < 1e-3:
+                retVal = '%5.1f μA'%(current/1e-6)
+            elif abs(current) < 1:
+                retVal = '%5.1f mA'%(current/1e-3)
+            else:
+                retVal =  '%5.1f A'%(current)
+            return retVal
+        except TypeError:
+            return ''
 
     @staticmethod
     def get_time_string(t):

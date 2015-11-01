@@ -142,7 +142,7 @@ def find_margin(vec, fac):
     if max_val > 1e-6 * fac:
         if diff < 5e-8 * fac:
             return 5e-8 * fac
-    if diff < 0.5 * max_val :
-        return 0.5 * max_val
-    return 0.1 * diff
+    if diff < 0.3 * max_val :
+        return 0.3 * max_val
+    return 0.15 * diff
 
