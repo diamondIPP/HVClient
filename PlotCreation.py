@@ -7,13 +7,7 @@ gtk.Window
 """
 
 from __future__ import unicode_literals
-from matplotlib.figure import Figure
-import numpy as np
-import matplotlib.pyplot as plt
-from numpy import arange, sin, pi
 import matplotlib.dates as mdates
-import datetime
-import time
 import math
 
 time_converter = mdates.strpdate2num("%Y/%m/%d %H:%M:%S")
@@ -21,9 +15,9 @@ time_converter = mdates.strpdate2num("%Y/%m/%d %H:%M:%S")
 
 def convert(filename):
     splitted_filename = filename.split('.')[0].split('_')
-    device_name = splitted_filename[0]
-    device_type = splitted_filename[1]
-    interface = splitted_filename[2]
+    # device_name = splitted_filename[0]
+    # device_type = splitted_filename[1]
+    # interface = splitted_filename[2]
     year = int(splitted_filename[3])
     month = int(splitted_filename[4])
     date = int(splitted_filename[5])
@@ -36,30 +30,30 @@ def convert(filename):
                 this_time = splitted[0]
                 voltage = float(splitted[1])
                 current = float(splitted[2])
-            except:
+            except IndexError:
                 #             print 'could not convert ',splitted
                 continue
             time_string = '%d/%d/%d %s' % (year, month, date, this_time)
             this_time = time_converter(time_string)
             try:
                 diamond = splitted[3]
-            except:
+            except (IndexError, ValueError):
                 diamond = 'UNKNOWN'
             retval.append([this_time, voltage, current, diamond])
     return retval
 
 
 #  plot_data[0],converted[-1]
-def update_plot(plot_data, fig, current_range=None, unit='nA'):
+def update_plot(plot_data, fig, unit='nA'):
     if len(plot_data) == 0:
         return
     fig.clear()
     ax1 = fig.add_subplot(111)
     ax1.xaxis.set()
     ax2 = ax1.twinx()
-    myFmt = mdates.DateFormatter('%H:%M:%S')
-    ax1.xaxis.set_major_formatter(myFmt)
-    ax2.xaxis.set_major_formatter(myFmt)
+    my_fmt = mdates.DateFormatter('%H:%M:%S')
+    ax1.xaxis.set_major_formatter(my_fmt)
+    ax2.xaxis.set_major_formatter(my_fmt)
     ax1.ticklabel_format(axis='y')  # , style='sci')
     ax2.ticklabel_format(axis='y')  # , style='sci')
     #     fig, ax1 = plt.subplots()
@@ -110,7 +104,7 @@ def update_plot(plot_data, fig, current_range=None, unit='nA'):
     for tl in ax1.get_yticklabels():
         tl.set_color('r')
     # adjust limits of y-axis
-    margin = find_margin(currents)
+    margin = find_margin(currents, factor)
     ax1.set_ylim([min_c - margin, max_c + margin])
 
     # plot voltage as blue line
@@ -136,13 +130,13 @@ def update_plot(plot_data, fig, current_range=None, unit='nA'):
 
     return fig, ax1, ax2
 
+
 def find_margin(vec, fac):
     diff = max(vec) - min(vec)
     max_val = max(abs(max(vec)), abs(min(vec)))
     if max_val > 1e-6 * fac:
         if diff < 5e-8 * fac:
             return 5e-8 * fac
-    if diff < 0.3 * max_val :
+    if diff < 0.3 * max_val:
         return 0.3 * max_val
     return 0.15 * diff
-

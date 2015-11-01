@@ -313,7 +313,7 @@ class HVGui():
                     if plot_box['last_measurement'] == last:
                         continue
             plot_box['last_measurement'] = last
-            PlotCreation.update_plot(plot_data, plot_box['f'], current_range=10 ** maxrange, unit=unit)
+            PlotCreation.update_plot(plot_data, plot_box['f'], unit=unit)
             plot_box['canvas'].draw()
         self.root.after(self.update_interval.get() * 1000, self.update_plots)
         self.last_update = time()
