@@ -113,13 +113,14 @@ class HVDevice(Thread):
         self.last_status = self.status
         self.last_ramp = False
 
+        print '---------------------------------------'
+
         # functions for CLI
 
     # ============================
     # INIT DEVICE INTERFACE
     def init_interface(self, config, device_no, hot_start, module=None, channel = 0):
         # if statements for model name
-        print '\n=============INSTANTIATION============='
         try:
             print 'Instantiation:', self.section_name, self.config.get(self.section_name, 'name')
         except NoOptionError:

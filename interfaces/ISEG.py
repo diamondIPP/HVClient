@@ -30,15 +30,16 @@ OFF = 0
 class ISEG(HVInterface):
     def __init__(self, config, device_no=1, hot_start=False):
         self.nchannels = 6
-        self.last_iv_measurement = {'time':-1, 'ivs':None}
-        self.last_channel_status = {'time':-1, 'status':None}
+        self.last_iv_measurement = {'time': -1, 'ivs': None}
+        self.last_channel_status = {'time': -1, 'status': None}
         self.Busy = False
         self.commandEndCharacter = '\r\n'
         self.readSleepTime = .1
         self.writeSleepTime = .1
         HVInterface.__init__(self, config, device_no, hot_start)
         self.bOpen = False
-        self.read_config(config)
+        self.config = config
+        self.read_config()
         self.lastVoltage = 0
         self.serial = None
         # self.model = self.get_model_name()
@@ -47,7 +48,6 @@ class ISEG(HVInterface):
         self.answer_time = 0.1
         self.open_serial_port()
         self.init_device(hot_start)
-        self.nchannels = 6
         pass
 
     def open_serial_port(self):
@@ -72,31 +72,22 @@ class ISEG(HVInterface):
             sleep(1)
             self.clear_buffer()
             self.identify()
-            # self.set_measurement_speed(2)  # was 10 before
             self.clear_error_queue()
             sleep(1)
         else:
             sleep(.1)
-            self.set_output(False,'all')
+            self.set_output(False, 'all')
+            self.configure_ramp_speed_voltage()
             self.reset()
             self.clear_buffer()
             self.identify()
             self.set_max_voltage()
-            # self.set_standard_output_format(':FORM:ELEM VOLT,CURR,RES,TIME,STAT')
-            # self.set_concurrent_measurement(True)
-            # self.set_filter_type('REP')
-            # self.set_average_filter(True)
-            # self.set_average_filter_count(3)
-            # self.set_current_protection(100e-6)
-            # self.set_measurement_speed(2)  # was 10 before
             self.clear_error_queue()
-            # self.set_compliance_abort_level('LATE')
-            # self.setComplianceAbortLevel('NEVER')
             sleep(.1)
         return
 
-    def read_config(self, config):
-        self.serialPortName = config.get(self.section_name, 'address')
+    def read_config(self):
+        self.serialPortName = self.config.get(self.section_name, 'address')
         pass
 
     def identify(self):
@@ -134,7 +125,7 @@ class ISEG(HVInterface):
         raise AttributeError('invalid channel no %s' % channel)
 
     def get_channel_string(self, channel):
-        #print 'get channel string:', channel
+        # print 'get channel string:', channel
         if channel == 'all':
             retVal = '0-5'
         else:
@@ -149,11 +140,11 @@ class ISEG(HVInterface):
 
     # ============================
     # DEVICE FUNCTIONS
-    def set_output(self, status, channel=-1):
+    def set_output(self, status, channel=None):
         ch_str = self.get_channel_string(channel)
         data = ':VOLT '
         data += ('ON' if status else 'OFF')
-        data += ','+ch_str
+        data += ',' + ch_str
         return self.write(data)
 
     def set_channel_voltage(self, voltage, channel=-1):
@@ -163,6 +154,16 @@ class ISEG(HVInterface):
         data = ':VOLT %.3f,%s' % (voltage, ch_str)
         # print 'set Voltage of channel %d to %.3f V' % (channel, voltage)
         return self.write(data)
+
+    def set_pos_voltage(self, voltage):
+        assert voltage > 0, 'You have to enter a positive voltage'
+        for ch in range(3):
+            self.set_channel_voltage(voltage, ch)
+
+    def set_neg_voltage(self, voltage):
+        assert voltage <= 0, 'You have to enter a negative voltage'
+        for ch in range(3, 6):
+            self.set_channel_voltage(voltage, ch)
 
     def set_emergency_off(self, channel='all'):
         self.is_valid_channel_string(channel)
@@ -212,23 +213,26 @@ class ISEG(HVInterface):
     # todo :CONFIGURE:TRIP
     # todo :CONFIGURE:INH
 
-    def configure_ramp_speed(self, speed, ramp_type):
+    def configure_ramp_speed(self, ramp_type, speed=None):
+        if speed is None:
+            ramp = self.config.getint(self.section_name, 'ramp')
+            speed = ramp / 20.
+        else:
+            speed = speed / 20.
         if len(ramp_type) > 4:
             ramp_type = ramp_type[:4]
         ramp_type = ramp_type.upper()
-        if not ramp_type in ['VOLT', 'CURR']:
-            raise AttributeError('Invalid Type of ramp speed')
-        if not 0 < speed <= 100:
-            AttributeError('Invalid speed for ramp speed')
-        data = ':CONF:RAMP:%s %.1f' % (ramp_type, speed)
-        print 'Set %s ramp speed to %.1f %/s' % (ramp_type, speed)
+        assert ramp_type in ['VOLT', 'CURR'], 'Invalid Type of ramp speed'
+        assert 0 < speed <= 100, 'Invalid speed for ramp speed'
+        data = ':CONF:RAMP:%s %.2f' % (ramp_type, speed)
+        print 'Set {type} ramp speed to {0:3.1f} {type}/s'.format(speed * 20, type=ramp_type)
         return self.write(data)
 
-    def configure_ramp_speed_voltage(self, speed):
-        self.configure_ramp_speed(speed, 'VOLT')
+    def configure_ramp_speed_voltage(self, speed=None):
+        self.configure_ramp_speed('VOLT', speed)
 
-    def configure_ramp_speed_current(self, speed):
-        self.configure_ramp_speed(speed, 'CURR')
+    def configure_ramp_speed_current(self, speed=None):
+        self.configure_ramp_speed( 'CURR', speed)
 
     def configure_average(self, filterSteps):
         valid_steps = [1, 16, 64, 256, 512, 1024]
@@ -279,7 +283,7 @@ class ISEG(HVInterface):
             currents = self.read_current("all")
             voltages = self.read_voltage("all")
             channels = list(range(self.nchannels))
-            ivs =  map(lambda x, y, z: {"voltage": x, "current": y, "channel": z}, voltages, currents, channels)
+            ivs = map(lambda x, y, z: {"voltage": x, "current": y, "channel": z}, voltages, currents, channels)
             self.last_iv_measurement = {'time': now, 'ivs': ivs}
         return self.last_iv_measurement['ivs']
 
@@ -295,7 +299,7 @@ class ISEG(HVInterface):
 
     def clear_buffer(self):
         busy = self.Busy
-        self.Busy=True
+        self.Busy = True
         retval = ''
         if self.bOpen:
             while self.serial.inWaiting():
@@ -305,8 +309,8 @@ class ISEG(HVInterface):
         else:
             pass
         if retval != '':
-            warnings.warn('Buffer was not empty: "%s"'%retval)
-        self.Busy=busy
+            warnings.warn('Buffer was not empty: "%s"' % retval)
+        self.Busy = busy
         return self.serial.inWaiting()
 
     # ============================
@@ -315,7 +319,7 @@ class ISEG(HVInterface):
         now = time()
         while self.Busy:
             sleep(.1)
-            if time()-now > 20:
+            if time() - now > 20:
                 self.Busy = False
                 warnings.warn('Device stucked. Waiting for more than 20sec to unbusy - Reset Busy')
 
@@ -333,10 +337,10 @@ class ISEG(HVInterface):
         self.wait_for_unbusy()
         self.Busy = True
         self.__write(data)
-        self.Busy =  False
+        self.Busy = False
 
-    def __write(self,data):
-        #print 'write: "%s"' % data
+    def __write(self, data):
+        # print 'write: "%s"' % data
         data += self.commandEndCharacter
         if self.bOpen:
             output = self.serial.write(data)
@@ -351,7 +355,7 @@ class ISEG(HVInterface):
         self.__read(min_lenght)
         self.Busy = False
 
-    def __read(self,min_lenght = 0):
+    def __read(self, min_lenght=0):
         # if not self.serial.inWaiting():
         #     print 'there is nothing in the queue'
         #     return
@@ -390,7 +394,7 @@ class ISEG(HVInterface):
                 print "Error trying: 'print ord(out[-2]),ord(out[-1])," \
                       "ord(self.commandEndCharacter[0]),ord(self.commandEndCharacter[1]),len(out)'"
             return ''
-        #print 'received after %s tries: %s' % (k, out)
+        # print 'received after %s tries: %s' % (k, out)
         return out
 
     # ============================
@@ -407,10 +411,10 @@ class ISEG(HVInterface):
             print 'Connected iseg model', self.model
         self.set_max_voltage()
 
-    def get_channel_voltage(self,ch=-1):
+    def get_channel_voltage(self, ch=-1):
         return self.query_set_voltage(ch)
 
-    def get_output_status(self,ch=-1):
+    def get_output_status(self, ch=-1):
         valid_output_status = False
         while not valid_output_status:
             try:
@@ -418,83 +422,83 @@ class ISEG(HVInterface):
                     channel_status = self.get_channel_status(ch)
                 except Exception as e:
                     print e, e.args
-                    raise Exception('get_output_status: Cannot get channel status,%s'%e)
+                    raise Exception('get_output_status: Cannot get channel status,%s' % e)
                 try:
                     l_ch_status = list(channel_status)
                 except Exception as e:
-                    print 'conversion',e, e.args
-                    raise Exception('get_output_status: Cannot convert channel status to list "%s"'%channel_status)
+                    print 'conversion', e, e.args
+                    raise Exception('get_output_status: Cannot convert channel status to list "%s"' % channel_status)
                 try:
                     retval = [k['On'] for k in l_ch_status]
                 except Exception as e:
-                    print e, e.args,l_ch_status
-                    raise Exception('get_output_status: Cannot extract channel status from list "%s"'%l_ch_status)
+                    print e, e.args, l_ch_status
+                    raise Exception('get_output_status: Cannot extract channel status from list "%s"' % l_ch_status)
                 valid_output_status = True
             except Exception as e:
                 print e
             if not valid_output_status:
                 print 'invalid output status'
             else:
-        
+
                 pass
-                #print 'status:',ch,retval
+                # print 'status:',ch,retval
         return retval
 
-    def query_set_voltage(self,ch=-1):
+    def query_set_voltage(self, ch=-1):
         ch_str = self.get_channel_string(ch)
         retVal = self.get_answer_for_query(':READ:VOLT?%s' % ch_str).split()
         retVal = [float(k[:-1]) for k in retVal]
         return retVal
 
-    def query_voltage_limit(self,ch=-1):
+    def query_voltage_limit(self, ch=-1):
         ch_str = self.get_channel_string(ch)
         retVal = self.get_answer_for_query(':READ:VOLT:LIM?%s' % ch_str).split()
         retVal = [float(k[:-1]) for k in retVal]
         return retVal
 
-    def query_voltage_nominal(self,ch=-1):
+    def query_voltage_nominal(self, ch=-1):
         ch_str = self.get_channel_string(ch)
         retVal = self.get_answer_for_query(':READ:VOLT:NOM?%s' % ch_str).split()
         retVal = [float(k[:-1]) for k in retVal]
         return retVal
 
-    def query_voltage_bounds(self,ch=-1):
+    def query_voltage_bounds(self, ch=-1):
         ch_str = self.get_channel_string(ch)
         retVal = self.get_answer_for_query(':READ:VOLT:BOU?%s' % ch_str).split()
         retVal = [float(k[:-1]) for k in retVal]
         return retVal
 
-    def query_channel_on(self,ch=-1):
+    def query_channel_on(self, ch=-1):
         ch_str = self.get_channel_string(ch)
         retVal = self.get_answer_for_query(':READ:VOLT:ON?%s' % ch_str).split()
         retVal = [bool(k) for k in retVal]
         return retVal
 
-    def query_emergency_bit(self,ch=-1):
+    def query_emergency_bit(self, ch=-1):
         ch_str = self.get_channel_string(ch)
         retVal = self.get_answer_for_query(':READ:VOLT:EMCY?%s' % ch_str).split()
         retVal = [bool(k) for k in retVal]
         return retVal
 
-    def query_set_current(self,ch=-1):
+    def query_set_current(self, ch=-1):
         ch_str = self.get_channel_string(ch)
         retVal = self.get_answer_for_query(':READ:CURR?%s' % ch_str).split()
         retVal = [float(k[:-1]) for k in retVal]
         return retVal
 
-    def query_set_current_limit(self,ch=-1):
+    def query_set_current_limit(self, ch=-1):
         ch_str = self.get_channel_string(ch)
         retVal = self.get_answer_for_query(':READ:CURR:LIM?%s' % ch_str).split()
         retVal = [float(k[:-1]) for k in retVal]
         return retVal
 
-    def query_set_current_nominal(self,ch=-1):
+    def query_set_current_nominal(self, ch=-1):
         ch_str = self.get_channel_string(ch)
         retval = self.get_answer_for_query(':READ:CURR:NOM?%s' % ch_str).split()
         retval = [float(k[:-1]) for k in retval]
         return retval
 
-    def query_set_current_bounds(self,ch=-1):
+    def query_set_current_bounds(self, ch=-1):
         ch_str = self.get_channel_string(ch)
         retval = self.get_answer_for_query(':READ:CURR:BOU?%s' % ch_str).split()
         retval = [float(k[:-1]) for k in retval]
@@ -503,6 +507,7 @@ class ISEG(HVInterface):
     '''
         Unit: %/s TODO
     '''
+
     def query_module_voltage_ramp_speed(self):
         retval = self.get_answer_for_query(':READ:RAMP:VOLT?')
         retval = float(retval[:-3])
@@ -511,7 +516,8 @@ class ISEG(HVInterface):
     '''
         Unit: V/s
     '''
-    def query_channel_voltage_ramp_speed(self,ch=-1):
+
+    def query_channel_voltage_ramp_speed(self, ch=-1):
         ch_str = self.get_channel_string(ch)
         retval = self.get_answer_for_query(':READ:RAMP:VOLT?%s' % ch_str).split()
         retval = [float(k[:-3]) for k in retval]
@@ -520,6 +526,7 @@ class ISEG(HVInterface):
     '''
         Unit: %/s TODO
     '''
+
     def query_module_current_ramp_speed(self):
         retval = self.get_answer_for_query(':READ:RAMP:CURR?')
         retval = float(retval[:-3])
@@ -528,7 +535,8 @@ class ISEG(HVInterface):
     '''
         Unit: A/s
     '''
-    def query_channel_current_ramp_speed(self,ch=-1):
+
+    def query_channel_current_ramp_speed(self, ch=-1):
         ch_str = self.get_channel_string(ch)
         retval = self.get_answer_for_query(':READ:RAMP:CURR?%s' % ch_str).split()
         retval = [float(k[:-3]) for k in retval]
@@ -570,9 +578,9 @@ class ISEG(HVInterface):
                     print 'no valid answer'
                     pass
             if self.last_channel_status['status']:
-                print time(),'valid,status',len(self.last_channel_status['status'])
+                print time(), 'valid, status', len(self.last_channel_status['status'])
             else:
-                print time(),'valid,status'
+                print time(), 'valid,status'
             self.last_channel_status['status'] = retVal
             self.last_channel_status['time'] = now
         else:
@@ -581,7 +589,7 @@ class ISEG(HVInterface):
 
     def get_channel_status(self, ch=-1):
         while not self.last_channel_status['status'] or len(self.last_channel_status['status']) == 0:
-                self.get_all_channel_status()
+            self.get_all_channel_status()
         try:
             if type(ch) == int:
                 return [self.last_channel_status['status'][ch]]
@@ -593,17 +601,16 @@ class ISEG(HVInterface):
             return [self.last_channel_status['status'][int(k)] for k in ch]
         except Exception as e:
             if type(self.last_channel_status['status']) == list:
-                print 'len',len(self.last_channel_status['status']),
-            
+                print 'len', len(self.last_channel_status['status']),
+
             return self.last_channel_status['status']
-
-
 
     ''' Channel Event Status (read-write access)
             :READ:CHANnel:EVent:STATus?
     An event bit is permanently set if the status bit is '1' or is changing to '1'. Different to the status bit an
     event bit isn't automatically reset. A reset has to be done by the user by writing '1' to this event bit.
     '''
+
     def get_channel_event_status(self, ch=-1):
         ch_str = self.get_channel_string(ch)
         retVal = self.get_answer_for_query(':READ:CHAN:EV:STAT?%s' % ch_str).split()
@@ -615,6 +622,7 @@ class ISEG(HVInterface):
         :CONF:EVent:MASK?
         :READ:CHANnel:EVent:MASK?
     '''
+
     def get_channel_event_mask(self, ch=-1):
         ch_str = self.get_channel_string(ch)
         retVal = self.get_answer_for_query(':READ:CHAN:EV:MASK?%s' % ch_str).split()
@@ -629,6 +637,7 @@ class ISEG(HVInterface):
     15 of the register Channel Event Status must be 0), a start of a HV ramp will be synchronized (a ramp
     is a software controlled, time proportionally increase / decrease of the output voltage ).
     '''
+
     def get_channel_control(self, ch=-1):
         ch_str = self.get_channel_string(ch)
         retVal = self.get_answer_for_query(':READ:CHANnel:CONTrol?%s' % ch_str).split()
@@ -641,6 +650,7 @@ class ISEG(HVInterface):
         The status bits as there are IsTemperatureGood, IsSupplyGood, IsModuleGood, IsEventActive,
         IsSafetyLoopGood, IsNoRamp and IsNoSumError indicate the single status for the complete module.
     '''
+
     def get_module_status(self):
         retVal = int(self.get_answer_for_query(':READ:MODule:STATus?'))
         return self.convert_module_status(retVal)
@@ -648,6 +658,7 @@ class ISEG(HVInterface):
     ''' Module Event Status (read access)
         :READ:MODule:EVent:STATus?
     '''
+
     def get_module_event_status(self):
         retVal = int(self.get_answer_for_query(':READ:MODule:EV:STATus?'))
         return self.convert_module_event_status(retVal)
@@ -662,6 +673,7 @@ class ISEG(HVInterface):
     by the module, a reset of the corresponding EventStatus bits is necessary before a switch on of any channel is
     possible
     '''
+
     def get_module_event_mask(self):
         retVal = int(self.get_answer_for_query(':READ:MODule:EV:MASK?'))
         return self.convert_module_event_mask(retVal)
@@ -673,18 +685,19 @@ class ISEG(HVInterface):
     CHn = EventStatus[n] & EventMask[n]
     Reset of a bit is done by writing a 1 to this bit
     '''
+
     def get_module_event_channel_status(self):
         retVal = int(self.get_answer_for_query(':READ:MODule:EVent:CHANSTATus?'))
-        #TODO
+        # TODO
         return bin(retVal)
 
     ''' Module Control (read-write access)
         :READ:MODule:CONTRol?
     '''
+
     def get_module_control(self):
         retVal = int(self.get_answer_for_query(':READ:MODule:CONTRol?'))
         return self.convert_module_control(retVal)
-
 
     # ============================
     # SET-FUNCTIONS
@@ -705,7 +718,7 @@ class ISEG(HVInterface):
             "VoltageLimitExceeded": ISEG.check_bit(status, 15),  # 0 for OK, 1 the hardware voltage limit is exceeded
             "CurrentLimitExceeded": ISEG.check_bit(status, 14),  # 0 for OK, 1 the hardware current limit is exceeded
             "TripExceeded": ISEG.check_bit(status, 13),
-        # 0 for OK, 1 VO is shut off to 0V without ramp because the channel has tripped.
+            # 0 for OK, 1 VO is shut off to 0V without ramp because the channel has tripped.
             "ExtInhibit": ISEG.check_bit(status, 12),  # 0 for OK, 1 External Inhibit was scanned
             "VoltageBoundsExceeded": ISEG.check_bit(status, 11),  # 0 for OK, 1 |Vmeas - Vset| > Vbounds
             "CurrentBoundsExceeded": ISEG.check_bit(status, 10),  # 0 for OK, 1 |Imeas - Iset| > Ibounds
@@ -714,9 +727,9 @@ class ISEG(HVInterface):
             "ControlledVoltage": ISEG.check_bit(status, 7),  # 1 Channel is in state of voltage control
             "ControlledCurrent": ISEG.check_bit(status, 6),  # 1 channel is in state of current contro
             "EmergencyOff": ISEG.check_bit(status, 5),
-        # 1 channel is in state of emergency off, VO has been shut off to 0V without ramp
+            # 1 channel is in state of emergency off, VO has been shut off to 0V without ramp
             "Ramping": ISEG.check_bit(status, 4),
-        # 0, no voltage is in change, 1 voltage is in change with the stored ramp speed value
+            # 0, no voltage is in change, 1 voltage is in change with the stored ramp speed value
             "On": ISEG.check_bit(status, 3),  # 0 channel is off, 1  channel voltage follows the Vset value
             "InputError": ISEG.check_bit(status, 2),  # 0 no input-error, 1 incorrect message to control the module
             "IsPositive": ISEG.check_bit(status, 0),  # 0 negative polarity, 1 positive polarity
@@ -911,16 +924,13 @@ class ISEG(HVInterface):
         return retVal
 
     def get_list_of_active_channels(self):
-        mask = self.config.getint(self.section_name,'active_channels')
-        n_channels  = self.query_module_channels()
+        mask = self.config.getint(self.section_name, 'active_channels')
+        n_channels = self.query_module_channels()
         retval = []
         for i in range(n_channels):
-            if (mask&(1<<i) == (1<<i)):
+            if (mask & (1 << i) == (1 << i)):
                 retval.append(i)
         return retval
-
-
-
 
 
 if __name__ == '__main__':

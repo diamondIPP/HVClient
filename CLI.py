@@ -56,8 +56,7 @@ class CLI(cmd.Cmd, Thread):
 
     def do_names(self, line):
         """Print connected Keithley devices"""
-
-        print 'There are %d Keithleys connected:' % len(self.devices)
+        print 'There are %d devices connected:' % len(self.devices)
         k = 1
         for i in self.devices:
             print k, i
