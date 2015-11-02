@@ -56,8 +56,7 @@ class CLI(cmd.Cmd, Thread):
 
     def do_names(self, line):
         """Print connected Keithley devices"""
-
-        print 'There are %d Keithleys connected:' % len(self.devices)
+        print 'There are %d devices connected:' % len(self.devices)
         k = 1
         for i in self.devices:
             print k, i
@@ -94,9 +93,6 @@ class CLI(cmd.Cmd, Thread):
                 print '  * current voltage: %.1f V'%device.get_bias_now()
                 print '  * current current: %.2e A'%device.get_current_now()
                 print '  * last updated before  %ds'%(time.time() - device.get_last_update())
-                device.interface.set_output(status)
-                device.last_v_change = time.time()
-                device.powering_down = False
             except Exception as inst:
                 print type(inst), inst
             device.isBusy = False

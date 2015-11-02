@@ -113,13 +113,14 @@ class HVDevice(Thread):
         self.last_status = self.status
         self.last_ramp = False
 
+        print '---------------------------------------'
+
         # functions for CLI
 
     # ============================
     # INIT DEVICE INTERFACE
     def init_interface(self, config, device_no, hot_start, module=None, channel = 0):
         # if statements for model name
-        print '\n=============INSTANTIATION============='
         try:
             print 'Instantiation:', self.section_name, self.config.get(self.section_name, 'name')
         except NoOptionError:
@@ -170,6 +171,7 @@ class HVDevice(Thread):
             os.mkdir(dirs)
         logfile_name = self.interface.get_device_name(1) + strftime('_%Y_%m_%d_%H_%M_%S.log')
         logfile_dest = logfile_dir + logfile_sub_dir + logfile_name
+        print "LOGFILE:", logfile_dest
         if self.fh:
             self.logger.removeHandler(self.fh)
         self.fh = logging.FileHandler(logfile_dest)
