@@ -24,16 +24,17 @@ def get_devices(config, hot_start):
         sec = 'HV' + str(i)
         print sec, config.options(sec)
     print '======================================='
+    print '\n=============INSTANTIATION============='
     for i in device_numbers:
         name = 'HV%d' % i
         if config.has_section(name):
-            if config.get(name,'model').startswith('NHS'):
+            if config.get(name, 'model').startswith('NHS'):
+                print 'Instantiation:',
                 print 'special module with multiple channels'
-                module = ISEG(config,i,hot_start)
+                module = ISEG(config, i, hot_start)
                 for ch in module.get_list_of_active_channels():
-                    devices[name+'_CH%d'%ch] = HVDevice(config,i,hot_start,module=module,channel=ch)
+                    devices[name + '_CH%d' % ch] = HVDevice(config, i, hot_start, module=module, channel=ch)
             else:
                 devices[name] = HVDevice(config, i, hot_start)
         pass
-    print '---------------------------------------'
     return devices
