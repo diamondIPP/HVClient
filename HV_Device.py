@@ -7,12 +7,10 @@ from termcolor import colored
 from interfaces.Keithley24XX import Keithley24XX
 from interfaces.Keithley23X import Keithley23X
 from interfaces.Keithley6517B import Keithley6517B
-try:
-    from interfaces.Keithley2657 import Keithley2657
-except:
-    print 'Cannot include Keithley 2657'
+from interfaces.Keithley2657 import Keithley2657
+# except ImportError:
+#     print 'Cannot include Keithley 2657'
 from interfaces.ISEG import ISEG
-from interfaces.ISEG_channel import ISEG_channel
 from threading import Thread
 from ConfigParser import ConfigParser, NoOptionError
 from time import time, sleep, strftime
@@ -20,22 +18,14 @@ from math import copysign
 import sys
 import logging
 import os
-
-# ============================
-# CONSTANTS
-# ============================
-ON = 1
-OFF = 0
-# for *_interface do import bla
-
-# U = Keithley24XX("blub")
+import json
 
 
 # ============================
 # MAIN CLASS
 # ============================
 class HVDevice(Thread):
-    def __init__(self, config, device_no, hot_start, module = None, channel = 0):
+    def __init__(self, config, device_no, hot_start):
         Thread.__init__(self)
 
         self.isKilled = False
@@ -43,35 +33,71 @@ class HVDevice(Thread):
         self.config = config
         self.keithley = None
         self.bias_now = -0
-        if module:
-            self.section_name = module.module_name + '_CH%d'%channel
-            print 'Section Name of Channel %d of Module %s: %s'%(channel,module.module_name,self.section_name)
-        else:
-            self.section_name = 'HV%d' % device_no
+        # if module:
+        #     self.section_name = module.module_name + '_CH%d'%channel
+        #     print 'Section Name of Channel %d of Module %s: %s'%(channel,module.module_name,self.section_name)
+        # else:
+        self.section_name = 'HV%d' % device_no
         self.bias_now = 0
         try:
-            retval = self.config.get(self.section_name, 'model')
-            self.ramp_speed = float(self.config.get(self.section_name, 'ramp'))
-            self.target_bias = float(self.config.get(self.section_name, 'bias'))
-            self.min_bias = float(self.config.get(self.section_name, 'min_bias'))
-            self.max_bias = float(self.config.get(self.section_name, 'max_bias'))
-            self.max_step = float(self.config.get(self.section_name, 'max_step'))
+            self.channels = json.loads(config.get(self.section_name, 'active_channels'))
+        except NoOptionError:
+            self.channels = [0]
+        self.n_channels = len(self.channels)
+        if self.n_channels > 1:
+            ch_conf_file = 'config/' + self.config.get(self.section_name, 'config_file')
+            ch_config = ConfigParser()
+            ch_config.read(ch_conf_file)
+        else:
+            ch_config = self.config
+
+        self.ramp_speed = {}
+        self.target_bias = {}
+        self.min_bias = {}
+        self.max_bias = {}
+        self.max_step = {}
+        for chan in self.channels:
+            ch_str = 'CH' + str(chan)
+            sec = ('CH' + str(chan) if self.n_channels > 1 else self.section_name)
+            try:
+                self.ramp_speed[ch_str] = float(ch_config.get(sec, 'ramp'))
+                self.target_bias[ch_str] = float(ch_config.get(sec, 'bias'))
+                self.min_bias[ch_str] = float(ch_config.get(sec, 'min_bias'))
+                self.max_bias[ch_str] = float(ch_config.get(sec, 'max_bias'))
+                self.max_step[ch_str] = float(ch_config.get(sec, 'max_step'))
+            except NoOptionError, err:
+                print err, '--> exiting program'
+                sys.exit(-1)
+        print self.ramp_speed
+        print self.max_bias
+        # try:
+        #     retval = self.config.get(self.section_name, 'model')
+        #     self.ramp_speed = float(self.config.get(self.section_name, 'ramp'))
+        #     self.target_bias = float(self.config.get(self.section_name, 'bias'))
+        #     self.min_bias = float(self.config.get(self.section_name, 'min_bias'))
+        #     self.max_bias = float(self.config.get(self.section_name, 'max_bias'))
+        #     self.max_step = float(self.config.get(self.section_name, 'max_step'))
+        # except NoOptionError, err:
+        #     print err, '--> exiting program'
+        #     sys.exit(-1)
+
+        try:
+            self.model_number = self.config.get(self.section_name, 'model')
+            self.model_number = int(self.model_number)
         except NoOptionError, err:
             print err, '--> exiting program'
             sys.exit(-1)
-        try:
-            self.model_number = int(retval)
-        except:
-            self.model_number = retval
+        except ValueError:
+            pass
 
         if self.config.has_option('Names', self.section_name):
-            self.__device_name = self.config.get('Names',self.section_name)
+            self.__device_name = self.config.get('Names', self.section_name)
         else:
             self.__device_name = "UNKNOWN"
 
         self.interface = None
-        self.init_interface(config, device_no, hot_start, module = module, channel = channel)
-        self.nchannels = self.interface.nchannels
+        self.init_interface(config, device_no, hot_start)
+        # self.nchannels = self.interface.nchannels
 
         self.isBusy = False
         self.maxTime = 20
@@ -98,28 +124,27 @@ class HVDevice(Thread):
         self.manual = False
 
         # make sure bias is consistent
-        if self.max_bias < self.min_bias:
-            raise Exception("Invalid config file (maxBias < minBias)")
-        if self.target_bias < self.min_bias:
-            raise Exception("Invalid config file (bias < minBias)")
-        if self.target_bias > self.max_bias:
-            raise Exception("Invalid config file (bias > maxBias)")
+        for chan in self.channels:
+            ch_str = 'CH' + str(chan)
+            assert self.max_bias[ch_str] > self.min_bias[ch_str], 'Invalid config file (maxBias < minBias)'
+            assert self.target_bias[ch_str] > self.min_bias[ch_str], 'Invalid config file (bias < minBias)'
+            assert self.target_bias[ch_str] < self.max_bias[ch_str], 'Invalid config file (bias > maxBias)'
 
         # logging
-        self.logger = logging.getLogger(self.section_name)
+        self.logger = {}
         self.fh = None
-        self.configure_log()
+        self.setup_logger()
+        sys.exit(-2)
         self.last_day = strftime('%d')
         self.last_status = self.status
         self.last_ramp = False
 
         print '---------------------------------------'
 
-        # functions for CLI
 
     # ============================
     # INIT DEVICE INTERFACE
-    def init_interface(self, config, device_no, hot_start, module=None, channel = 0):
+    def init_interface(self, config, device_no, hot_start):
         # if statements for model name
         try:
             print 'Instantiation:', self.section_name, self.config.get(self.section_name, 'name')
@@ -136,9 +161,7 @@ class HVDevice(Thread):
         elif model == '2657A' or model == 2657:
             self.interface = Keithley2657(config, device_no, hot_start)
         elif model == 'NHS-6220x':
-            if module == None:
-                raise Exception('Need to get a valid module to create channel')
-            self.interface = ISEG_channel(config, channel=channel, iseg_module = module, hot_start=hot_start)
+            self.interface = ISEG(config, device_no, hot_start)
         else:
             print "unknown model number: could not instantiate any device", '--> exiting program'
             sys.exit(-2)
@@ -155,9 +178,19 @@ class HVDevice(Thread):
 
     # ============================
     # LOGGGING CONTROL
-    def configure_log(self):
+    def setup_logger(self):
+        ch_str = ['_CH' + str(x) for x in self.channels]
+        if self.n_channels == 1:
+            ch_str[0] = ''
+        for chan in ch_str:
+            self.logger[chan] = logging.getLogger(self.section_name + chan)
+            # self.fh[chan] = None
+            self.configure_log(chan)
+
+    def configure_log(self, ch=''):
         logfile_dir = self.config.get('Main', 'testbeam_name') + '/'
-        logfile_sub_dir = self.interface.name + '/'
+        logfile_sub_dir = self.interface.name + ch + '/'
+        print logfile_sub_dir
         # check if dir exists
         dirs = os.path.dirname(logfile_dir)
         try:
@@ -173,15 +206,15 @@ class HVDevice(Thread):
         logfile_dest = logfile_dir + logfile_sub_dir + logfile_name
         print "LOGFILE:", logfile_dest
         if self.fh:
-            self.logger.removeHandler(self.fh)
+            self.logger[ch].removeHandler(self.fh)
         self.fh = logging.FileHandler(logfile_dest)
         self.fh.setLevel(logging.INFO)
         formatter = logging.Formatter('%(asctime)s %(message)s', '%H:%M:%S')
         self.fh.setFormatter(formatter)
-        self.logger.addHandler(self.fh)
+        self.logger[ch].addHandler(self.fh)
 
-    def create_new_log_file(self):
-        self.logger.removeHandler(self.fh)
+    def create_new_log_file(self, ch):
+        self.logger[ch].removeHandler(self.fh)
         self.configure_log()
 
     # make new logfile when the day changes
@@ -193,10 +226,10 @@ class HVDevice(Thread):
             self.last_day = day
             sleep(0.1)
 
-    def add_log_entry(self, log_entry):
+    def add_log_entry(self, log_entry, ch):
         if not self.logger:
             self.configure_log()
-        self.logger.warning(log_entry + '\t%s' % self.__device_name)
+        self.logger[ch].warning(log_entry + '\t%s' % self.__device_name)
 
     def write_log(self):
         # write when device is turned ON or OFF
