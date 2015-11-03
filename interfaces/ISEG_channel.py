@@ -15,8 +15,7 @@ currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentfram
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 from HV_interface import HVInterface
-import serial
-from time import sleep, time
+from time import sleep
 
 # ============================
 # CONSTANTS
@@ -29,20 +28,19 @@ OFF = 0
 # MAIN CLASS
 # ============================
 class ISEG_channel(HVInterface):
-    def __init__(self, config, channel, iseg_module = None, hot_start=False):
+    def __init__(self, config, channel, iseg_module=None, hot_start=False):
         self.nchannels = 1
         self.iseg = iseg_module
         device_no = self.iseg.device_no
-        HVInterface.__init__(self, config, device_no, hot_start,channel=channel)
+        HVInterface.__init__(self, config, device_no, hot_start, channel=channel)
         self.ch = channel
-        self.name = self.iseg.name+'_CH%d'%self.ch
+        self.name = self.iseg.name + '_CH%d' % self.ch
         self.section_name = self.iseg.section_name
         self.model_number = self.iseg.model_number
         self.can_ramp = True
         self.init_channel(hot_start)
 
-
-    def init_channel(self,hot_start):
+    def init_channel(self, hot_start):
         if hot_start:
             pass
         else:
@@ -148,6 +146,6 @@ if __name__ == '__main__':
     channels = {}
     hot_start = False
     for i in range(iseg.get_n_channels()):
-        channels[i] = ISEG_channel(conf, channel=i, iseg_module = iseg, hot_start=hot_start)
+        channels[i] = ISEG_channel(conf, channel=i, iseg_module=iseg, hot_start=hot_start)
 
     d = channels[0]

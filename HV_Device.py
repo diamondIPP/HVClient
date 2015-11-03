@@ -76,7 +76,7 @@ class HVDevice(Thread):
         self.isBusy = False
         self.maxTime = 20
 
-        # evealuate hot start
+        # evaluate hot start
         if hot_start:
             self.status = self.interface.get_output_status()
             self.update_voltage_current()

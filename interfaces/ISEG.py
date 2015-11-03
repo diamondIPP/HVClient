@@ -44,7 +44,6 @@ class ISEG(HVInterface):
         self.lastVoltage = 0
         self.serial = None
         # self.model = self.get_model_name()
-
         self.identifier = None
         self.answer_time = 0.1
         self.open_serial_port()
@@ -63,7 +62,7 @@ class ISEG(HVInterface):
             )
             self.bOpen = True
             print 'Open serial port: \'%s\'' % self.serialPortName
-        except:
+        except serial.SerialException:
             print 'Could not open serial Port: \'%s\'' % self.serialPortName
             self.bOpen = False
             pass
@@ -233,7 +232,7 @@ class ISEG(HVInterface):
         self.configure_ramp_speed('VOLT', speed)
 
     def configure_ramp_speed_current(self, speed=None):
-        self.configure_ramp_speed( 'CURR', speed)
+        self.configure_ramp_speed('CURR', speed)
 
     def configure_average(self, filterSteps):
         valid_steps = [1, 16, 64, 256, 512, 1024]
@@ -298,7 +297,7 @@ class ISEG(HVInterface):
         self.serial.readall()
         return self.serial.inWaiting()
 
-    def clear_buffer(self,warning=True,command=''):
+    def clear_buffer(self, warning=True, command=''):
         busy = self.Busy
         self.Busy = True
         retval = ''
@@ -310,10 +309,10 @@ class ISEG(HVInterface):
         else:
             pass
         if retval != '' and warning:
-            msg = 'Buffer was not empty when reading  %s: "%s"'%(command,retval)
-            msg += ',\n\t last command: "%s"'%self.last_write
+            msg = 'Buffer was not empty when reading  %s: "%s"' % (command, retval)
+            msg += ',\n\t last command: "%s"' % self.last_write
             warnings.warn(msg)
-        self.Busy=busy
+        self.Busy = busy
         return self.serial.inWaiting()
 
     # ============================
@@ -329,7 +328,7 @@ class ISEG(HVInterface):
     def get_answer_for_query(self, data, minlength=1):
         self.wait_for_unbusy()
         self.Busy = True
-        self.clear_buffer(command = data)
+        self.clear_buffer(command=data)
         self.__write(data)
         sleep(self.readSleepTime)
         data = self.__read(minlength)
@@ -418,7 +417,7 @@ class ISEG(HVInterface):
     def get_channel_voltage(self, ch=-1):
         return self.query_set_voltage(ch)
 
-    def get_output_status(self, ch=-1):
+    def get_output_status(self, ch=None):
         valid_output_status = False
         while not valid_output_status:
             try:
@@ -569,36 +568,37 @@ class ISEG(HVInterface):
 
     def get_all_channel_status(self):
         now = time()
-        delta_t =  now - self.last_channel_status['time']
-        #print 'get all channel status, delta t ', delta_t,
+        # delta_t = now - self.last_channel_status['time']
+        # print 'get all channel status, delta t ', delta_t,
         if now - self.last_channel_status['time'] > 1:
             ch_str = self.get_channel_string('all')
             valid_answer = False
+            ret_val = None
             while not valid_answer:
                 try:
-                    retVal = self.get_answer_for_query(':READ:CHAN:STAT?%s' % ch_str).split()
-                    retVal = [int(k) for k in retVal]
-                    retVal = [self.convert_channel_status(i) for i in retVal]
+                    ret_val = self.get_answer_for_query(':READ:CHAN:STAT?%s' % ch_str).split()
+                    ret_val = [int(k) for k in ret_val]
+                    ret_val = [self.convert_channel_status(i) for i in ret_val]
                     valid_answer = True
                 except:
                     print 'no valid channel status, retry'
-                    self.clear_buffer(False)
+                    self.clear_buffer(warning=False)
                     pass
             if self.last_channel_status['status']:
-                #print time(),'valid,status',len(self.last_channel_status['status'])
+                # print time(),'valid,status',len(self.last_channel_status['status'])
                 pass
             else:
-                #print time(),'valid,status'
+                # print time(),'valid,status'
                 pass
-            self.last_channel_status['status'] = retVal
+            self.last_channel_status['status'] = ret_val
             self.last_channel_status['time'] = now
-            #print 'updated status'
+            # print 'updated status'
         else:
             pass
-            #print 'do not update status'
+            # print 'do not update status'
         return self.last_channel_status['status']
 
-    def get_channel_status(self, ch=-1):
+    def get_channel_status(self, ch=None):
         self.get_all_channel_status()
         while not self.last_channel_status['status'] or len(self.last_channel_status['status']) == 0:
             self.get_all_channel_status()
