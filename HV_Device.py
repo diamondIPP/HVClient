@@ -8,8 +8,6 @@ from interfaces.Keithley24XX import Keithley24XX
 from interfaces.Keithley23X import Keithley23X
 from interfaces.Keithley6517B import Keithley6517B
 from interfaces.Keithley2657 import Keithley2657
-# except ImportError:
-#     print 'Cannot include Keithley 2657'
 from interfaces.ISEG import ISEG
 from threading import Thread
 from ConfigParser import ConfigParser, NoOptionError
@@ -25,79 +23,38 @@ import json
 # MAIN CLASS
 # ============================
 class HVDevice(Thread):
-    def __init__(self, config, device_no, hot_start):
+    def __init__(self, config, device_num, hot_start):
         Thread.__init__(self)
 
+        # basic
         self.isKilled = False
-
         self.config = config
         self.keithley = None
-        self.bias_now = -0
-        # if module:
-        #     self.section_name = module.module_name + '_CH%d'%channel
-        #     print 'Section Name of Channel %d of Module %s: %s'%(channel,module.module_name,self.section_name)
-        # else:
-        self.section_name = 'HV%d' % device_no
-        self.bias_now = 0
-        try:
-            self.channels = json.loads(config.get(self.section_name, 'active_channels'))
-        except NoOptionError:
-            self.channels = [0]
+        self.section_name = 'HV%d' % device_num
+        self.bias_now = {}
+        self.current_now = {}
+        self.status = {}
+        # channel stuff
+        self.channels = self.__get_channels()
+        self.ch_str = ['CH' + str(x) for x in self.channels]
         self.n_channels = len(self.channels)
-        if self.n_channels > 1:
-            ch_conf_file = 'config/' + self.config.get(self.section_name, 'config_file')
-            ch_config = ConfigParser()
-            ch_config.read(ch_conf_file)
-        else:
-            ch_config = self.config
-
+        self.has_channels = True if self.n_channels > 1 else False
+        self.ch_config = self.__get_channel_config()
+        self.init_bias_now()
+        self.init_current_now()
+        # config data
         self.ramp_speed = {}
         self.target_bias = {}
         self.min_bias = {}
         self.max_bias = {}
         self.max_step = {}
-        for chan in self.channels:
-            ch_str = 'CH' + str(chan)
-            sec = ('CH' + str(chan) if self.n_channels > 1 else self.section_name)
-            try:
-                self.ramp_speed[ch_str] = float(ch_config.get(sec, 'ramp'))
-                self.target_bias[ch_str] = float(ch_config.get(sec, 'bias'))
-                self.min_bias[ch_str] = float(ch_config.get(sec, 'min_bias'))
-                self.max_bias[ch_str] = float(ch_config.get(sec, 'max_bias'))
-                self.max_step[ch_str] = float(ch_config.get(sec, 'max_step'))
-            except NoOptionError, err:
-                print err, '--> exiting program'
-                sys.exit(-1)
-        print self.ramp_speed
-        print self.max_bias
-        # try:
-        #     retval = self.config.get(self.section_name, 'model')
-        #     self.ramp_speed = float(self.config.get(self.section_name, 'ramp'))
-        #     self.target_bias = float(self.config.get(self.section_name, 'bias'))
-        #     self.min_bias = float(self.config.get(self.section_name, 'min_bias'))
-        #     self.max_bias = float(self.config.get(self.section_name, 'max_bias'))
-        #     self.max_step = float(self.config.get(self.section_name, 'max_step'))
-        # except NoOptionError, err:
-        #     print err, '--> exiting program'
-        #     sys.exit(-1)
+        self.__read_config()
 
-        try:
-            self.model_number = self.config.get(self.section_name, 'model')
-            self.model_number = int(self.model_number)
-        except NoOptionError, err:
-            print err, '--> exiting program'
-            sys.exit(-1)
-        except ValueError:
-            pass
-
-        if self.config.has_option('Names', self.section_name):
-            self.__device_name = self.config.get('Names', self.section_name)
-        else:
-            self.__device_name = "UNKNOWN"
+        self.model_number = self.__get_model_number()
+        self.__device_name = self.read_device_name()
 
         self.interface = None
-        self.init_interface(config, device_no, hot_start)
-        # self.nchannels = self.interface.nchannels
+        self.init_interface(config, device_num, hot_start)
 
         self.isBusy = False
         self.maxTime = 20
@@ -113,12 +70,11 @@ class HVDevice(Thread):
             self.target_bias = voltage
             self.bias_now = voltage
         else:
-            self.status = 0
-            self.bias_now = 0
+            self.init_bias_now()
+            self.init_status()
 
         # last time the actual voltage was changed
         self.last_v_change = time()
-        self.current_now = 0
         self.powering_down = False
         self.last_update = time()
         self.manual = False
@@ -134,17 +90,15 @@ class HVDevice(Thread):
         self.logger = {}
         self.fh = None
         self.setup_logger()
-        sys.exit(-2)
         self.last_day = strftime('%d')
         self.last_status = self.status
         self.last_ramp = False
 
         print '---------------------------------------'
 
-
     # ============================
     # INIT DEVICE INTERFACE
-    def init_interface(self, config, device_no, hot_start):
+    def init_interface(self, config, device_num, hot_start):
         # if statements for model name
         try:
             print 'Instantiation:', self.section_name, self.config.get(self.section_name, 'name')
@@ -153,15 +107,15 @@ class HVDevice(Thread):
         model = self.model_number
         self.isBusy = True
         if model == 2400 or model == 2410:
-            self.interface = Keithley24XX(config, device_no, hot_start)
+            self.interface = Keithley24XX(config, device_num, hot_start)
         elif model == (237 or 236 or 238):
-            self.interface = Keithley23X(config, device_no, hot_start)
+            self.interface = Keithley23X(config, device_num, hot_start)
         elif model == '6517B' or model == 6517:
-            self.interface = Keithley6517B(config, device_no, hot_start)
+            self.interface = Keithley6517B(config, device_num, hot_start)
         elif model == '2657A' or model == 2657:
-            self.interface = Keithley2657(config, device_no, hot_start)
+            self.interface = Keithley2657(config, device_num, hot_start)
         elif model == 'NHS-6220x':
-            self.interface = ISEG(config, device_no, hot_start)
+            self.interface = ISEG(config, device_num, hot_start)
         else:
             print "unknown model number: could not instantiate any device", '--> exiting program'
             sys.exit(-2)
@@ -176,20 +130,66 @@ class HVDevice(Thread):
             self.create_new_log_file()
             print 'Setting device name of %s to "%s"' % (self.section_name, self.__device_name)
 
+    def read_device_name(self):
+        try:
+            return self.config.get('Names', self.section_name)
+        except NoOptionError, err:
+            print err, 'setting name to UNKNOWN'
+            return 'UNKNOWN'
+
+    def __read_config(self):
+        for chan in self.ch_str:
+            sec = (chan if self.n_channels > 1 else self.section_name)
+            try:
+                self.ramp_speed[chan] = float(self.ch_config.get(sec, 'ramp'))
+                self.target_bias[chan] = float(self.ch_config.get(sec, 'bias'))
+                self.min_bias[chan] = float(self.ch_config.get(sec, 'min_bias'))
+                self.max_bias[chan] = float(self.ch_config.get(sec, 'max_bias'))
+                self.max_step[chan] = float(self.ch_config.get(sec, 'max_step'))
+            except NoOptionError, err:
+                print err, '--> exiting program'
+                sys.exit(-1)
+        print self.ramp_speed
+        print self.max_bias
+
+    def __get_model_number(self):
+        model_number = None
+        try:
+            model_number = self.config.get(self.section_name, 'model')
+            model_number = int(model_number)
+        except NoOptionError, err:
+            print err, '--> exiting program'
+            sys.exit(-1)
+        except ValueError:
+            pass
+        return model_number
+
+    def init_bias_now(self):
+        for chan in self.ch_str:
+            self.bias_now[chan] = 0
+
+    def init_current_now(self):
+        for chan in self.ch_str:
+            self.current_now[chan] = 0
+
+    def init_status(self):
+        for chan in self.ch_str:
+            self.status[chan] = 0
+
     # ============================
     # LOGGGING CONTROL
     def setup_logger(self):
         ch_str = ['_CH' + str(x) for x in self.channels]
         if self.n_channels == 1:
             ch_str[0] = ''
-        for chan in ch_str:
-            self.logger[chan] = logging.getLogger(self.section_name + chan)
+        for chan, cha in zip(ch_str, self.ch_str):
+            self.logger[cha] = logging.getLogger(self.section_name + chan)
             # self.fh[chan] = None
             self.configure_log(chan)
 
-    def configure_log(self, ch=''):
+    def configure_log(self, chan=''):
         logfile_dir = self.config.get('Main', 'testbeam_name') + '/'
-        logfile_sub_dir = self.interface.name + ch + '/'
+        logfile_sub_dir = self.interface.name + chan + '/'
         print logfile_sub_dir
         # check if dir exists
         dirs = os.path.dirname(logfile_dir)
@@ -206,16 +206,18 @@ class HVDevice(Thread):
         logfile_dest = logfile_dir + logfile_sub_dir + logfile_name
         print "LOGFILE:", logfile_dest
         if self.fh:
-            self.logger[ch].removeHandler(self.fh)
+            self.logger[chan[1:]].removeHandler(self.fh)
         self.fh = logging.FileHandler(logfile_dest)
         self.fh.setLevel(logging.INFO)
         formatter = logging.Formatter('%(asctime)s %(message)s', '%H:%M:%S')
         self.fh.setFormatter(formatter)
-        self.logger[ch].addHandler(self.fh)
+        self.logger[chan[1:]].addHandler(self.fh)
 
-    def create_new_log_file(self, ch):
-        self.logger[ch].removeHandler(self.fh)
-        self.configure_log()
+    def create_new_log_file(self):
+        ch_str = ['_CH' + str(x) for x in self.channels]
+        for chan in ch_str:
+            self.logger[chan[1:]].removeHandler(self.fh)
+            self.configure_log(chan)
 
     # make new logfile when the day changes
     def log_control(self):
@@ -226,35 +228,38 @@ class HVDevice(Thread):
             self.last_day = day
             sleep(0.1)
 
-    def add_log_entry(self, log_entry, ch):
-        if not self.logger:
+    def add_log_entry(self, log_entry, chan=''):
+        if not self.logger[chan]:
             self.configure_log()
-        self.logger[ch].warning(log_entry + '\t%s' % self.__device_name)
+        self.logger[chan].warning(log_entry + '\t%s' % self.__device_name)
 
     def write_log(self):
-        # write when device is turned ON or OFF
-        if self.get_last_status() != self.get_status():
-            self.add_log_entry('DEVICE_ON') if self.get_status() else self.add_log_entry('DEVICE_OFF')
-        self.last_status = self.get_status()
-        # write when ramping starts
-        if self.get_last_ramp() != self.is_ramping() and self.get_status():
-            if self.is_ramping():
-                log = 'START_RAMPING_AT' + '{0:7.1f}'.format(self.get_bias())
-                self.add_log_entry(log)
-                log = 'TARGET_BIAS' + '{0:7.1f}'.format(self.get_target_bias())
-                self.add_log_entry(log)
-        # only write measurements when device is ON
-        if self.get_status():
-            voltage = self.get_bias()
-            current = self.get_current()
-            string = "{0:10.3e} {1:10.3e}".format(voltage, current)
-            self.add_log_entry(string)
-        # write when ramping stops
-        if self.get_last_ramp() != self.is_ramping() and self.get_status():
-            if not self.is_ramping():
-                log = 'FINISH_RAMPING_AT' + '{0:7.1f}'.format(self.get_bias())
-                self.add_log_entry(log)
-        self.last_ramp = self.is_ramping()
+        for chan in self.ch_str:
+            # ch_num = int(chan[-1])
+            # write when device is turned ON or OFF
+            if self.get_last_status()[chan] != self.get_status(chan):
+                print 'writing log on/off'
+                self.add_log_entry('DEVICE_ON', chan) if self.get_status(chan) else self.add_log_entry('DEVICE_OFF', chan)
+            self.last_status = self.status
+            # write when ramping starts
+            if self.get_last_ramp() != self.is_ramping(chan) and self.get_status():
+                if self.is_ramping(chan):
+                    log = 'START_RAMPING_AT' + '{0:7.1f}'.format(self.get_bias(chan))
+                    self.add_log_entry(log, chan)
+                    log = 'TARGET_BIAS' + '{0:7.1f}'.format(self.get_target_bias(chan))
+                    self.add_log_entry(log, chan)
+            # only write measurements when device is ON
+            if self.get_status():
+                voltage = self.get_bias(chan)
+                current = self.get_current(chan)
+                string = "{0:10.3e} {1:10.3e}".format(voltage, current)
+                self.add_log_entry(string, chan)
+            # write when ramping stops
+            if self.get_last_ramp() != self.is_ramping(chan) and self.get_status():
+                if not self.is_ramping(chan):
+                    log = 'FINISH_RAMPING_AT' + '{0:7.1f}'.format(self.get_bias())
+                    self.add_log_entry(log, chan)
+            self.last_ramp = self.is_ramping(chan)
 
     # ============================
     # MAIN LOOP FOR THREAD (overwriting thread run)
@@ -272,20 +277,27 @@ class HVDevice(Thread):
 
     # ============================
     # GET-FUNCTIONS
-    def get_current(self):
-        return self.current_now
+    def get_current(self, chan='CH0'):
+        return self.current_now[chan]
 
-    def get_bias(self):
-        return self.bias_now
+    def get_bias(self, chan='CH0'):
+        return self.bias_now[chan]
 
-    def get_target_bias(self):
-        return self.target_bias
+    def get_target_bias(self, chan='CH0'):
+        return self.target_bias[chan]
 
     def get_output(self):
         return self.get_status()
 
-    def get_status(self):
-        return self.status
+    def get_status(self, chan='CH0'):
+        return self.status[chan]
+
+    def read_status(self):
+        if self.n_channels > 1:
+            for chan, chan_num in zip(self.ch_str, self.channels):
+                self.status[chan] = self.interface.get_output_status(chan_num)[0]
+        else:
+            self.status['CH0'] = self.interface.get_output_status
 
     def get_last_status(self):
         return self.last_status
@@ -296,6 +308,20 @@ class HVDevice(Thread):
     def get_last_ramp(self):
         return self.last_ramp
 
+    def __get_channels(self):
+        try:
+            return json.loads(self.config.get(self.section_name, 'active_channels'))
+        except NoOptionError:
+            return [0]
+
+    def __get_channel_config(self):
+        if self.n_channels > 1:
+            ch_conf_file = 'config/' + self.config.get(self.section_name, 'config_file')
+            ch_config = ConfigParser()
+            ch_config.read(ch_conf_file)
+            return ch_config
+        else:
+            return self.config
 
     # ============================
     # SET-FUNCTIONS
@@ -309,16 +335,29 @@ class HVDevice(Thread):
         self.target_bias = self.interface.set_to_manual(status)
         self.manual = status
 
-    def set_output(self,status):
+    def set_output(self, status):
         return self.interface.set_output(status)
 
     # ============================
     # MISCELLANEOUS FUNCTIONS
-    def is_ramping(self):
-        try:
-            return abs(self.bias_now - self.target_bias) > 0.1 if self.get_status() else False
-        except:
-            return False
+    def is_ramping(self, chan='CH0'):
+        ret_val = None
+
+        if chan == 'all':
+            for channel in self.ch_str:
+                try:
+
+                    ret_val = (abs(self.bias_now[channel] - self.target_bias[channel]) > 0.1 if self.get_status(channel) else False)
+                    if ret_val:
+                        return True
+                except ValueError:
+                    ret_val = False
+            return ret_val
+        else:
+            try:
+                return abs(self.bias_now[chan] - self.target_bias[chan]) > 0.1 if self.get_status(chan) else False
+            except ValueError:
+                return False
 
     def power_down(self):
         self.set_target_bias(0)
@@ -335,33 +374,46 @@ class HVDevice(Thread):
 
     def update_voltage_current(self):
         verb = False
-        if verb: print 'update_voltage_current'
+        if verb:
+            print 'update_voltage_current'
         self.wait_for_device()
         self.isBusy = True
         try:
-            self.status = self.interface.get_output_status()
+            self.read_status()
         except Exception as inst:
-            print 'Could not update voltage/current- get output status:', inst,inst.args
+            print 'Could not update voltage/current- get output status:', inst, inst.args
             self.isBusy = False
             return
-        if verb: print '\tstatus',self.status,
-        if self.status:
+        if verb:
+            print '\tstatus', self.status,
+        status = True if True in self.status.itervalues() else False
+        if status:
             try:
                 iv = self.read_iv()
-                if verb: print '\tiv: ',iv,
-                self.bias_now = iv['voltage']
-                if verb: print '\tbias_now',self.bias_now,
-                self.current_now = iv['current']
-                if verb: print '\tcurrent_now',self.current_now
+                self.fill_iv_now(iv)
                 self.last_update = time()
-                if verb: print '\treadIV',iv,self.target_bias
+                if verb:
+                    print '\tiv: ', iv,
+                    print '\tbias_now', self.bias_now,
+                    print '\tcurrent_now', self.current_now
+                    print '\treadIV', iv, self.target_bias
             except Exception as inst:
                 print 'Could not read valid iv', type(inst), inst
         self.isBusy = False
-        if verb: print '\tDONE'
+        if verb:
+            print '\tDONE'
 
-    def get_bias_now(self):
-        return self.bias_now
+    def fill_iv_now(self, vec):
+        if self.has_channels:
+            for chan, chan_num in zip(self.ch_str, self.channels):
+                self.bias_now[chan] = vec[chan_num]['voltage']
+                self.current_now[chan] = vec[chan_num]['current']
+        else:
+            self.bias_now['CH0'] = vec['voltage']
+            self.current_now['CH0'] = vec['current']
+
+    def get_bias_now(self, chan='CH0'):
+        return self.bias_now[chan]
 
     def get_current_now(self):
         return self.current_now
@@ -369,21 +421,21 @@ class HVDevice(Thread):
     def get_last_update(self):
         return self.last_update
 
-    def get_new_bias(self):
+    def get_new_bias(self, chan='CH0'):
         new_bias = 0
         change = False
         delta_v = self.target_bias - self.interface.target_voltage
 
-        #print 'target: %f \t bias: %f ==> %f V'%(self.target_bias,self.bias_now,delta_v)
+        # print 'target: %f \t bias: %f ==> %f V'%(self.target_bias,self.bias_now,delta_v)
         t_now = time()
         delta_t = t_now - self.last_v_change
-        step_size = abs(self.ramp_speed * (delta_t))
-        #print 'step_size: %f \t %f - %f = %f \t %f'%(step_size,t_now,self.last_v_change,delta_t,self.ramp_speed),
+        step_size = abs(self.ramp_speed[chan] * delta_t)
+        # print 'step_size: %f \t %f - %f = %f \t %f'%(step_size,t_now,self.last_v_change,delta_t,self.ramp_speed),
 
         # Limit the maximal voltage step size
         if step_size > self.max_step:
             step_size = self.max_step
-        #print step_size
+        # print step_size
 
         # print 'delta U ',delta_v,step_size
         if abs(delta_v) > 0.1:
@@ -405,9 +457,9 @@ class HVDevice(Thread):
             # End of ramp
             return
         if self.interface.can_ramp:
-            self.interface.set_voltage(self.target_bias)
+            for chan, i in zip(self.ch_str, self.channels):
+                self.interface.set_voltage(self.target_bias[chan], i)
             return
-
         if not self.status:
             change, new_bias = self.get_new_bias()
             self.interface.set_voltage(new_bias)
@@ -419,8 +471,8 @@ class HVDevice(Thread):
             msg += '\tset_voltage:\t  {0:6.2f} V\n'.format(self.interface.target_voltage)
             msg += '\tmeasured_voltage: {0:6.2f} V'.format(self.bias_now)
             if not self.interface.can_ramp:
-                print msg,'\033[99m'
-                print "\033[99m" +' '+ '\033[0m'
+                print msg, '\033[99m'
+                print "\033[99m" + ' ' + '\033[0m'
             if not self.interface.can_ramp:
                 print colored('\nWARNING:', 'yellow'),
                 print colored(msg, 'red')
@@ -436,12 +488,12 @@ class HVDevice(Thread):
 
         change, new_bias = self.get_new_bias()
         newtime = time()
-        #print step_size
-        #if tries:
-            # self.mimic_cmd()
+        # print step_size
+        # if tries:
+        # self.mimic_cmd()
         # print 'delta U ',delta_v,step_size
         if change:
-            #print 'new bias: ',new_bias
+            # print 'new bias: ',new_bias
             self.isBusy = True
             self.interface.set_voltage(new_bias)
             if new_bias == self.target_bias and not self.powering_down:
@@ -461,6 +513,7 @@ class HVDevice(Thread):
         print 'HV Cmd =>>> ',
         sys.stdout.flush()
 
+
 # ============================
 # MAIN
 # ============================
@@ -468,13 +521,13 @@ if __name__ == '__main__':
     conf = ConfigParser()
     conf.read('config/keithley.cfg')
     device_no = 7
-    iseg_module = ISEG(conf, device_no , False)
+    iseg_module = ISEG(conf, device_no, False)
     iseg_channels = {}
     channels = iseg_module.get_list_of_active_channels()
-    print 'CHannels: ',channels
+    print 'CHannels: ', channels
     for ch in channels:
-        print 'adding channel ',ch
-        iseg_channels[ch] = HVDevice(conf,device_no, False, module=iseg_module,channel=ch)
+        print 'adding channel ', ch
+        iseg_channels[ch] = HVDevice(conf, device_no, False)
 
     d = iseg_channels[0]
     #

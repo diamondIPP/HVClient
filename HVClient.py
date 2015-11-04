@@ -23,7 +23,7 @@ from HVGui import HVGui
 # Command Line Interface
 from CLI import CLI
 import DeviceReader
-
+import os
 
 #######################################
 # Argument Parser
@@ -35,6 +35,13 @@ parser.add_argument('--hotstart', '-H', action='store_true',
                     help='Hot start (leave Keithleys ON and current voltage)')
 
 args = parser.parse_args()
+
+
+try:
+    print
+    print os.system("echo 'Welcome to the HV Client CLI'|boxes -d ian_jones")
+except:
+    pass
 print '\nConfiguration file:', args.config
 print 'Hotstart:', args.hotstart
 print 'No Gui',args.nogui
@@ -131,10 +138,9 @@ while myCLI.running:
     # Loop over the keithleys, get the voltages and update the display
     string_len = max([len(v.get_device_name()) for k, v in devices.items()])
     for k, v in sorted(devices.iteritems(), key=lambda x: x[0]):
-
         if not myCLI.running:
             break
-        status = v.get_status()
+        status = v.get_status('CH0')
         # v.serial.flushInput()
         if with_gui:
             root.set_status(k, status)
@@ -145,16 +151,16 @@ while myCLI.running:
             value = datetime.datetime.fromtimestamp(v.get_update_time())
             voltage = v.get_bias()
             current = v.get_current()
-            #             print 'add measurement',k,v.get_update_time(),v.get_current(),v.get_bias(),v.get_device_name()
+            # print 'add measurement',k,v.get_update_time(),v.get_current(),v.get_bias(),v.get_device_name()
             if with_gui:
                 root.add_measurement(k, v.get_update_time(), v.get_bias(), v.get_current(), v.get_device_name())
                 if v.manual:
                     root.set_mode(k, "MANUAL")
-                elif v.is_ramping():
+                elif v.is_ramping('all'):
                     root.set_mode(k, "RAMPING")
                 else:
                     root.set_mode(k, "NORMAL")
-                root.set_target_bias(k, v.target_bias)
+                root.set_target_bias(k, v.target_bias['CH0'])
 
 if with_gui:
     root._quit()

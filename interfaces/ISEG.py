@@ -47,6 +47,7 @@ class ISEG(HVInterface):
         self.identifier = None
         self.answer_time = 0.1
         self.open_serial_port()
+        self.can_ramp = True
         self.init_device(hot_start)
         pass
 
@@ -126,8 +127,10 @@ class ISEG(HVInterface):
 
     def get_channel_string(self, channel):
         # print 'get channel string:', channel
-        if channel == 'all':
-            retVal = '0-5'
+        ret_val = None
+        if type(channel) is str:
+            if channel.lower() == 'all':
+                ret_val = '0-5'
         else:
             if not type(channel) == list:
                 channel = [channel]
@@ -135,8 +138,8 @@ class ISEG(HVInterface):
             if not all(valid_channels):
                 raise AttributeError('Invalid channel in list')
             channel = [str(x) for x in channel]
-            retVal = ','.join(channel)
-        return '(@{ch})'.format(ch=retVal)
+            ret_val = ','.join(channel)
+        return '(@{ch})'.format(ch=ret_val)
 
     # ============================
     # DEVICE FUNCTIONS
@@ -210,6 +213,7 @@ class ISEG(HVInterface):
         data = ':EV:MASK %s' % mask_word
         return self.write(data)
 
+    # todo :SET FASTOFF
     # todo :CONFIGURE:TRIP
     # todo :CONFIGURE:INH
 
@@ -419,6 +423,7 @@ class ISEG(HVInterface):
 
     def get_output_status(self, ch=None):
         valid_output_status = False
+        retval = None
         while not valid_output_status:
             try:
                 try:
@@ -612,8 +617,8 @@ class ISEG(HVInterface):
             ch = ch.split()
             return [self.last_channel_status['status'][int(k)] for k in ch]
         except Exception as e:
-            if type(self.last_channel_status['status']) == list:
-                print 'len', len(self.last_channel_status['status']),
+            # if type(self.last_channel_status['status']) == list:
+                # print 'len', len(self.last_channel_status['status']),
 
             return self.last_channel_status['status']
 
@@ -716,6 +721,9 @@ class ISEG(HVInterface):
     def set_max_voltage(self):
         # TODO
         self.max_voltage = 3000
+
+    def set_voltage(self, value, chan=None):
+        return self.set_channel_voltage(value, chan)
 
     # ============================
     # STATIC CONVERSION FUCNTIONS

@@ -1,22 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*- 
 
-import matplotlib
-import os
+# import matplotlib
+from matplotlib.figure import Figure
+import matplotlib.dates as mdates
 try:
     import matplotlib.backends.backend_tkagg
 except:
     pass
-matplotlib.use('TkAgg')
-import numpy as np
-from numpy import arange, sin, pi, cos
+# matplotlib.use('TkAgg')
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
 # implement the default mpl key bindings
 #from matplotlib.backend_bases import key_press_handler
-
-from matplotlib.figure import Figure
-import matplotlib.dates as mdates
-import matplotlib.pyplot as plt
 import sys
 
 if sys.version_info[0] < 3:
@@ -26,6 +21,7 @@ else:
 from time import time
 import datetime
 import PlotCreation
+import os
 
 # a2.setp(c, color='r', linewidth=2.0)
 

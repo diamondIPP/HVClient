@@ -110,7 +110,14 @@ class CLI(cmd.Cmd, Thread):
     #######################################
 
     def set_output(self, name, status):
-        print 'Set Output %d: %s' % (status, name)
+        line = name.split()
+        name = line[0]
+        chan = None
+        if len(line) > 1:
+            chan = line[1]
+            print 'Set Output of {ch} of {dev} to:'.format(ch=chan, dev=name), status
+        else:
+            print 'Set Output %d: %s' % (status, name)
         if name.upper() == 'ALL':
             for k in self.devices:
                 self.set_output(k, status)
@@ -120,7 +127,15 @@ class CLI(cmd.Cmd, Thread):
             device.wait_for_device()
             device.isBusy = True
             try:
-                device.interface.set_output(status)
+                if device.has_channels:
+                    if chan is None:
+                        print 'You did not enter a channel, try again!'
+                        return
+                    else:
+                        assert (chan[-1]).isdigit(), 'The last channel digit has to be a number!'
+                        device.interface.set_output(status, int(chan[-1]))
+                else:
+                    device.interface.set_output(status)
                 device.last_v_change = time.time()
                 device.powering_down = False
             except Exception as inst:
