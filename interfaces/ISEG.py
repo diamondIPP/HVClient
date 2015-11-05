@@ -77,7 +77,8 @@ class ISEG(HVInterface):
             sleep(1)
         else:
             sleep(.1)
-            self.set_output(False, 'all')
+            # self.set_output(False, 'all')
+            self.set_emergency_off('all')
             self.configure_ramp_speed_voltage()
             self.reset()
             self.clear_buffer()

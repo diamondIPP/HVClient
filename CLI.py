@@ -109,40 +109,38 @@ class CLI(cmd.Cmd, Thread):
     # do_ON / do_OFF
     #######################################
 
-    def set_output(self, name, status):
-        line = name.split()
-        name = line[0]
-        chan = None
-        if len(line) > 1:
-            chan = line[1]
-            print 'Set Output of {ch} of {dev} to:'.format(ch=chan, dev=name), status
+    def set_output(self, line, status):
+        name = line.split()[0]
+        try:
+            assert self.devices.has_key(name), 'cannot find {name}'.format(name=name)
+        except AssertionError, err:
+            print err
+            return
+        chan_str = self.prepare_chan(line)
+        chan = self.prepare_chan(line, get_num=True)
+        if chan is False:
+            return
+        elif chan is not None:
+            print 'Set Output of {ch} of {dev} to:'.format(ch=chan_str, dev=name), status
         else:
             print 'Set Output %d: %s' % (status, name)
         if name.upper() == 'ALL':
             for k in self.devices:
                 self.set_output(k, status)
             return
-        if self.devices.has_key(name):
-            device = self.devices[name]
-            device.wait_for_device()
-            device.isBusy = True
-            try:
-                if device.has_channels:
-                    if chan is None:
-                        print 'You did not enter a channel, try again!'
-                        return
-                    else:
-                        assert (chan[-1]).isdigit(), 'The last channel digit has to be a number!'
-                        device.interface.set_output(status, int(chan[-1]))
-                else:
-                    device.interface.set_output(status)
-                device.last_v_change = time.time()
-                device.powering_down = False
-            except Exception as inst:
-                print type(inst), inst
-            device.isBusy = False
-        else:
-            print 'cannot find %s' % name
+        device = self.devices[name]
+        device.wait_for_device()
+        device.isBusy = True
+        try:
+            if device.has_channels:
+                device.interface.set_output(status, chan)
+            else:
+                device.interface.set_output(status)
+            device.last_v_change = time.time()
+            device.powering_down[chan] = False
+        except Exception as inst:
+            print type(inst), inst
+        device.isBusy = False
 
     def do_ON(self, line):
         """ Set output of device to ON.
@@ -163,17 +161,37 @@ class CLI(cmd.Cmd, Thread):
         Usage: OFF KeithleyName
         (OFF ALL to turn off all devices)
         """
-
         try:
             name = line.split()[0]
             if name.upper() == 'ALL':
                 for k in self.devices:
                     self.do_OFF(k)
             else:
-                self.devices[name].power_down()
-
+                chan = self.prepare_chan(line)
+                self.devices[name].power_down(chan)
         except Exception as inst:
             print type(inst), inst
+
+    def prepare_chan(self, line, get_num=False):
+        line = line.split()
+        chan = None
+        if len(line) > 1:
+            chan = line[1]
+        if self.devices[line[0]].has_channels:
+            try:
+                assert chan in self.devices[line[0]].ch_str, 'This is not a valid channel'
+            except AssertionError, err:
+                print err
+                return False
+            if chan is None:
+                print 'You did not enter a channel, try again!'
+                return
+            elif get_num:
+                return int(chan[-1])
+        else:
+            chan = 'CH0'
+        return chan
+
 
     #######################################
     # do_FILTER
@@ -249,21 +267,18 @@ class CLI(cmd.Cmd, Thread):
     # do_BIAS
     #######################################
 
-    def setBias(self, name, target_bias):
+    def setBias(self, name, target_bias, chan='CH0'):
 
         try:
             if self.devices.has_key(name):
                 device = self.devices[name]
 
-                min_bias = device.min_bias
-                max_bias = device.max_bias
+                min_bias = device.min_bias[chan]
+                max_bias = device.max_bias[chan]
                 if not min_bias <= target_bias <= max_bias:
-                    print "This bias voltage", target_bias, "is not allowed! Boundaries are: ", \
-                        min_bias, max_bias
+                    print "This bias voltage", target_bias, "is not allowed! Boundaries are: ", min_bias, max_bias
                     return
-
-                device.set_target_bias(target_bias)
-
+                device.set_target_bias(target_bias, chan)
         except Exception as inst:
             print type(inst), inst
 
@@ -271,11 +286,11 @@ class CLI(cmd.Cmd, Thread):
         """ Set target voltage of device.
         Usage:
         BIAS KeithleyName voltage"""
-
         try:
             name = line.split()[0]
-            target_bias = float(line.split()[1])
-            self.setBias(name, target_bias)
+            chan = self.prepare_chan(line)
+            target_bias = float(line.split()[2]) if self.devices[name].has_channels else float(line.split()[1])
+            self.setBias(name, target_bias, chan)
 
         except Exception as inst:
             print type(inst), inst

@@ -35,10 +35,11 @@ class HVDevice(Thread):
         self.current_now = {}
         self.status = {}
         # channel stuff
+        self.max_channels = self.__get_max_channels()
         self.channels = self.__get_channels()
         self.ch_str = ['CH' + str(x) for x in self.channels]
         self.n_channels = len(self.channels)
-        self.has_channels = True if self.n_channels > 1 else False
+        self.has_channels = True if self.max_channels > 1 else False
         self.ch_config = self.__get_channel_config()
         self.init_bias_now()
         self.init_current_now()
@@ -75,7 +76,8 @@ class HVDevice(Thread):
 
         # last time the actual voltage was changed
         self.last_v_change = time()
-        self.powering_down = False
+        self.powering_down = {}
+        self.init_power_status()
         self.last_update = time()
         self.manual = False
 
@@ -139,9 +141,10 @@ class HVDevice(Thread):
 
     def __read_config(self):
         for chan in self.ch_str:
-            sec = (chan if self.n_channels > 1 else self.section_name)
+            sec = (chan if self.max_channels > 1 else self.section_name)
             try:
                 self.ramp_speed[chan] = float(self.ch_config.get(sec, 'ramp'))
+                # todo make rampspeed from sections
                 self.target_bias[chan] = float(self.ch_config.get(sec, 'bias'))
                 self.min_bias[chan] = float(self.ch_config.get(sec, 'min_bias'))
                 self.max_bias[chan] = float(self.ch_config.get(sec, 'max_bias'))
@@ -164,6 +167,12 @@ class HVDevice(Thread):
             pass
         return model_number
 
+    def __get_max_channels(self):
+        try:
+            return self.config.getint(self.section_name, 'nChannels')
+        except NoOptionError:
+            return 1
+
     def init_bias_now(self):
         for chan in self.ch_str:
             self.bias_now[chan] = 0
@@ -176,11 +185,15 @@ class HVDevice(Thread):
         for chan in self.ch_str:
             self.status[chan] = 0
 
+    def init_power_status(self):
+        for chan in self.ch_str:
+            self.powering_down[chan] = False
+
     # ============================
     # LOGGGING CONTROL
     def setup_logger(self):
         ch_str = ['_CH' + str(x) for x in self.channels]
-        if self.n_channels == 1:
+        if self.max_channels == 1:
             ch_str[0] = ''
         for chan, cha in zip(ch_str, self.ch_str):
             self.logger[cha] = logging.getLogger(self.section_name + chan)
@@ -242,22 +255,22 @@ class HVDevice(Thread):
                 self.add_log_entry('DEVICE_ON', chan) if self.get_status(chan) else self.add_log_entry('DEVICE_OFF', chan)
             self.last_status = self.status
             # write when ramping starts
-            if self.get_last_ramp() != self.is_ramping(chan) and self.get_status():
+            if self.get_last_ramp() != self.is_ramping(chan) and self.get_status(chan):
                 if self.is_ramping(chan):
                     log = 'START_RAMPING_AT' + '{0:7.1f}'.format(self.get_bias(chan))
                     self.add_log_entry(log, chan)
                     log = 'TARGET_BIAS' + '{0:7.1f}'.format(self.get_target_bias(chan))
                     self.add_log_entry(log, chan)
             # only write measurements when device is ON
-            if self.get_status():
+            if self.get_status(chan):
                 voltage = self.get_bias(chan)
                 current = self.get_current(chan)
                 string = "{0:10.3e} {1:10.3e}".format(voltage, current)
                 self.add_log_entry(string, chan)
             # write when ramping stops
-            if self.get_last_ramp() != self.is_ramping(chan) and self.get_status():
+            if self.get_last_ramp() != self.is_ramping(chan) and self.get_status(chan):
                 if not self.is_ramping(chan):
-                    log = 'FINISH_RAMPING_AT' + '{0:7.1f}'.format(self.get_bias())
+                    log = 'FINISH_RAMPING_AT' + '{0:7.1f}'.format(self.get_bias(chan))
                     self.add_log_entry(log, chan)
             self.last_ramp = self.is_ramping(chan)
 
@@ -271,7 +284,7 @@ class HVDevice(Thread):
                 self.update_voltage_current()
                 self.write_log()
                 self.ramp()
-                if self.is_ramping():
+                if self.is_ramping('CH3'):
                     self.update_voltage_current()
                     sleep(.1)
 
@@ -293,7 +306,7 @@ class HVDevice(Thread):
         return self.status[chan]
 
     def read_status(self):
-        if self.n_channels > 1:
+        if self.max_channels > 1:
             for chan, chan_num in zip(self.ch_str, self.channels):
                 self.status[chan] = self.interface.get_output_status(chan_num)[0]
         else:
@@ -315,7 +328,7 @@ class HVDevice(Thread):
             return [0]
 
     def __get_channel_config(self):
-        if self.n_channels > 1:
+        if self.max_channels > 1:
             ch_conf_file = 'config/' + self.config.get(self.section_name, 'config_file')
             ch_config = ConfigParser()
             ch_config.read(ch_conf_file)
@@ -325,11 +338,11 @@ class HVDevice(Thread):
 
     # ============================
     # SET-FUNCTIONS
-    def set_target_bias(self, target):
-        self.target_bias = target
+    def set_target_bias(self, target, chan):
+        self.target_bias[chan] = target
         self.last_v_change = time()
         log = 'SET_BIAS_TO' + '{0:7.1f}'.format(target)
-        self.add_log_entry(log)
+        self.add_log_entry(log, chan)
 
     def set_to_manual(self, status):
         self.target_bias = self.interface.set_to_manual(status)
@@ -347,7 +360,7 @@ class HVDevice(Thread):
             for channel in self.ch_str:
                 try:
 
-                    ret_val = (abs(self.bias_now[channel] - self.target_bias[channel]) > 0.1 if self.get_status(channel) else False)
+                    ret_val = (abs(self.bias_now[channel] - self.target_bias[channel]) > 0.5 if self.get_status(channel) else False)
                     if ret_val:
                         return True
                 except ValueError:
@@ -355,13 +368,13 @@ class HVDevice(Thread):
             return ret_val
         else:
             try:
-                return abs(self.bias_now[chan] - self.target_bias[chan]) > 0.1 if self.get_status(chan) else False
+                return abs(self.bias_now[chan] - self.target_bias[chan]) > 0.5 if self.get_status(chan) else False
             except ValueError:
                 return False
 
-    def power_down(self):
-        self.set_target_bias(0)
-        self.powering_down = True
+    def power_down(self, chan='CH0'):
+        self.set_target_bias(0, chan)
+        self.powering_down[chan] = True
 
     def wait_for_device(self):
         now = time()
@@ -450,12 +463,13 @@ class HVDevice(Thread):
         # Try to update voltage (we remember the measurement from the last loop)
         # (the step we can make in voltage is the ramp-speed times
         # how many seconds passed since last change)
-        if self.powering_down and abs(self.bias_now) < .1:
-            self.interface.set_output(0)
-            self.powering_down = False
-            print '%s has ramped down and turned off' % self.interface.name
-            # End of ramp
-            return
+        for chan in self.ch_str:
+            if self.powering_down[chan] and abs(self.bias_now[chan]) < .1:
+                self.interface.set_output(0)
+                self.powering_down[chan] = False
+                print '{ch} of {dev} has ramped down and turned off'.format(ch=chan, dev=self.interface.name)
+                # End of ramp
+                return
         if self.interface.can_ramp:
             for chan, i in zip(self.ch_str, self.channels):
                 self.interface.set_voltage(self.target_bias[chan], i)
@@ -501,12 +515,18 @@ class HVDevice(Thread):
                 self.mimic_cmd()
             self.last_v_change = newtime
             self.isBusy = False
-        if self.powering_down and abs(self.bias_now) < .1:
-            self.interface.set_output(0)
-            self.powering_down = False
-            print '\n%s has ramped down and turned off' % self.interface.name
-            self.mimic_cmd()
-            # End of ramp
+        # if self.powering_down and abs(self.bias_now) < .1:
+        #     self.interface.set_output(0)
+        #     self.powering_down = False
+        #     print '\n%s has ramped down and turned off' % self.interface.name
+        #     self.mimic_cmd()
+        #     # End of ramp
+        for chan in self.ch_str:
+            if self.powering_down[chan] and abs(self.bias_now[chan]) < .1:
+                self.interface.set_output(0)
+                self.powering_down[chan] = False
+                print '%s has ramped down and turned off' % self.interface.name
+                # End of ramp
 
     @staticmethod
     def mimic_cmd():

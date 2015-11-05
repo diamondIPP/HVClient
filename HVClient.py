@@ -114,6 +114,7 @@ if with_gui:
 # Main GUI loop
 #######################################
 
+channel = 'CH3'
 # now = time.time()
 while myCLI.running:
 
@@ -140,7 +141,7 @@ while myCLI.running:
     for k, v in sorted(devices.iteritems(), key=lambda x: x[0]):
         if not myCLI.running:
             break
-        status = v.get_status('CH0')
+        status = v.get_status(channel)
         # v.serial.flushInput()
         if with_gui:
             root.set_status(k, status)
@@ -149,18 +150,18 @@ while myCLI.running:
             # v.ramp()
             # Then update GUI and display
             value = datetime.datetime.fromtimestamp(v.get_update_time())
-            voltage = v.get_bias()
-            current = v.get_current()
+            voltage = v.get_bias(channel)
+            current = v.get_current(channel)
             # print 'add measurement',k,v.get_update_time(),v.get_current(),v.get_bias(),v.get_device_name()
             if with_gui:
-                root.add_measurement(k, v.get_update_time(), v.get_bias(), v.get_current(), v.get_device_name())
+                root.add_measurement(k, v.get_update_time(), v.get_bias(channel), v.get_current(channel), v.get_device_name())
                 if v.manual:
                     root.set_mode(k, "MANUAL")
-                elif v.is_ramping('all'):
+                elif v.is_ramping(channel):
                     root.set_mode(k, "RAMPING")
                 else:
                     root.set_mode(k, "NORMAL")
-                root.set_target_bias(k, v.target_bias['CH0'])
+                root.set_target_bias(k, v.target_bias[channel])
 
 if with_gui:
     root._quit()
