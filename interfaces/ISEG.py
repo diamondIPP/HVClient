@@ -77,8 +77,8 @@ class ISEG(HVInterface):
             sleep(1)
         else:
             sleep(.1)
-            # self.set_output(False, 'all')
             self.set_emergency_off('all')
+            self.set_emergency_clear('all')
             self.configure_ramp_speed_voltage()
             self.reset()
             self.clear_buffer()
@@ -146,10 +146,12 @@ class ISEG(HVInterface):
     # DEVICE FUNCTIONS
     def set_output(self, status, channel=None):
         ch_str = self.get_channel_string(channel)
-        data = ':VOLT '
-        data += ('ON' if status else 'OFF')
-        data += ',' + ch_str
-        return self.write(data)
+        if status:
+            data = ':VOLT ON,' + ch_str
+            return self.write(data)
+        else:
+            self.set_emergency_off(channel)
+            return self.set_emergency_clear(channel)
 
     def set_channel_voltage(self, voltage, channel=-1):
         self.is_valid_channel_string(channel)
@@ -171,14 +173,16 @@ class ISEG(HVInterface):
 
     def set_emergency_off(self, channel='all'):
         self.is_valid_channel_string(channel)
+        ch_str = self.get_channel_string(channel)
         print 'Emergency off for channel(s) %s' % channel
-        data = ':VOLT EMCY OFF(@ch%s)' % channel
+        data = ':VOLT EMCY OFF,{ch}'.format(ch=ch_str)
         return self.write(data)
 
     def set_emergency_clear(self, channel='all'):
         self.is_valid_channel_string(channel)
+        ch_str = self.get_channel_string(channel)
         print 'Emergency clear for channel(s) %s' % channel
-        data = ':VOLT EMCY CLR(@ch%s)' % channel
+        data = ':VOLT EMCY CLR,{ch}'.format(ch=ch_str)
         return self.write(data)
 
     def set_channel_voltage_bound(self, voltage_bound, channel=-1):
@@ -725,6 +729,9 @@ class ISEG(HVInterface):
 
     def set_voltage(self, value, chan=None):
         return self.set_channel_voltage(value, chan)
+
+    def set_bias(self, voltage, chan=None):
+        return self.set_channel_voltage(voltage, chan)
 
     # ============================
     # STATIC CONVERSION FUCNTIONS

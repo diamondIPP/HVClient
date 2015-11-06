@@ -41,6 +41,8 @@ class HVDevice(Thread):
         self.n_channels = len(self.channels)
         self.has_channels = True if self.max_channels > 1 else False
         self.ch_config = self.__get_channel_config()
+        self.channel_names = {}
+        self.read_channel_names()
         self.init_bias_now()
         self.init_current_now()
         # config data
@@ -62,14 +64,18 @@ class HVDevice(Thread):
 
         # evaluate hot start
         if hot_start:
-            self.status = self.interface.get_output_status()
-            self.update_voltage_current()
-            voltage = self.get_bias()
-            print 'Measured voltage: {0:6.2f} V'.format(voltage)
-            self.interface.set_bias(voltage)
-            # self.immidiateVoltage = voltage
-            self.target_bias = voltage
-            self.bias_now = voltage
+            for chan, ch_num in zip(self.ch_str, self.channels):
+                self.status[chan] = self.interface.get_output_status(chan)[0]
+                self.update_voltage_current()
+                voltage = self.get_bias(chan)
+                print 'Measured voltage: {0:6.2f} V'.format(voltage)
+                if self.has_channels:
+                    self.interface.set_bias(voltage, ch_num)
+                else:
+                    self.interface.set_bias(voltage)
+                # self.immidiateVoltage = voltage
+                self.target_bias[chan] = voltage
+                self.bias_now[chan] = voltage
         else:
             self.init_bias_now()
             self.init_status()
@@ -84,9 +90,9 @@ class HVDevice(Thread):
         # make sure bias is consistent
         for chan in self.channels:
             ch_str = 'CH' + str(chan)
-            assert self.max_bias[ch_str] > self.min_bias[ch_str], 'Invalid config file (maxBias < minBias)'
-            assert self.target_bias[ch_str] > self.min_bias[ch_str], 'Invalid config file (bias < minBias)'
-            assert self.target_bias[ch_str] < self.max_bias[ch_str], 'Invalid config file (bias > maxBias)'
+            assert self.max_bias[ch_str] >= self.min_bias[ch_str], 'Invalid config file (maxBias < minBias)'
+            assert self.target_bias[ch_str] >= self.min_bias[ch_str], 'Invalid config file (bias < minBias)'
+            assert self.target_bias[ch_str] <= self.max_bias[ch_str], 'Invalid config file (bias > maxBias)'
 
         # logging
         self.logger = {}
@@ -188,6 +194,14 @@ class HVDevice(Thread):
     def init_power_status(self):
         for chan in self.ch_str:
             self.powering_down[chan] = False
+
+    def read_channel_names(self):
+        if self.has_channels:
+            print self.ch_str
+            for chan in self.ch_str:
+                self.channel_names[chan] = self.ch_config.get('Names', chan)
+        else:
+            self.channel_names = None
 
     # ============================
     # LOGGGING CONTROL
@@ -541,16 +555,8 @@ if __name__ == '__main__':
     conf = ConfigParser()
     conf.read('config/keithley.cfg')
     device_no = 7
-    iseg_module = ISEG(conf, device_no, False)
-    iseg_channels = {}
-    channels = iseg_module.get_list_of_active_channels()
-    print 'CHannels: ', channels
-    for ch in channels:
-        print 'adding channel ', ch
-        iseg_channels[ch] = HVDevice(conf, device_no, False)
+    y = HVDevice(conf, device_no, False)
 
-    d = iseg_channels[0]
-    #
     # keithley1 = HVDevice(conf, 6, False)
     # #keithley2 = HVDevice(conf, 2, False)
     # keithley1.logger.warning("HALLO")

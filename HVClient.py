@@ -139,29 +139,31 @@ while myCLI.running:
     # Loop over the keithleys, get the voltages and update the display
     string_len = max([len(v.get_device_name()) for k, v in devices.items()])
     for k, v in sorted(devices.iteritems(), key=lambda x: x[0]):
-        if not myCLI.running:
-            break
-        status = v.get_status(channel)
-        # v.serial.flushInput()
-        if with_gui:
-            root.set_status(k, status)
-        if status:
-            # First try to change the voltage
-            # v.ramp()
-            # Then update GUI and display
-            value = datetime.datetime.fromtimestamp(v.get_update_time())
-            voltage = v.get_bias(channel)
-            current = v.get_current(channel)
-            # print 'add measurement',k,v.get_update_time(),v.get_current(),v.get_bias(),v.get_device_name()
+        for channel in v.ch_str:
+            dev_name = k + '-' + channel if v.has_channels else k
+            if not myCLI.running:
+                break
+            status = v.get_status(channel)
+            # v.serial.flushInput()
             if with_gui:
-                root.add_measurement(k, v.get_update_time(), v.get_bias(channel), v.get_current(channel), v.get_device_name())
-                if v.manual:
-                    root.set_mode(k, "MANUAL")
-                elif v.is_ramping(channel):
-                    root.set_mode(k, "RAMPING")
-                else:
-                    root.set_mode(k, "NORMAL")
-                root.set_target_bias(k, v.target_bias[channel])
+                root.set_status(dev_name, status)
+            if status:
+                # First try to change the voltage
+                # v.ramp()
+                # Then update GUI and display
+                value = datetime.datetime.fromtimestamp(v.get_update_time())
+                voltage = v.get_bias(channel)
+                current = v.get_current(channel)
+                # print 'add measurement',k,v.get_update_time(),v.get_current(),v.get_bias(),v.get_device_name()
+                if with_gui:
+                    root.add_measurement(dev_name, v.get_update_time(), v.get_bias(channel), v.get_current(channel), v.get_device_name())
+                    if v.manual:
+                        root.set_mode(dev_name, "MANUAL")
+                    elif v.is_ramping(channel):
+                        root.set_mode(dev_name, "RAMPING")
+                    else:
+                        root.set_mode(dev_name, "NORMAL")
+                    root.set_target_bias(dev_name, v.target_bias[channel])
 
 if with_gui:
     root._quit()

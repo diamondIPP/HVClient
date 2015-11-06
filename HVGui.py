@@ -162,22 +162,28 @@ class HVGui():
     def add_devices(self, devices):
         # print 'add DEVICES: ', devices
         for name, device_data in sorted(devices.items()):
-            self.devices[name] = {
-                'name': device_data.get_device_name(),
-                'voltage': 0,
-                'current': 0,
-                'time': 0}
-            device = self.devices[name]
-            device['voltage']
-            self.add_voltage_current_entry(self.toptopframe, name, device)
-            device['device_var'].set(name)
-            device['name_var'].set(device['name'])
-            device['voltage_var'].set('%+4d V' % device['voltage'])
-            device['current_var'].set(self.get_current_string(device['current']))
-            device['time_var'].set(self.get_time_string(time()))
-            device['time_var'].set('NAN')
-            device['mode'] = 'NORMAL'
-            device['target_bias'] = float('nan')
+            for chan in device_data.ch_str:
+                dev_name = name + '-' + chan if device_data.has_channels else name
+                device_name = device_data.channel_names[chan] if device_data.has_channels else device_data.get_device_name()
+                self.devices[dev_name] = {
+                    'name': device_name,
+                    'voltage': 0,
+                    'current': 0,
+                    'time': 0}
+                device = self.devices[dev_name]
+                # device['voltage']
+                self.add_voltage_current_entry(self.toptopframe, dev_name, device)
+                print dev_name
+                device['device_var'].set(dev_name)
+                device['name_var'].set(device['name'])
+                print 'device:', device['device_var']
+                print 'name:', device['name_var']
+                device['voltage_var'].set('%+4d V' % device['voltage'])
+                device['current_var'].set(self.get_current_string(device['current']))
+                device['time_var'].set(self.get_time_string(time()))
+                device['time_var'].set('NAN')
+                device['mode'] = 'NORMAL'
+                device['target_bias'] = float('nan')
         separator = Tk.Frame(self.toptopframe, width=50, bd=0)  # , relief=Tk.SUNKEN)
         separator.pack(side=Tk.LEFT, fill=Tk.Y)
         f = Tk.Frame(self.toptopframe)  # , relief=Tk.SUNKEN)
