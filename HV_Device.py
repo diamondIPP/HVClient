@@ -207,17 +207,22 @@ class HVDevice(Thread):
     # LOGGGING CONTROL
     def setup_logger(self):
         ch_str = ['_CH' + str(x) for x in self.channels]
-        if self.max_channels == 1:
-            ch_str[0] = ''
+        print 'CHANNELS: ',self.channels
+
+        print self.ch_str
+        print zip(ch_str, self.ch_str)
         for chan, cha in zip(ch_str, self.ch_str):
-            self.logger[cha] = logging.getLogger(self.section_name + chan)
+
+            name = self.section_name + chan
+            print chan,cha, name
+            self.logger[cha] = logging.getLogger(name)
             # self.fh[chan] = None
             self.configure_log(chan)
 
-    def configure_log(self, chan=''):
+    def configure_log(self, chan='_CH0'):
         logfile_dir = self.config.get('Main', 'testbeam_name') + '/'
         logfile_sub_dir = self.interface.name + chan + '/'
-        print logfile_sub_dir
+        #print logfile_sub_dir,'CHAN: "%s"'%chan
         # check if dir exists
         dirs = os.path.dirname(logfile_dir)
         try:
@@ -229,6 +234,7 @@ class HVDevice(Thread):
             os.stat(dirs)
         except OSError:
             os.mkdir(dirs)
+
         logfile_name = self.interface.get_device_name(1) + strftime('_%Y_%m_%d_%H_%M_%S.log')
         logfile_dest = logfile_dir + logfile_sub_dir + logfile_name
         print "LOGFILE:", logfile_dest
@@ -238,6 +244,7 @@ class HVDevice(Thread):
         self.fh.setLevel(logging.INFO)
         formatter = logging.Formatter('%(asctime)s %(message)s', '%H:%M:%S')
         self.fh.setFormatter(formatter)
+
         self.logger[chan[1:]].addHandler(self.fh)
 
     def create_new_log_file(self):
