@@ -147,6 +147,7 @@ while myCLI.running:
             # v.serial.flushInput()
             if with_gui:
                 root.set_status(dev_name, status)
+            # print 'name3:', v['name_var'].get()
             if status:
                 # First try to change the voltage
                 # v.ramp()

@@ -174,10 +174,12 @@ class HVGui():
                 # device['voltage']
                 self.add_voltage_current_entry(self.toptopframe, dev_name, device)
                 print dev_name
+                a = Tk.StringVar()
                 device['device_var'].set(dev_name)
-                device['name_var'].set(device['name'])
-                print 'device:', device['device_var']
-                print 'name:', device['name_var']
+                device['name_var'].set(device_name)
+                print 'name1:', device['name_var']
+                print 'name1:', device['name_var'].get()
+                print 'name2:', device['name']
                 device['voltage_var'].set('%+4d V' % device['voltage'])
                 device['current_var'].set(self.get_current_string(device['current']))
                 device['time_var'].set(self.get_time_string(time()))
