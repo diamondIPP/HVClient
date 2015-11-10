@@ -47,7 +47,7 @@ class HVDevice(Thread):
         self.init_current_now()
         # config data
         self.__ramp_speed = config.getint(self.section_name, 'ramp')
-        self.__max_step = config.getint(self.section_name, 'max_step') if self.has_channels else None
+        self.__max_step = config.getint(self.section_name, 'max_step') if not self.has_channels else None
         self.target_bias = {}
         self.min_bias = {}
         self.max_bias = {}
@@ -65,7 +65,10 @@ class HVDevice(Thread):
         # evaluate hot start
         if hot_start:
             for chan, ch_num in zip(self.ch_str, self.channels):
-                self.status[chan] = self.interface.get_output_status(chan)[0]
+                if self.has_channels:
+                    self.status[chan] = self.interface.get_output_status(chan)[0]
+                else:
+                    self.status[chan] = self.interface.get_output_status()
                 self.update_voltage_current()
                 voltage = self.get_bias(chan)
                 print 'Measured voltage: {0:6.2f} V'.format(voltage)
