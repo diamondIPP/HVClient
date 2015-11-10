@@ -13,11 +13,9 @@ Main program for Keithley Power Supply steering and readout.
 # Standard Python Modules
 import sys
 import signal
-import time
 import ConfigParser
 import argparse
 import datetime
-import Tkinter
 from HVGui import HVGui
 
 # Command Line Interface
@@ -37,14 +35,11 @@ parser.add_argument('--hotstart', '-H', action='store_true',
 args = parser.parse_args()
 
 
-try:
-    print
-    print os.system("echo 'Welcome to the HV Client CLI'|boxes -d ian_jones")
-except:
-    pass
+print
+os.system("echo 'Welcome to the HV Client CLI'|boxes -d ian_jones")
 print '\nConfiguration file:', args.config
 print 'Hotstart:', args.hotstart
-print 'No Gui',args.nogui
+print 'No Gui', args.nogui
 
 
 #######################################
@@ -105,7 +100,6 @@ signal.signal(signal.SIGINT, signal_handler)
 #######################################
 # Prepare GUI
 #######################################
-# devices = {'HV4':{'name':'TEST','voltage':-200,'current':13e-6,}}
 with_gui = not args.nogui
 if with_gui:
     root = HVGui(devices)
@@ -113,9 +107,6 @@ if with_gui:
 #######################################
 # Main GUI loop
 #######################################
-
-channel = 'CH3'
-# now = time.time()
 while myCLI.running:
 
     if with_gui:
@@ -126,7 +117,8 @@ while myCLI.running:
     try:
         if with_gui:
             root.update()
-    except:
+    except Exception as inst:
+        print inst
         myCLI.do_exit()
         myCLI.do_EOF()
 

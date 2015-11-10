@@ -3,10 +3,9 @@ __author__ = 'micha'
 # ============================
 # IMPORTS
 # ============================
-import os,sys,inspect
-currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-parentdir = os.path.dirname(currentdir)
-sys.path.insert(0,parentdir) 
+import os
+import sys
+import inspect
 from HV_interface import HVInterface
 import serial
 from time import sleep, time
@@ -19,6 +18,9 @@ from ConfigParser import ConfigParser
 # ============================
 # CONSTANTS
 # ============================
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0, parentdir)
 ON = 1
 OFF = 0
 
@@ -28,7 +30,7 @@ OFF = 0
 # ============================
 class KeithleyHead(HVInterface):
     def __init__(self, config, device_no=1, hot_start=False):
-        HVInterface.__init__(self, config, device_no,hot_start)
+        HVInterface.__init__(self, config, device_no, hot_start)
         self.bOpen = False
         self.bOpenInformed = False
         self.serialPortName = config.get(self.section_name, 'address')

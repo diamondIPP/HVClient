@@ -117,27 +117,22 @@ class CLI(cmd.Cmd, Thread):
             print err
             return
         chan_str = self.prepare_chan(line)
-        chan = self.prepare_chan(line, get_num=True)
-        if chan is False:
-            return
-        elif chan is not None:
+        chan_num = self.prepare_chan(line, get_num=True)
+        if self.devices[name].has_channels:
             print 'Set Output of {ch} of {dev} to:'.format(ch=chan_str, dev=name), status
         else:
             print 'Set Output %d: %s' % (status, name)
-        if name.upper() == 'ALL':
-            for k in self.devices:
-                self.set_output(k, status)
-            return
+        # if name.upper() == 'ALL':
+        #     for k in self.devices:
+        #         self.set_output(k, status)
+        #     return
         device = self.devices[name]
         device.wait_for_device()
         device.isBusy = True
         try:
-            if device.has_channels:
-                device.interface.set_output(status, chan)
-            else:
-                device.interface.set_output(status)
+            device.interface.set_output(status, chan_num) if device.has_channels else device.interface.set_output(status)
             device.last_v_change = time.time()
-            device.powering_down[chan] = False
+            device.powering_down[chan_num] = False
         except Exception as inst:
             print type(inst), inst
         device.isBusy = False
@@ -169,7 +164,7 @@ class CLI(cmd.Cmd, Thread):
             if name.upper() == 'ALL':
                 for key, item in self.devices.iteritems():
                     for chan in item.ch_str:
-                        self.do_OFF(key + chan) if item.has_channels else self.do_OFF(key)
+                        self.do_OFF(key + ' ' + chan) if item.has_channels else self.do_OFF(key)
             else:
                 chan = self.prepare_chan(line)
                 self.devices[name].power_down(chan)
