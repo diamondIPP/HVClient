@@ -46,11 +46,11 @@ class HVDevice(Thread):
         self.init_bias_now()
         self.init_current_now()
         # config data
-        self.ramp_speed = {}
+        self.__ramp_speed = config.getint(self.section_name, 'ramp')
+        self.__max_step = config.getint(self.section_name, 'max_step') if self.has_channels else None
         self.target_bias = {}
         self.min_bias = {}
         self.max_bias = {}
-        self.max_step = {}
         self.__read_config()
 
         self.model_number = self.__get_model_number()
@@ -152,17 +152,15 @@ class HVDevice(Thread):
         for chan in self.ch_str:
             sec = (chan if self.max_channels > 1 else self.section_name)
             try:
-                self.ramp_speed[chan] = float(self.ch_config.get(sec, 'ramp'))
+                # self.ramp_speed[chan] = float(self.ch_config.get(sec, 'ramp'))
                 # todo make rampspeed from sections
                 self.target_bias[chan] = float(self.ch_config.get(sec, 'bias'))
                 self.min_bias[chan] = float(self.ch_config.get(sec, 'min_bias'))
                 self.max_bias[chan] = float(self.ch_config.get(sec, 'max_bias'))
-                self.max_step[chan] = float(self.ch_config.get(sec, 'max_step'))
+                # self.max_step[chan] = float(self.ch_config.get(sec, 'max_step'))
             except NoOptionError, err:
                 print err, '--> exiting program'
                 sys.exit(-1)
-        # print self.ramp_speed
-        # print self.max_bias
 
     def __get_model_number(self):
         model_number = None
@@ -322,6 +320,12 @@ class HVDevice(Thread):
     def get_status(self, chan='CH0'):
         return self.status[chan]
 
+    def get_ramp_speed(self):
+        return self.__ramp_speed
+
+    def get_max_step(self):
+        return self.__max_step
+
     def read_status(self):
         if self.has_channels:
             for chan, chan_num in zip(self.ch_str, self.channels):
@@ -367,6 +371,12 @@ class HVDevice(Thread):
 
     def set_output(self, status):
         return self.interface.set_output(status)
+
+    def set_ramp_speed(self, speed):
+        self.__ramp_speed = speed
+
+    def set_max_step(self, step):
+        self.__max_step = step
 
     # ============================
     # MISCELLANEOUS FUNCTIONS
@@ -460,12 +470,12 @@ class HVDevice(Thread):
         # print 'target: %f \t bias: %f ==> %f V'%(self.target_bias,self.bias_now,delta_v)
         t_now = time()
         delta_t = t_now - self.last_v_change
-        step_size = abs(self.ramp_speed[chan] * delta_t)
+        step_size = abs(self.__ramp_speed * delta_t)
         # print 'step_size: %f \t %f - %f = %f \t %f'%(step_size,t_now,self.last_v_change,delta_t,self.ramp_speed),
 
         # Limit the maximal voltage step size
-        if step_size > self.max_step:
-            step_size = self.max_step
+        if step_size > self.__max_step:
+            step_size = self.__max_step
         # print step_size
 
         # print 'delta U ',delta_v,step_size

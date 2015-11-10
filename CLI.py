@@ -87,12 +87,12 @@ class CLI(cmd.Cmd, Thread):
             device.wait_for_device()
             device.isBusy = True
             try:
-                print 'STATUS of %s'%name
-                print '  * status: %s'%device.get_status()
-                print '  * target voltage: %.1f V'%device.get_target_bias()
-                print '  * current voltage: %.1f V'%device.get_bias_now()
-                print '  * current current: %.2e A'%device.get_current_now()
-                print '  * last updated before  %ds'%(time.time() - device.get_last_update())
+                print 'STATUS of %s' %name
+                print '  * status: %s' %device.get_status()
+                print '  * target voltage: %.1f V' %device.get_target_bias()
+                print '  * current voltage: %.1f V' %device.get_bias_now()
+                print '  * current current: %.2e A' %device.get_current_now()
+                print '  * last updated before  %ds' %(time.time() - device.get_last_update())
             except Exception as inst:
                 print type(inst), inst
             device.isBusy = False
@@ -137,21 +137,44 @@ class CLI(cmd.Cmd, Thread):
             print type(inst), inst
         device.isBusy = False
 
-    def do_ON(self, line):
+    def do_ON(self, line, status=True):
         """ Set output of device to ON.
         Usage: ON KeithleyName
         (ON ALL to turn on all devices)
         """
-        self.set_output(line, True)
+        self.set_output_all(line, status)
+
+    def set_output_all(self, line, status):
+        name = line.split()[0]
+        if name.upper() == 'ALL':
+                for key, item in self.devices.iteritems():
+                    for chan in item.ch_str:
+                        self.set_output(key + ' ' + chan, status) if item.has_channels else self.set_output(key, status)
+        self.set_output(line, status)
 
     def do_OFF_FAST(self, line):
         """ Set output of device to OFF.
         Usage: OFF_FAST KeithleyName
         (OFF_FAST ALL to turn on all devices)
         """
-        self.set_output(line, False)
+        self.set_output_all(line, False)
 
-    # todo: make on all
+    def do_ON_FAST(self, line):
+        """
+        Set output of device to ON fast
+        :param line: HV device (+ channel if channel > 1)
+        """
+        name = line.split()[0]
+        assert self.devices.has_key(name), 'cannot find {name}'.format(name=name)
+        device = self.devices[name]
+        old_step = device.get_max_step()
+        old_ramp = device.get_ramp_speed()
+        device.set_max_step(50)
+        device.set_ramp_speed(30)
+        self.set_output_all(line, True)
+        device.set_max_step(old_step)
+        device.set_ramp_speed(old_ramp)
+
 
     def do_OFF(self, line):
         """ Set output of device to OFF.
