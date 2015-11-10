@@ -155,12 +155,9 @@ class HVDevice(Thread):
         for chan in self.ch_str:
             sec = (chan if self.max_channels > 1 else self.section_name)
             try:
-                # self.ramp_speed[chan] = float(self.ch_config.get(sec, 'ramp'))
-                # todo make rampspeed from sections
                 self.target_bias[chan] = float(self.ch_config.get(sec, 'bias'))
                 self.min_bias[chan] = float(self.ch_config.get(sec, 'min_bias'))
                 self.max_bias[chan] = float(self.ch_config.get(sec, 'max_bias'))
-                # self.max_step[chan] = float(self.ch_config.get(sec, 'max_step'))
             except NoOptionError, err:
                 print err, '--> exiting program'
                 sys.exit(-1)
@@ -389,7 +386,6 @@ class HVDevice(Thread):
         if chan == 'all':
             for channel in self.ch_str:
                 try:
-
                     ret_val = (abs(self.bias_now[channel] - self.target_bias[channel]) > 0.5 if self.get_status(channel) else False)
                     if ret_val:
                         return True
@@ -490,10 +486,18 @@ class HVDevice(Thread):
             change = True
         return change, new_bias
 
+    def check_fast_ramp(self):
+        if self.is_ramping('all'):
+            if not self.interface.started_ramping:
+                
+                self.interface.started_ramping = True
+
     def ramp(self, channel='CH0'):
         # Try to update voltage (we remember the measurement from the last loop)
         # (the step we can make in voltage is the ramp-speed times
         # how many seconds passed since last change)
+
+        self.check_fast_ramp()
         for chan in self.ch_str:
             if self.powering_down[chan] and abs(self.bias_now[chan]) < .1:
                 if self.has_channels:

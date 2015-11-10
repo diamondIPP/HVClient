@@ -16,23 +16,26 @@ OFF = 0
 # MAIN CLASS
 # ============================
 class HVInterface:
-    def __init__(self, config, device_no, hot_start,channel = 0):
+    def __init__(self, config, device_no, hot_start):
         self.nchannels = 1
         self.hot_start = hot_start
         self.device_no = device_no
         self.target_voltage = 0
         self.config = config
-        self.channel = channel
         self.section_name = 'HV%d' % self.device_no
-        if self.config.has_option(self.section_name,'module_name'):
-            self.module_name = self.config.get(self.section_name,'module_name')
+        if self.config.has_option(self.section_name, 'module_name'):
+            self.module_name = self.config.get(self.section_name, 'module_name')
         else:
             self.module_name = ''
         self.model_number = self.config.get(self.section_name, 'model')
         self.name = self.config.get(self.section_name, 'name')
         self.model = ''
+        # ramping
         self.can_ramp = False
+        self.ramp_fast = False
+        self.started_ramping = False
         pass
+
     def get_n_channels(self):
         return self.nchannels
 
@@ -71,7 +74,6 @@ class HVInterface:
 
     def get_target_voltage(self):
         return self.target_voltage
-
 
     def get_device_name(self, log=0):
         space = ("_" if log else " ")

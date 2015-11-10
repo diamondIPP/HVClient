@@ -165,16 +165,10 @@ class CLI(cmd.Cmd, Thread):
         :param line: HV device (+ channel if channel > 1)
         """
         name = line.split()[0]
-        assert self.devices.has_key(name), 'cannot find {name}'.format(name=name)
-        device = self.devices[name]
-        old_step = device.get_max_step()
-        old_ramp = device.get_ramp_speed()
-        device.set_max_step(50)
-        device.set_ramp_speed(30)
+        if name.upper == 'ALL':
+            for device in self.devices.values():
+                device.ramp_fast = True
         self.set_output_all(line, True)
-        device.set_max_step(old_step)
-        device.set_ramp_speed(old_ramp)
-
 
     def do_OFF(self, line):
         """ Set output of device to OFF.
