@@ -137,7 +137,7 @@ while myCLI.running:
     # now = time.time()
 
     # Loop over the keithleys, get the voltages and update the display
-    string_len = max([len(v.get_device_name()) for k, v in devices.items()])
+    # string_len = max([len(v.get_device_name()) for k, v in devices.items()])
     for k, v in sorted(devices.iteritems(), key=lambda x: x[0]):
         for channel in v.ch_str:
             dev_name = k + '-' + channel if v.has_channels else k
@@ -157,7 +157,7 @@ while myCLI.running:
                 current = v.get_current(channel)
                 # print 'add measurement',k,v.get_update_time(),v.get_current(),v.get_bias(),v.get_device_name()
                 if with_gui:
-                    root.add_measurement(dev_name, v.get_update_time(), v.get_bias(channel), v.get_current(channel), v.get_device_name())
+                    root.add_measurement(dev_name, v.get_update_time(), v.get_bias(channel), v.get_current(channel), v.get_device_name(channel))
                     if v.manual:
                         root.set_mode(dev_name, "MANUAL")
                     elif v.is_ramping(channel):

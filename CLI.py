@@ -156,6 +156,8 @@ class CLI(cmd.Cmd, Thread):
         """
         self.set_output(line, False)
 
+    # todo: make on all
+
     def do_OFF(self, line):
         """ Set output of device to OFF.
         Usage: OFF KeithleyName
@@ -163,9 +165,11 @@ class CLI(cmd.Cmd, Thread):
         """
         try:
             name = line.split()[0]
+            print name
             if name.upper() == 'ALL':
-                for k in self.devices:
-                    self.do_OFF(k)
+                for key, item in self.devices.iteritems():
+                    for chan in item.ch_str:
+                        self.do_OFF(key + chan) if item.has_channels else self.do_OFF(key)
             else:
                 chan = self.prepare_chan(line)
                 self.devices[name].power_down(chan)

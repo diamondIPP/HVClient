@@ -164,7 +164,8 @@ class HVGui():
         for name, device_data in sorted(devices.items()):
             for chan in device_data.ch_str:
                 dev_name = name + '-' + chan if device_data.has_channels else name
-                device_name = device_data.channel_names[chan] if device_data.has_channels else device_data.get_device_name()
+                # device_name = device_data.channel_names[chan] if device_data.has_channels else device_data.get_device_name()
+                device_name = device_data.get_device_name(chan)
                 self.devices[dev_name] = {
                     'name': device_name,
                     'voltage': 0,
@@ -177,9 +178,6 @@ class HVGui():
                 a = Tk.StringVar()
                 device['device_var'].set(dev_name)
                 device['name_var'].set(device_name)
-                print 'name1:', device['name_var']
-                print 'name1:', device['name_var'].get()
-                print 'name2:', device['name']
                 device['voltage_var'].set('%+4d V' % device['voltage'])
                 device['current_var'].set(self.get_current_string(device['current']))
                 device['time_var'].set(self.get_time_string(time()))
@@ -317,8 +315,11 @@ class HVGui():
                     if plot_box['last_measurement'] == last:
                         continue
             plot_box['last_measurement'] = last
-            PlotCreation.update_plot(plot_data, plot_box['f'], unit=unit)
-            plot_box['canvas'].draw()
+            try:
+                PlotCreation.update_plot(plot_data, plot_box['f'], unit=unit)
+                plot_box['canvas'].draw()
+            except:
+                pass
         self.root.after(self.update_interval.get() * 1000, self.update_plots)
         self.last_update = time()
 
