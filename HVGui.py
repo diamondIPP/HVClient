@@ -174,7 +174,6 @@ class HVGui():
                 device = self.devices[dev_name]
                 # device['voltage']
                 self.add_voltage_current_entry(self.toptopframe, dev_name, device)
-                print dev_name
                 a = Tk.StringVar()
                 device['device_var'].set(dev_name)
                 device['name_var'].set(device_name)

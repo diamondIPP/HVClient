@@ -150,6 +150,7 @@ class CLI(cmd.Cmd, Thread):
                 for key, item in self.devices.iteritems():
                     for chan in item.ch_str:
                         self.set_output(key + ' ' + chan, status) if item.has_channels else self.set_output(key, status)
+
         self.set_output(line, status)
 
     def do_OFF_FAST(self, line):
@@ -159,16 +160,36 @@ class CLI(cmd.Cmd, Thread):
         """
         self.set_output_all(line, False)
 
+    def validate_device(self, name):
+        try:
+            assert self.devices.has_key(name), 'Cannot find "{dev}" in the device list'.format(dev=name)
+            return True
+        except AssertionError, err:
+            print err
+            return False
+
     def do_ON_FAST(self, line):
         """
         Set output of device to ON fast
         :param line: HV device (+ channel if channel > 1)
         """
-        name = line.split()[0]
-        if name.upper == 'ALL':
-            for device in self.devices.values():
-                device.ramp_fast = True
+        if len(self.devices.keys()) == 1:
+            self.set_on_fast(self.devices.keys()[0], 'all')
+        else:
+            name = line.split()[0]
+            if self.validate_device(name):
+                if name.upper == 'ALL':
+                    for key in self.devices:
+                        self.set_on_fast(key, line)
+                self.set_on_fast(name, line)
+
+    def set_on_fast(self, name, line):
+        # todo add devices with channels
+        device = self.devices[name]
+        bias = device.target_bias['CH0']
         self.set_output_all(line, True)
+        if not device.has_channels:
+            device.interface.set_voltage(bias)
 
     def do_OFF(self, line):
         """ Set output of device to OFF.
