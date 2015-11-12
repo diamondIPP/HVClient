@@ -486,18 +486,18 @@ class HVDevice(Thread):
             change = True
         return change, new_bias
 
-    def check_fast_ramp(self):
-        if self.is_ramping('all'):
-            if not self.interface.started_ramping:
-                
-                self.interface.started_ramping = True
+    # def check_fast_ramp(self, old_ramp, old_step):
+    #     if self.is_ramping('all'):
+    #         if not self.interface.started_ramping:
+    #             old_ramp = self.get_ramp_speed()
+    #             old_step = self.get_max_step()
+    #             self.interface.started_ramping = True
 
     def ramp(self, channel='CH0'):
         # Try to update voltage (we remember the measurement from the last loop)
         # (the step we can make in voltage is the ramp-speed times
         # how many seconds passed since last change)
 
-        self.check_fast_ramp()
         for chan in self.ch_str:
             if self.powering_down[chan] and abs(self.bias_now[chan]) < .1:
                 if self.has_channels:
