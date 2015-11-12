@@ -44,7 +44,7 @@ def convert(filename):
 
 
 #  plot_data[0],converted[-1]
-def update_plot(plot_data, fig, unit='nA'):
+def update_plot(plot_data, fig, unit='nA',minrange=0,maxrange=0):
     if len(plot_data) == 0:
         return
     fig.clear()
@@ -97,6 +97,14 @@ def update_plot(plot_data, fig, unit='nA'):
     min_v = min(voltages)
     max_c = max(currents)
     min_c = min(currents)
+    if minrange < maxrange:
+        min_c = minrange
+        max_c = maxrange
+    else:
+
+        margin = find_margin(currents, factor)
+        min_c = min_c - margin
+        max_c = max_c + margin
 
     # plot time vs current in red dots
     ax1.plot_date(times, currents, 'r.', ms=2)
@@ -104,8 +112,7 @@ def update_plot(plot_data, fig, unit='nA'):
     for tl in ax1.get_yticklabels():
         tl.set_color('r')
     # adjust limits of y-axis
-    margin = find_margin(currents, factor)
-    ax1.set_ylim([min_c - margin, max_c + margin])
+    ax1.set_ylim([min_c,max_c ])
 
     # plot voltage as blue line
     ax2.plot_date(times, voltages, 'b-')

@@ -289,7 +289,12 @@ class HVGui():
             # self.plot_boxes
             duration = plot_box['optionFrame']['varDuration'].get()
             device = plot_box['optionFrame']['varDevice'].get()
-            maxrange = plot_box['optionFrame']['varMaxRange'].get()
+            try:
+                minrange = plot_box['optionFrame']['varMinRange'].get()
+                maxrange = plot_box['optionFrame']['varMaxRange'].get()
+            except ValueError as e:
+                print 'Could not convert Range:',e
+                continue
             unit = plot_box['optionFrame']['varUnit'].get()
             if u'μA' == plot_box['optionFrame']['varUnit'].get():
                 unit = 'muA'
@@ -316,7 +321,7 @@ class HVGui():
                         continue
             plot_box['last_measurement'] = last
             try:
-                PlotCreation.update_plot(plot_data, plot_box['f'], unit=unit)
+                PlotCreation.update_plot(plot_data, plot_box['f'], unit=unit,minrange=minrange,maxrange=maxrange)
                 plot_box['canvas'].draw()
             except:
                 pass
@@ -326,13 +331,13 @@ class HVGui():
     def add_draw_option_frame(self, frame):
         retVal = {}
         retVal['optionlist'] = self.devices.keys()
-        retVal['optionlist2'] = [2, 4, 8, 12, 24]
+        retVal['optionlist2'] = [ 5./60,1./6.,.5, 1 , 2, 4, 8, 12, 24,48]
         retVal['optionFrame'] = Tk.Frame(master=frame)
         retVal['optionFrame'].pack(side=Tk.LEFT)
         retVal['varDevice'] = Tk.StringVar()
         retVal['varDevice'].set(retVal['optionlist'][0])
-        retVal['varDuration'] = Tk.IntVar()
-        retVal['varDuration'].set(retVal['optionlist2'][-1])
+        retVal['varDuration'] = Tk.DoubleVar()
+        retVal['varDuration'].set(retVal['optionlist2'][5])
         retVal['labelDevice'] = Tk.Label(text='Device Selection', master=retVal['optionFrame'])
         retVal['labelDevice'].pack(side=Tk.TOP)
         retVal['optDevice'] = Tk.OptionMenu(retVal['optionFrame'], retVal['varDevice'], *retVal['optionlist'])
@@ -341,12 +346,21 @@ class HVGui():
         retVal['labelDuration'].pack(side=Tk.TOP)
         retVal['optDuration'] = Tk.OptionMenu(retVal['optionFrame'], retVal['varDuration'], *retVal['optionlist2'])
         retVal['optDuration'].pack(side=Tk.TOP)
-        retVal['varMaxRange'] = Tk.IntVar()
-        retVal['varMaxRange'].set(3)
-        retVal['labelMaxRange'] = Tk.Label(text='Max Current Range\n (Exponent)', master=retVal['optionFrame'], fg='red')
+
+        retVal['varMinRange'] = Tk.DoubleVar()
+        retVal['varMinRange'].set(0)
+
+        retVal['varMaxRange'] = Tk.DoubleVar()
+        retVal['varMaxRange'].set(0)
+
+        retVal['labelMaxRange'] = Tk.Label(text='Max Current\n', master=retVal['optionFrame'], fg='red')
         retVal['labelMaxRange'].pack(side=Tk.TOP)
-        retVal['optMaxRange'] = Tk.Spinbox(master=retVal['optionFrame'], from_=-10, to=10, width=5, textvariable=retVal['varMaxRange'], fg='red')
+        retVal['optMaxRange'] = Tk.Spinbox(master=retVal['optionFrame'], from_=-1e6, to=1e6, width=5,increment=10, textvariable=retVal['varMaxRange'], fg='red')
         retVal['optMaxRange'].pack(sid=Tk.TOP)
+        retVal['labelMinRange'] = Tk.Label(text='Min Current\n', master=retVal['optionFrame'], fg='red')
+        retVal['labelMinRange'].pack(side=Tk.TOP)
+        retVal['optMinRange'] = Tk.Spinbox(master=retVal['optionFrame'], from_=-1e6, to=1e6, width=5,increment=10, textvariable=retVal['varMinRange'], fg='red')
+        retVal['optMinRange'].pack(sid=Tk.TOP)
 
         unit_options = ['fA', 'nA', u'μA', 'mA', 'A']
         retVal['varUnit'] = Tk.StringVar()
