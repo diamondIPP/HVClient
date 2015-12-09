@@ -74,6 +74,7 @@ class ISEG(HVInterface):
             self.clear_buffer()
             self.identify()
             self.clear_error_queue()
+            self.configure_ramp_speed_voltage()
             sleep(1)
         else:
             sleep(.1)
