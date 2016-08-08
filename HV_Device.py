@@ -1,8 +1,3 @@
-__author__ = 'testbeam'
-
-# ============================
-# IMPORTS
-# ============================
 from termcolor import colored
 from interfaces.Keithley24XX import Keithley24XX
 from interfaces.Keithley23X import Keithley23X
@@ -17,6 +12,8 @@ import sys
 import logging
 import os
 import json
+
+__author__ = 'Michael Reichmann'
 
 
 # ============================
