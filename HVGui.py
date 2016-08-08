@@ -134,48 +134,48 @@ class HVGui():
     def set_target_bias(self, device_name, target_bias):
         self.devices[device_name]['target_bias'] = target_bias
 
-    def update_status_display(self, device_name):
-        if not self.devices[device_name].has_key('status'):
-            self.devices[device_name]['status_var'].set('NAN')
-            self.devices[device_name]['status_color'].set('yellow')
-        elif not self.devices[device_name]['status']:
-            self.devices[device_name]['status_var'].set('OFF')
-            self.devices[device_name]['status_color'].set('black')
-        elif self.devices[device_name]['mode'] == 'MANUAL':
-            self.devices[device_name]['status_var'].set('MANUAL')
-            self.devices[device_name]['status_color'].set('red')
-        elif self.devices[device_name]['mode'] == 'RAMPING':
-            self.devices[device_name]['status_var'].set('Ramping to %.1f V' % self.devices[device_name]['target_bias'])
-            self.devices[device_name]['status_color'].set('red')
-        else:
-            self.devices[device_name]['status_var'].set('ON')
-            self.devices[device_name]['status_color'].set('red')
-        self.devices[device_name]['status_label'].config(fg=self.devices[device_name]['status_color'].get())
-        self.update()
+    # def update_status_display(self, device_name):
+    #     if not self.devices[device_name].has_key('status'):
+    #         self.devices[device_name]['status_var'].set('NAN')
+    #         self.devices[device_name]['status_color'].set('yellow')
+    #     elif not self.devices[device_name]['status']:
+    #         self.devices[device_name]['status_var'].set('OFF')
+    #         self.devices[device_name]['status_color'].set('black')
+    #     elif self.devices[device_name]['mode'] == 'MANUAL':
+    #         self.devices[device_name]['status_var'].set('MANUAL')
+    #         self.devices[device_name]['status_color'].set('red')
+    #     elif self.devices[device_name]['mode'] == 'RAMPING':
+    #         self.devices[device_name]['status_var'].set('Ramping to %.1f V' % self.devices[device_name]['target_bias'])
+    #         self.devices[device_name]['status_color'].set('red')
+    #     else:
+    #         self.devices[device_name]['status_var'].set('ON')
+    #         self.devices[device_name]['status_color'].set('red')
+    #     self.devices[device_name]['status_label'].config(fg=self.devices[device_name]['status_color'].get())
+    #     self.update()
 
     def add_multiple_measurements(self, device_name, measurements):
-        if not self.devices[device_name].has_key('measurements'):
+        if 'measurements' not in self.devices[device_name]:
             self.devices[device_name]['measurements'] = []
         self.devices[device_name]['measurements'].extend(measurements)
         self.devices[device_name]['measurements'] = sorted(self.devices[device_name]['measurements'])
         self.update_current_display(device_name)
 
     def add_measurement(self, device_name, time_stamp, voltage, current, diamond_name):
-        if not self.devices[device_name].has_key('measurements'):
+        if 'measurements' not in self.devices[device_name]:
             self.devices[device_name]['measurements'] = []
         time_stamp = mdates.date2num(datetime.datetime.fromtimestamp(time_stamp))
         measurement = [time_stamp, voltage, current, diamond_name]
         if len(self.devices[device_name]['measurements']) != 0:
             if self.devices[device_name]['measurements'][-1] == measurement:
                 return
-            #         print 'add measurement', measurement
+                #         print 'add measurement', measurement
         self.devices[device_name]['measurements'].append(measurement)
         self.update_measurement_buffer(device_name)
         self.update_current_display(device_name)
 
     def update_current_display(self, device_name):
-        self.update_status_display(device_name)
-        if not self.devices[device_name].has_key('measurements'):
+        # self.update_status_display(device_name)
+        if 'measurements' not in self.devices[device_name]:
             self.devices[device_name]['measurements'] = []
         if len(self.devices[device_name]['measurements']) == 0:
             #             print 'update_current_display', ' -- empty display'
@@ -210,8 +210,7 @@ class HVGui():
         self.devices[device_name]['measurements'] = measurements
 
     def add_devices(self, devices):
-        # print 'add DEVICES: ', devices
-        for name, device_data in sorted(devices.items()):
+        for name, device_data in sorted(devices.iteritems()):
             for chan in device_data.ch_str:
                 dev_name = name + '-' + chan if device_data.has_channels else name
                 # device_name = device_data.channel_names[chan] if device_data.has_channels else device_data.get_device_name()
@@ -223,7 +222,7 @@ class HVGui():
                     'time': 0}
                 device = self.devices[dev_name]
                 # device['voltage']
-                self.add_voltage_current_entry(self.toptopframe, dev_name, device)
+                self.add_voltage_current_entry(self.toptopframe, dev_name, device_data, chan)
                 a = Tk.StringVar()
                 device['device_var'].set(dev_name)
                 device['name_var'].set(device_name)
@@ -252,8 +251,8 @@ class HVGui():
         button = Tk.Button(master=f, text='Quit', command=self._quit)
         button.pack(side=Tk.TOP)
 
-    def add_voltage_current_entry(self, frame, name, device):
-        self.devices[name] = device
+    def add_voltage_current_entry(self, frame, name, dev_data, chan):
+        device = self.devices[name]
         subframe = Tk.Frame(master=frame)
         subframe.pack(side=Tk.LEFT)
         subsubframe = Tk.Frame(master=subframe)
@@ -265,6 +264,20 @@ class HVGui():
         device['name_var'] = Tk.StringVar()
         device['name_label'] = Tk.Label(subsubframe, textvariable=device['name_var'], font=("Helvetica", 16))
         device['name_label'].pack(side=Tk.LEFT)
+
+        def change_button(event):
+            dev_data.power_down(chan) if dev_data.status[chan] else (dev_data.interface.set_output(True, chan) if dev_data.has_channels else dev_data.interface.set_output(True))
+
+        def set_button(event):
+            device['status_label'].config(image=self.OnButton if dev_data.status[chan] else self.OffButton)
+            device['status_label'].image = self.OnButton if dev_data.status[chan] else self.OffButton
+
+        device['status_label'] = Tk.Label(subframe, image=self.OnButton if dev_data.status[chan] else self.OffButton)
+        device['status_label'].bind('<Button-1>', change_button)
+        device['status_label'].bind('<Leave>', set_button)
+        device['status_label'].config(image=self.OnButton if dev_data.status[chan] else self.OffButton)
+        # device['status_label'] = Tk.Label(subframe, textvariable=device['status_var'], font=("Helvetica", 16, "bold"), fg=device['status_color'].get())
+        device['status_label'].pack(side=Tk.TOP)
         device['voltage_var'] = Tk.StringVar()
         device['voltage_label'] = Tk.Label(subframe, textvariable=device['voltage_var'], font=("Helvetica", 16))
         device['voltage_label'].pack(side=Tk.TOP)
@@ -272,14 +285,12 @@ class HVGui():
         device['current_label'] = Tk.Label(subframe, textvariable=device['current_var'], font=("Helvetica", 16))
         device['current_label'].pack(side=Tk.TOP)
 
-        device['status_color'] = Tk.StringVar()
-        device['status_color'].set('black')
-        device['status_var'] = Tk.StringVar()
-        device['status_label'] = Tk.Label(subframe,
-                                          textvariable=device['status_var'],
-                                          font=("Helvetica", 16, "bold"),
-                                          fg=device['status_color'].get())
-        device['status_label'].pack(side=Tk.TOP)
+        self.make_frame('set_v', subframe)
+        self.create_var('set_v', typ='int')
+        cmd = partial(self.set_bias, dev_data, chan)
+        self.make_button('set_v', 'Set HV', cmd=cmd, width=4)
+        self.make_label('set_v', '>')
+        self.make_spinbox('set_v', [dev_data.min_bias[chan], dev_data.max_bias[chan]], incr=10, txtvar=self.TextVars['set_v'], width=5)
 
         sf = Tk.Frame(master=subframe)
         sf.pack(side=Tk.TOP)
@@ -294,17 +305,28 @@ class HVGui():
 
         return subframe
 
+    def set_bias(self, device, chan):
+        bias = self.TextVars['set_v'].get()
+        try:
+            boundaries = [device.min_bias[chan], device.max_bias[chan]]
+            if not boundaries[0] <= bias <= boundaries[1]:
+                print 'The bias voltage {bias}V is not allowed! Boundaries are: {bnd}'.format(bias=colored(bias, 'red'), bnd=boundaries)
+                return
+            device.set_target_bias(bias, chan)
+        except Exception as inst:
+            print type(inst), inst
+
     @staticmethod
     def get_current_string(current):
         try:
             if abs(current) < 1e-6:
-                retVal = '%5.1f nA'%(current/1e-9)
+                retVal = '%5.1f nA' % (current / 1e-9)
             elif abs(current) < 1e-3:
-                retVal = '%5.1f μA'%(current/1e-6)
+                retVal = '%5.1f μA' % (current / 1e-6)
             elif abs(current) < 1:
-                retVal = '%5.1f mA'%(current/1e-3)
+                retVal = '%5.1f mA' % (current / 1e-3)
             else:
-                retVal =  '%5.1f A'%(current)
+                retVal = '%5.1f A' % (current)
             return retVal
         except TypeError:
             return ''
@@ -342,7 +364,7 @@ class HVGui():
                 minrange = plot_box['optionFrame']['varMinRange'].get()
                 maxrange = plot_box['optionFrame']['varMaxRange'].get()
             except ValueError as e:
-                print 'Could not convert Range:',e
+                print 'Could not convert Range:', e
                 continue
             unit = plot_box['optionFrame']['varUnit'].get()
             if u'μA' == plot_box['optionFrame']['varUnit'].get():
@@ -370,7 +392,7 @@ class HVGui():
                         continue
             plot_box['last_measurement'] = last
             try:
-                PlotCreation.update_plot(plot_data, plot_box['f'], unit=unit,minrange=minrange,maxrange=maxrange)
+                PlotCreation.update_plot(plot_data, plot_box['f'], unit=unit, minrange=minrange, maxrange=maxrange)
                 plot_box['canvas'].draw()
             except:
                 pass
@@ -380,7 +402,7 @@ class HVGui():
     def add_draw_option_frame(self, frame):
         retVal = {}
         retVal['optionlist'] = self.devices.keys()
-        retVal['optionlist2'] = [ 5./60,1./6.,.5, 1 , 2, 4, 8, 12, 24,48]
+        retVal['optionlist2'] = [5. / 60, 1. / 6., .5, 1, 2, 4, 8, 12, 24, 48]
         retVal['optionFrame'] = Tk.Frame(master=frame)
         retVal['optionFrame'].pack(side=Tk.LEFT)
         retVal['varDevice'] = Tk.StringVar()
@@ -404,11 +426,11 @@ class HVGui():
 
         retVal['labelMaxRange'] = Tk.Label(text='Max Current\n', master=retVal['optionFrame'], fg='red')
         retVal['labelMaxRange'].pack(side=Tk.TOP)
-        retVal['optMaxRange'] = Tk.Spinbox(master=retVal['optionFrame'], from_=-1e6, to=1e6, width=5,increment=10, textvariable=retVal['varMaxRange'], fg='red')
+        retVal['optMaxRange'] = Tk.Spinbox(master=retVal['optionFrame'], from_=-1e6, to=1e6, width=5, increment=10, textvariable=retVal['varMaxRange'], fg='red')
         retVal['optMaxRange'].pack(sid=Tk.TOP)
         retVal['labelMinRange'] = Tk.Label(text='Min Current\n', master=retVal['optionFrame'], fg='red')
         retVal['labelMinRange'].pack(side=Tk.TOP)
-        retVal['optMinRange'] = Tk.Spinbox(master=retVal['optionFrame'], from_=-1e6, to=1e6, width=5,increment=10, textvariable=retVal['varMinRange'], fg='red')
+        retVal['optMinRange'] = Tk.Spinbox(master=retVal['optionFrame'], from_=-1e6, to=1e6, width=5, increment=10, textvariable=retVal['varMinRange'], fg='red')
         retVal['optMinRange'].pack(sid=Tk.TOP)
 
         unit_options = ['fA', 'nA', u'μA', 'mA', 'A']
