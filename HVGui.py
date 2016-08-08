@@ -4,14 +4,15 @@
 # import matplotlib
 from matplotlib.figure import Figure
 import matplotlib.dates as mdates
+
 try:
     import matplotlib.backends.backend_tkagg
-except:
+except ImportError:
     pass
 # matplotlib.use('TkAgg')
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
 # implement the default mpl key bindings
-#from matplotlib.backend_bases import key_press_handler
+# from matplotlib.backend_bases import key_press_handler
 import sys
 
 if sys.version_info[0] < 3:
@@ -22,8 +23,9 @@ from time import time
 import datetime
 import PlotCreation
 import os
+from functools import partial
+from termcolor import colored
 
-# a2.setp(c, color='r', linewidth=2.0)
 
 class HVGui():
     def on_key_event(event):
@@ -53,6 +55,14 @@ class HVGui():
         self.destroyed = False
         self.root = Tk.Tk()
 
+        self.OnButton = Tk.PhotoImage(file='Pics/OnButton.png')
+        self.OffButton = Tk.PhotoImage(file='Pics/OffButton.png')
+        self.Labels = {}
+        self.SpinBoxes = {}
+        self.Buttons = {}
+        self.TextVars = {}
+        self.Frames = {}
+
         self.root.minsize(1000, 200)  # x/y
         # root.maxsize(1000, 200)
         self.last_update = time()
@@ -76,7 +86,47 @@ class HVGui():
 
     def set_status(self, device_name, status):
         self.devices[device_name]['status'] = status
-        self.update_status_display(device_name)
+        # self.update_status_display(device_name)
+
+    def create_var(self, name, typ='int'):
+        if name not in self.TextVars:
+            if typ == 'int':
+                self.TextVars[name] = Tk.IntVar()
+                self.TextVars[name].set(0)
+
+    def make_button(self, name, txt, cmd, width=5, font=('Helvetica', 10), pos=Tk.LEFT, relief=Tk.RAISED):
+        if name not in self.Buttons:
+            but = Tk.Button(self.Frames[name], text=txt, command=cmd, font=font, width=width, relief=relief)
+            self.Buttons[name] = but
+        else:
+            but = self.Labels[name]
+        but.pack(side=pos)
+
+    def make_label(self, name, txt, font=("Helvetica", 12), pos=Tk.LEFT):
+        if name not in self.Labels:
+            fr = self.Frames[name]
+            lab = Tk.Label(fr, text=txt, font=font)
+            self.Labels[name] = lab
+        else:
+            lab = self.Labels[name]
+        lab.pack(side=pos)
+
+    def make_spinbox(self, name, rnge, width=3, incr=10, txtvar=None, col='red', font=('Helvetica', 15, 'bold'), pos=Tk.LEFT):
+        if name not in self.SpinBoxes:
+            fr = self.Frames[name]
+            sb = Tk.Spinbox(fr, from_=rnge[0], to=rnge[1], width=width, increment=incr, textvariable=txtvar, fg=col, font=font, justify=Tk.CENTER)
+            self.SpinBoxes[name] = sb
+        else:
+            sb = self.SpinBoxes[name]
+        sb.pack(expand=True, side=pos)
+
+    def make_frame(self, name, master, pos=Tk.TOP):
+        if name not in self.Frames:
+            fr = Tk.Spinbox(master, bg=master.cget('bg'))
+            self.Frames[name] = fr
+        else:
+            fr = self.Frames[name]
+        fr.pack(side=pos)
 
     def set_mode(self, device_name, mode):
         self.devices[device_name]['mode'] = mode
