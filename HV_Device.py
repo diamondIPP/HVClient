@@ -43,7 +43,7 @@ class HVDevice(Thread):
         self.init_bias_now()
         self.init_current_now()
         # config data
-        self.__ramp_speed = config.getint(self.section_name, 'ramp')
+        self.__ramp_speed = float(config.get(self.section_name, 'ramp'))
         self.__max_step = config.getint(self.section_name, 'max_step') if not self.has_channels else None
         self.target_bias = {}
         self.min_bias = {}
