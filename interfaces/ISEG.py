@@ -225,8 +225,10 @@ class ISEG(HVInterface):
 
     def configure_ramp_speed(self, ramp_type, speed=None):
         if speed is None:
-            ramp = self.config.getint(self.section_name, 'ramp')
+            ramp = float(self.config.get(self.section_name, 'ramp'))  # getint(...
+            print 'ramp:', ramp
             speed = ramp / 20.
+            print 'ramping speed:', speed
         else:
             speed = speed / 20.
         if len(ramp_type) > 4:
