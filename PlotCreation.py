@@ -69,9 +69,9 @@ def update_plot(plot_data, fig, unit='nA',minrange=0,maxrange=0):
     # label_prefix = ''
     else:
         raise Exception()
-    if unit == 'fA':
+    if unit == 'pA':
         factor = 1e12
-        label = 'fA'
+        label = 'pA'
     elif unit == 'nA':
         factor = 1e9
         label = 'nA'
