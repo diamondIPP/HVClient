@@ -140,7 +140,7 @@ class Keithley24XX(KeithleyHead):
         return data if 0 <= int(data) <= 2500 else -1
 
     # ============================
-    # NOT USED
+    # region NOT USED
     @staticmethod
     def validate_current(current):
         if current:
