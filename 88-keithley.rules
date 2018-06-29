@@ -15,3 +15,6 @@ SUBSYSTEM=="tty",ATTRS{serial}=="PXHJKPT8",SYMLINK="keithley5", MODE="0777",GROU
 #ISEG
 SUBSYSTEM=="tty",ATTRS{serial}=="A1030KVS",SYMLINK="iseg", MODE="0777",GROUP="tty"
 
+#ISEG2
+SUBSYSTEM=="tty",ATTRS{serial}=="AJ032RYX",SYMLINK="iseg2", MODE="0777",GROUP="tty"
+
