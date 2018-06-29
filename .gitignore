@@ -4,4 +4,8 @@ keithleyLog*.txt
 *~
 nohup.out
 set_chmod.sh
-
+PSI_*
+CERN*
+3DPix*
+PROC*
+.*
