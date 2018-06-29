@@ -1,4 +1,4 @@
-# keithleyClient
+### ETH High Voltage Client
 
 Client to control and read out several HV supply units
 
