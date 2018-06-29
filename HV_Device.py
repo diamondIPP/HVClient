@@ -26,7 +26,6 @@ class HVDevice(Thread):
         # basic
         self.isKilled = False
         self.config = config
-        self.keithley = None
         self.section_name = 'HV%d' % device_num
         self.bias_now = {}
         self.current_now = {}
