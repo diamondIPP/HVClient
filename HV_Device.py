@@ -15,6 +15,9 @@ import json
 
 __author__ = 'Michael Reichmann'
 
+ON = True
+OFF = False
+
 
 # ============================
 # MAIN CLASS
@@ -90,8 +93,8 @@ class HVDevice(Thread):
         for chan in self.channels:
             ch_str = 'CH' + str(chan)
             assert self.max_bias[ch_str] >= self.min_bias[ch_str], 'Invalid config file (maxBias < minBias)'
-            assert self.target_bias[ch_str] >= self.min_bias[ch_str], 'Invalid config file (bias < minBias)'
-            assert self.target_bias[ch_str] <= self.max_bias[ch_str], 'Invalid config file (bias > maxBias)'
+            assert self.target_bias[ch_str] >= self.min_bias[ch_str] - .1, 'Invalid config file (bias < minBias)'
+            assert self.target_bias[ch_str] <= self.max_bias[ch_str] + .1, 'Invalid config file (bias > maxBias)'
 
         # logging
         self.logger = {}
@@ -373,6 +376,9 @@ class HVDevice(Thread):
 
     def set_max_step(self, step):
         self.__max_step = step
+
+    def set_status(self, channel, status):
+        self.status[channel] = status
 
     # ============================
     # MISCELLANEOUS FUNCTIONS
