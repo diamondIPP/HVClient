@@ -79,7 +79,7 @@ class KeithleyHead(HVInterface):
 
     # ============================
     # DEVICE FUNCTIONS
-    def set_output(self, status):
+    def set_output(self, status, channel='CH0'):
         print_value = 'set Output to '
         data = ':OUTP '
         data += ('ON' if status else 'OFF')
