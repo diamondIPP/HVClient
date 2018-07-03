@@ -1,8 +1,7 @@
 # ============================
 # IMPORTS
 # ============================
-from HV_Device import HVDevice
-from interfaces.ISEG import ISEG
+from devices.Device import Device
 from ConfigParser import NoOptionError
 import json
 
@@ -35,6 +34,6 @@ def get_devices(config, hot_start):
         #         for ch in module.get_list_of_active_channels():
         #             devices[name + '_CH%d' % ch] = HVDevice(config, i, hot_start, module=module, channel=ch)
         #     else:
-        devices[name] = HVDevice(config, i, hot_start)
+        devices[name] = Device(config, i, hot_start)
         pass
     return devices

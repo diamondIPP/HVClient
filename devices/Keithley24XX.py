@@ -5,6 +5,7 @@ from KeithleyHead import KeithleyHead
 from time import sleep
 from ConfigParser import NoOptionError, ConfigParser
 import math
+from Utils import isfloat, isint, log_warning
 
 
 # ============================
@@ -40,6 +41,7 @@ class Keithley24XX(KeithleyHead):
             self.clear_buffer()
             self.identify()
             self.set_max_voltage()
+            self.set_voltage_range(self.max_voltage)
             self.set_source_output()
             self.set_fixed_volt_mode()
             self.set_standard_output_format(':FORM:ELEM VOLT,CURR,RES,TIME,STAT')
@@ -79,7 +81,7 @@ class Keithley24XX(KeithleyHead):
 
     def set_source_output(self):
         try:
-            self.output = self.config.get(self.section_name, 'output')
+            self.output = self.Config.get(self.SectionName, 'output')
         except NoOptionError, err:
             print err
         if self.output.lower().startswith('rear') or self.output.lower().startswith('back'):
@@ -168,6 +170,9 @@ class Keithley24XX(KeithleyHead):
             return -1
         return self.write(':SOUR:VOLT:STEP %s' % step_voltage)
 
+    def set_voltage_range(self, v_max):
+        return self.write(":SOUR:VOLT:RANG {}".format(v_max))
+
     def set_current_measurement_range(self, curr_range):
         if not self.validate_current(curr_range):
             raise Exception('setting CurrentMeasurmentRange: not valid current: %s' % curr_range)
@@ -199,7 +204,7 @@ class Keithley24XX(KeithleyHead):
         return self.write(':SENSE:FUNC \"%s\"' % function)
 
     def set_sense_resistance_range(self, res_range):
-        if self.is_float(res_range):
+        if isfloat(res_range):
             # todo check if value is valid
             return self.write(':SENS:RES:RANG %s' % res_range)
         else:
@@ -216,21 +221,18 @@ class Keithley24XX(KeithleyHead):
         pass
 
     def set_sense_resistance_offset_compensated(self, state):
-        if not self.is_number(state):
+        if not isint(state):
             if state in ['True', 'TRUE', '1', 'ON', 'On']:
                 state = True
-            elif ['False', 'FALSE', '0', 'OFF', 'Off']:
+            elif state in ['False', 'FALSE', '0', 'OFF', 'Off']:
                 state = False
             else:
-                print 'Four Wire Measurement not valid state: %s' % state
+                log_warning('Four Wire Measurement not valid state: {}'.format(state))
                 return False
-        if state:
-            return self.write(':SENSE:RESISTANCE:OCOMPENSATED ON')
-        else:
-            return self.write(':SENSE:RESISTANCE:OCOMPENSATED OFF')
+        return self.write(':SENSE:RESISTANCE:OCOMPENSATED {}'.format('ON' if state else 'OFF'))
 
     def set_sense_voltage_protection(self, prot_volt):
-        if self.is_float(prot_volt):
+        if isfloat(prot_volt):
             if self.validate_voltage(prot_volt):
                 return self.write(':SENSE:VOLT:PROTECTION %s' % prot_volt)
             else:
@@ -249,7 +251,7 @@ class Keithley24XX(KeithleyHead):
         pass
 
     def set_four_wire_measurement(self, state=True):
-        if not self.is_number(state):
+        if not isint(state):
             if state in ['True', 'False', 'TRUE', 'FALSE']:
                 state = True
             else:
@@ -264,5 +266,5 @@ class Keithley24XX(KeithleyHead):
 
 if __name__ == '__main__':
     conf = ConfigParser()
-    conf.read('../config/keithley.cfg')
-    keithley = Keithley24XX(conf, 1, False)
+    conf.read('config/keithley.cfg')
+    keithley = Keithley24XX(conf, 1, True)

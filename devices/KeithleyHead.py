@@ -6,13 +6,13 @@ __author__ = 'micha'
 import os
 import sys
 import inspect
-from HV_interface import HVInterface
+from interfaces.Device import Device
 import serial
 from time import sleep, time
 from collections import deque
 from string import maketrans
-import math
 from ConfigParser import ConfigParser
+from Utils import log_info, log_warning, isint
 
 
 # ============================
@@ -28,23 +28,27 @@ OFF = 0
 # ============================
 # MAIN CLASS
 # ============================
-class KeithleyHead(HVInterface):
+class KeithleyHead(Device):
     def __init__(self, config, device_no=1, hot_start=False):
-        HVInterface.__init__(self, config, device_no, hot_start)
+        Device.__init__(self, config, device_no, hot_start)
+
+        # Serial
         self.bOpen = False
         self.bOpenInformed = False
-        self.serialPortName = config.get(self.section_name, 'address')
+        self.serialPortName = config.get(self.SectionName, 'address')
+        self.baudrate = config.getint(self.SectionName, 'baudrate')
+        self.commandEndCharacter = chr(13) + chr(10)
+        self.serial = None
+
         self.writeSleepTime = 0.1
         self.readSleepTime = 0.2
-        self.baudrate = config.getint(self.section_name, 'baudrate')
-        self.commandEndCharacter = chr(13) + chr(10)
         self.measurments = deque()
         self.last_voltage = 0
-        self.serial = None
         self.model = None
         self.identifier = None
         self.max_voltage = None
         self.manual = False
+
         self.open_serial_port()
 
     def open_serial_port(self):
@@ -80,11 +84,9 @@ class KeithleyHead(HVInterface):
     # ============================
     # DEVICE FUNCTIONS
     def set_output(self, status, channel='CH0'):
-        print_value = 'set Output to '
-        data = ':OUTP '
-        data += ('ON' if status else 'OFF')
-        print_value += ('ON' if status else 'OFF')
-        print print_value
+        out = 'ON' if status else 'OFF'
+        log_info('Set output to {}'.format(out))
+        data = ':OUTP {}'.format(out)
         return self.write(data)
 
     def reset(self):
@@ -109,10 +111,7 @@ class KeithleyHead(HVInterface):
     # ============================
     # SET-FUNCTIONS
     def set_bias(self, voltage):
-        self.set_voltage(voltage)
-
-    # def set_voltage(self, value):
-    #     pass
+        log_warning('set_bias not implemented')
 
     def set_immediate_voltage(self, voltage):
         voltage = self.validate_voltage(voltage)
@@ -170,13 +169,13 @@ class KeithleyHead(HVInterface):
             if len(ident_list) > 5:
                 if ident_list[3].lower().startswith('model'):
                     mod = ident_list[4]
-                    self.model = int(mod) if self.is_number(mod) else mod
+                    self.model = int(mod) if isint(mod) else mod
             print 'Connected Keithley Model', self.model
         self.set_max_voltage()
 
     def get_output_status(self):
         answer = self.get_answer_for_query(':OUTP?')
-        while len(answer) > 1 and not self.is_number(answer):
+        while len(answer) > 1 and not isint(answer):
             answer = self.get_answer_for_query(':OUTP?')
         if len(answer) > 0 and not answer == '':
             if answer.isdigit():
@@ -287,15 +286,15 @@ class KeithleyHead(HVInterface):
         data = data.translate(maketrans(',', ' '))
         return data.strip()
 
-    def validate_voltage(self, voltage):
-        if self.max_voltage < math.fabs(voltage) and self.is_float(voltage):
-            voltage = math.copysign(self.max_voltage, float(voltage))
-            print 'set voltage to maximum allowed voltage: %s' % voltage
-        elif not self.is_float(voltage):
-            print 'invalid Voltage: %s' % voltage
-            voltage = 0
-        self.target_voltage = voltage
-        return voltage
+    # def validate_voltage(self, voltage):
+    #     if self.max_voltage < math.fabs(voltage) and self.is_float(voltage):
+    #         voltage = math.copysign(self.max_voltage, float(voltage))
+    #         print 'set voltage to maximum allowed voltage: %s' % voltage
+    #     elif not self.is_float(voltage):
+    #         print 'invalid Voltage: %s' % voltage
+    #         voltage = 0
+    #     self.target_voltage = voltage
+    #     return voltage
 
     def convert_data(self, timestamp, data):
         try:
@@ -327,5 +326,5 @@ class KeithleyHead(HVInterface):
 
 if __name__ == '__main__':
     conf = ConfigParser()
-    conf.read('keithley.cfg')
-    keithley = KeithleyHead(conf, 2)
+    conf.read('config/keithley.cfg')
+    keithley = KeithleyHead(conf, 1)
