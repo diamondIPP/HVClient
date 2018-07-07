@@ -1,11 +1,5 @@
-from termcolor import colored
-from interfaces.Keithley24XX import Keithley24XX
-from interfaces.Keithley23X import Keithley23X
-from interfaces.Keithley6517B import Keithley6517B
-from interfaces.Keithley2657 import Keithley2657
-from interfaces.ISEG import ISEG
 from threading import Thread
-from ConfigParser import ConfigParser, NoOptionError
+from ConfigParser import ConfigParser
 from time import time, sleep
 from math import copysign
 import sys
@@ -27,11 +21,12 @@ class Device(Thread):
     def __init__(self, config, device_num, hot_start):
         Thread.__init__(self)
 
-        self.Dir = dirname(realpath(__file__))
+        self.Dir = dirname(dirname(realpath(__file__)))
 
         # Basic
         self.Config = config
         self.SectionName = 'HV{}'.format(device_num)
+        self.HotStart = hot_start
 
         # Channel stuff
         self.NChannels = self.read_n_channels()
@@ -55,9 +50,6 @@ class Device(Thread):
         self.ModelNumber = self.get_model_number()
         self.DeviceName = self.read_device_name()
 
-        self.interface = None
-        self.init_interface(config, device_num, hot_start)
-
         # Status
         self.IsKilled = False
         self.IsBusy = False
@@ -65,28 +57,9 @@ class Device(Thread):
         self.IsPoweringDown = [False] * self.NChannels
         self.MaxWaitingTime = 20    # seconds
 
-        # evaluate hot start
-        if hot_start:
-            for channel in self.ActiveChannels:
-                ch_str = 'CH{}'.format(channel)
-                if self.HasChannels:
-                    self.Status[channel] = self.interface.get_output_status(ch_str)[0]
-                else:
-                    self.Status[channel] = self.interface.get_output_status()
-                self.update_voltage_current()
-                voltage = self.get_bias(channel)
-                print 'Measured voltage: {0:6.2f} V'.format(voltage)
-                if self.HasChannels:
-                    self.interface.set_bias(voltage, ch_str)
-                else:
-                    self.interface.set_bias(voltage)
-                # self.immidiateVoltage = voltage
-                self.TargetBias[channel] = voltage
-                self.BiasNow[channel] = voltage
-
-        # last time the actual voltage was changed
         self.LastVChange = time()
         self.LastUpdate = time()
+        self.CanRamp = False  # set in inheriting classes if ramping is available
 
         self.Logger = self.init_logger()
 
@@ -95,47 +68,65 @@ class Device(Thread):
     # ============================
     # MAIN LOOP FOR THREAD (overwriting thread run)
     def run(self):
+        i = 0
         while not self.IsKilled:
             sleep(.1)
             if not self.IsManual:
+                # print i
                 self.update_voltage_current()
                 self.write_logs()
                 self.ramp()
-                if self.is_ramping('all'):
-                    self.update_voltage_current()
-                    sleep(.1)
-                    
+                i += 1
+
+    def stop(self):
+        self.IsKilled = True
+        log_critical('exiting')
+
     def write_logs(self):
         for channel in self.ActiveChannels:
             self.Logger[channel].write_log(self.get_status(channel), self.get_bias(channel), self.get_current(channel), self.is_ramping(channel), self.get_target_bias(channel))
 
+    def connect(self):
+        log_warning('"connect" not implemented')
+
+    def hot_start(self):
+        if self.HotStart:
+            for channel in self.ActiveChannels:
+                self.set_status(channel, self.get_output_status(channel))
+                self.update_voltage_current()
+                voltage = self.get_bias(channel)
+                log_info('Measured voltage: {0:2.1f} V'.format(voltage))
+                self.set_bias(voltage, channel)
+                self.set_target_bias(voltage, channel)
+                self.BiasNow[channel] = voltage
+
     # ============================
-    # region INIT DEVICE INTERFACE
-    def init_interface(self, config, device_num, hot_start):
-        # if statements for model name
-        try:
-            print 'Instantiation:', self.SectionName, self.Config.get(self.SectionName, 'name')
-        except NoOptionError:
-            print 'Instantiation:', self.SectionName
-        model = self.ModelNumber
-        self.IsBusy = True
-        if model == 2400 or model == 2410:
-            self.interface = Keithley24XX(config, device_num, hot_start)
-        elif model == (237 or 236 or 238):
-            self.interface = Keithley23X(config, device_num, hot_start)
-        elif model == '6517B' or model == 6517:
-            self.interface = Keithley6517B(config, device_num, hot_start)
-        elif model == '2657A' or model == 2657:
-            self.interface = Keithley2657(config, device_num, hot_start)
-        elif model == 'NHS-6220x':
-            self.interface = ISEG(config, device_num, hot_start)
-        else:
-            print "unknown model number: could not instantiate any device", '--> exiting program'
-            sys.exit(-2)
-        self.IsBusy = False
+    # region INIT
+    # def init_interface(self, config, device_num, hot_start):
+    #     # if statements for model name
+    #     try:
+    #         print 'Instantiation:', self.SectionName, self.Config.get(self.SectionName, 'name')
+    #     except NoOptionError:
+    #         print 'Instantiation:', self.SectionName
+    #     model = self.ModelNumber
+    #     self.IsBusy = True
+    #     if model == 2400 or model == 2410:
+    #         self.interface = Keithley24XX(config, device_num, hot_start)
+    #     elif model == (237 or 236 or 238):
+    #         self.interface = Keithley23X(config, device_num, hot_start)
+    #     elif model == '6517B' or model == 6517:
+    #         self.interface = Keithley6517B(config, device_num, hot_start)
+    #     elif model == '2657A' or model == 2657:
+    #         self.interface = Keithley2657(config, device_num, hot_start)
+    #     elif model == 'NHS-6220x':
+    #         self.interface = ISEG(config, device_num, hot_start)
+    #     else:
+    #         print "unknown model number: could not instantiate any device", '--> exiting program'
+    #         sys.exit(-2)
+    #     self.IsBusy = False
         
     def init_logger(self):
-        return [Logger(self.SectionName, channel, self.Config) for channel in self.ActiveChannels]
+        return [Logger(self.SectionName, channel, self.Config, on=channel in self.ActiveChannels) for channel in xrange(self.NChannels)]
 
     def get_device_name(self, chan=0):
         return self.ChannelNames[chan] if self.HasChannels else self.DeviceName
@@ -146,7 +137,9 @@ class Device(Thread):
             self.Logger[channel].create_new_log_file()
             log_info('Setting device name of {} to "{}"'.format(self.SectionName, self.DeviceName))
 
-    def read_device_name(self):
+    def read_device_name(self, channel=0):
+        if self.HasChannels:
+            return self.ChannelConfig.get('Names', 'CH{}'.format(channel))
         if self.Config.has_option('Names', self.SectionName):
             return self.Config.get('Names', self.SectionName)
         log_warning('Setting device name to "UNKNOWN"')
@@ -206,6 +199,10 @@ class Device(Thread):
     def get_target_bias(self, channel=0):
         return self.TargetBias[channel]
 
+    def get_output_status(self, channel=0):
+        log_warning('get_output_status not implemented')
+        return False
+
     def get_output(self):
         return self.get_status()
 
@@ -218,12 +215,9 @@ class Device(Thread):
     def get_max_step(self):
         return self.MaxStep
 
-    def read_status(self):
-        if self.HasChannels:
-            for chan, chan_num in zip(self.ch_str, self.ActiveChannels):
-                self.Status[chan] = self.interface.get_output_status(chan_num)[0]
-        else:
-            self.Status['CH0'] = self.interface.get_output_status()
+    def update_status(self):
+        for channel in self.ActiveChannels:
+            self.set_status(channel, self.get_output_status(channel))
 
     def get_update_time(self):
         return self.LastUpdate
@@ -231,21 +225,22 @@ class Device(Thread):
 
     # ============================
     # region SET-FUNCTIONS
-    def set_target_bias(self, target, chan):
-        if not self.validate_voltage(target, chan):
+    def set_bias(self, voltage, channel=0):
+        log_warning('set_bias not implemented')
+
+    def set_target_bias(self, target, channel):
+        if not self.validate_voltage(target, channel):
             return
-        self.TargetBias[chan] = target
+        self.TargetBias[channel] = target
         self.LastVChange = time()
         log_info('Set target bias to {}'.format(target))
-        log = 'SET_BIAS_TO' + '{0:7.1f}'.format(target)
-        self.add_log_entry(log, chan)
+        self.Logger[self.ActiveChannels.index(channel)].add_entry('SET_BIAS_TO {0:7.1f}'.format(target))
 
     def set_to_manual(self, status):
-        self.TargetBias = self.interface.set_to_manual(status)
-        self.IsManual = status
+        log_warning('set_to_manual not implemented')
 
-    def set_output(self, status):
-        return self.interface.set_output(status)
+    def set_output(self, status, channel=0):
+        log_warning('set_output not implemented')
 
     def set_ramp_speed(self, speed):
         log_info('Set ramp speed to {}'.format(speed))
@@ -260,23 +255,11 @@ class Device(Thread):
 
     # ============================
     # MISCELLANEOUS FUNCTIONS
-    def is_ramping(self, chan='CH0'):
-        ret_val = None
+    def is_ramping(self, channel=0):
+        return abs(self.get_bias(channel) - self.get_target_bias(channel)) > .1 if self.get_status(channel) else False
 
-        if chan == 'all':
-            for channel in self.ch_str:
-                try:
-                    ret_val = (abs(self.BiasNow[channel] - self.TargetBias[channel]) > 0.5 if self.get_status(channel) else False)
-                    if ret_val:
-                        return True
-                except ValueError:
-                    ret_val = False
-            return ret_val
-        else:
-            try:
-                return abs(self.BiasNow[chan] - self.TargetBias[chan]) > 0.5 if self.get_status(chan) else False
-            except ValueError:
-                return False
+    def all_are_ramping(self):
+        return all(self.is_ramping(channel) for channel in self.ActiveChannels)
 
     def validate_voltage(self, voltage, channel=0):
         if not self.MinBias[channel] - .1 < voltage < self.MaxBias[channel] + .1:
@@ -284,9 +267,9 @@ class Device(Thread):
             return False
         return True
 
-    def power_down(self, chan='CH0'):
-        self.set_target_bias(0, chan)
-        self.IsPoweringDown[chan] = True
+    def power_down(self, channel=0):
+        self.set_target_bias(0, channel)
+        self.IsPoweringDown[channel] = True
 
     def wait_for_device(self):
         now = time()
@@ -294,8 +277,8 @@ class Device(Thread):
             sleep(.2)
 
     def read_iv(self):
-        iv = self.interface.read_iv()
-        return iv
+        log_warning('read_iv not implemented')
+        return []
 
     def update_voltage_current(self):
         verb = False
@@ -304,157 +287,70 @@ class Device(Thread):
         self.wait_for_device()
         self.IsBusy = True
         try:
-            self.read_status()
+            self.update_status()
         except Exception as inst:
             print 'Could not update voltage/current- get output status:', inst, inst.args
             self.IsBusy = False
             return
         if verb:
             print '\tstatus', self.Status,
-        status = True if True in self.Status.itervalues() else False
+        status = any(self.Status)
         if status:
             try:
                 iv = self.read_iv()
                 self.fill_iv_now(iv)
                 self.LastUpdate = time()
-                # todo fix for channelmode
-                # if verb:
-                #     print '\tiv: ', iv,
-                #     print '\tbias_now', self.bias_now[],
-                #     print '\tcurrent_now', self.current_now
-                #     print '\treadIV', iv, self.target_bias
             except Exception as inst:
                 print 'Could not read valid iv', type(inst), inst
         self.IsBusy = False
         if verb:
             print '\tDONE'
 
-    def fill_iv_now(self, vec):
-        if self.HasChannels:
-            for chan, chan_num in zip(self.ch_str, self.ActiveChannels):
-                self.BiasNow[chan] = vec[chan_num]['voltage']
-                self.CurrentNow[chan] = vec[chan_num]['current']
-        else:
-            self.BiasNow['CH0'] = vec['voltage']
-            self.CurrentNow['CH0'] = vec['current']
+    def fill_iv_now(self, data):
+        for channel in self.ActiveChannels:
+            self.BiasNow[channel] = data[channel]['voltage']
+            self.CurrentNow[channel] = data[channel]['current']
 
-    def get_bias_now(self, chan='CH0'):
-        return self.BiasNow[chan]
+    def get_bias_now(self, channel=0):
+        return self.BiasNow[channel]
 
-    def get_current_now(self):
-        return self.CurrentNow
+    def get_current_now(self, channel=0):
+        return self.CurrentNow[channel]
 
     def get_last_update(self):
         return self.LastUpdate
 
-    def get_new_bias(self, chan='CH0'):
-        new_bias = 0
-        change = False
-        delta_v = self.TargetBias[chan] - self.interface.target_voltage
+    def calc_ramp_bias(self, channel=0):
+        """ Calculate the next step of the voltage if there is no inherit ramping method. """
+        delta_v = self.get_target_bias(channel) - self.get_bias(channel)
+        step_size = copysign(abs(self.RampSpeed * (time() - self.LastVChange)), delta_v)  # get the voltage step by multiplying speed and update interval
+        step_size = self.MaxStep if abs(step_size) > self.MaxStep else step_size
+        return self.get_target_bias(channel) if abs(delta_v) <= step_size else self.get_bias(channel) + step_size
 
-        # print 'target: %f \t bias: %f ==> %f V'%(self.target_bias,self.bias_now,delta_v)
-        t_now = time()
-        delta_t = t_now - self.LastVChange
-        step_size = abs(self.RampSpeed * delta_t)
-        # print 'step_size: %f \t %f - %f = %f \t %f'%(step_size,t_now,self.last_v_change,delta_t,self.ramp_speed),
+    def ramp(self):
+        """ Try slowly ramp up the voltage by iteratively increasing the set voltage (if the device has not inherent ramping method) """
 
-        # Limit the maximal voltage step size
-        if step_size > self.MaxStep:
-            step_size = self.MaxStep
-        # print step_size
-
-        # print 'delta U ',delta_v,step_size
-        if abs(delta_v) > 0.1:
-            if abs(delta_v) <= step_size:
-                new_bias = self.TargetBias[chan]
-            else:
-                new_bias = self.BiasNow[chan] + copysign(step_size, delta_v)
-            change = True
-        return change, new_bias
-
-    # def check_fast_ramp(self, old_ramp, old_step):
-    #     if self.is_ramping('all'):
-    #         if not self.interface.started_ramping:
-    #             old_ramp = self.get_ramp_speed()
-    #             old_step = self.get_max_step()
-    #             self.interface.started_ramping = True
-
-    def ramp(self, channel='CH0'):
-        # Try to update voltage (we remember the measurement from the last loop)
-        # (the step we can make in voltage is the ramp-speed times
-        # how many seconds passed since last change)
-
-        for chan in self.ch_str:
-            if self.IsPoweringDown[chan] and abs(self.BiasNow[chan]) < .1:
-                if self.HasChannels:
-                    self.interface.set_output(0, chan)
-                else:
-                    self.interface.set_output(0)
-                self.IsPoweringDown[chan] = False
-                print '{ch} of {dev} has ramped down and turned off'.format(ch=chan, dev=self.interface.name)
-                # End of ramp
+        for channel in self.ActiveChannels:
+            if self.IsPoweringDown[channel] and abs(self.BiasNow[channel]) < .5:
+                self.set_output(OFF, channel)
+                self.IsPoweringDown[channel] = False
+                log_info('CH{ch} of {dev} has ramped down and turned off'.format(ch=channel, dev=self.SectionName))
                 return
-        if self.interface.can_ramp:
-            for chan, i in zip(self.ch_str, self.ActiveChannels):
-                self.interface.set_voltage(self.TargetBias[chan], i)
+        if self.CanRamp:
+            for channel in self.ActiveChannels:
+                self.set_bias(self.get_target_bias(channel), channel)
             return
-        if self.Status[channel] == OFF:
-            change, new_bias = self.get_new_bias()
-            self.interface.set_voltage(new_bias)
-            return
-        tries = 0
-        last_bias = self.BiasNow[channel]
-        while abs(self.interface.target_voltage - self.BiasNow[channel]) > 1:
-            print self.interface.target_voltage, self.BiasNow[channel]
-            msg = 'Did not reach the current set voltage on the power supply:\n'
-            msg += '\tset_voltage:\t  {0:6.2f} V\n'.format(self.interface.target_voltage)
-            msg += '\tmeasured_voltage: {0:6.2f} V'.format(self.BiasNow[channel])
-            if not self.interface.can_ramp:
-                print msg, '\033[99m'
-                print "\033[99m" + ' ' + '\033[0m'
-            if not self.interface.can_ramp:
-                print colored('\nWARNING:', 'yellow'),
-                print colored(msg, 'red')
-            sleep(1)
-            self.update_voltage_current()
-            if abs(self.BiasNow[channel] - last_bias) < .1:
-                tries += 1
-            else:
-                last_bias = self.BiasNow[channel]
 
-            if tries > 10:
-                raise ValueError(msg)
-
-        change, new_bias = self.get_new_bias()
-        newtime = time()
-        # print step_size
-        # if tries:
-        # self.mimic_cmd()
-        # print 'delta U ',delta_v,step_size
-        if change:
-            # print 'new bias: ',new_bias
-            self.IsBusy = True
-            self.interface.set_voltage(new_bias)
-            if new_bias == self.TargetBias and not self.IsPoweringDown:
-                print '\n%s is done with ramping to %d' % (self.interface.name, self.TargetBias[channel])
-                self.mimic_cmd()
-            self.LastVChange = newtime
-            self.IsBusy = False
-        # if self.powering_down and abs(self.bias_now) < .1:
-        #     self.interface.set_output(0)
-        #     self.powering_down = False
-        #     print '\n%s has ramped down and turned off' % self.interface.name
-        #     self.mimic_cmd()
-        #     # End of ramp
-        for chan in self.ch_str:
-            if self.IsPoweringDown[chan] and abs(self.BiasNow[chan]) < .1:
-                if self.HasChannels:
-                    self.interface.set_output(0, chan)
-                else:
-                    self.interface.set_output(0)
-                self.IsPoweringDown[chan] = False
-                print '%s has ramped down and turned off' % self.interface.name
-                # End of ramp
+        # TODO: Shouldn't this be also threaded if there would be a device with several channels and no ramping method?
+        for channel in self.ActiveChannels:
+            if self.is_ramping(channel):
+                self.IsBusy = True
+                new_bias = self.calc_ramp_bias(channel)
+                self.set_bias(new_bias)
+                self.LastVChange = time()
+                if new_bias == self.get_target_bias(channel) and not self.IsPoweringDown[channel]:
+                    log_info('{} is done with ramping to {} V'.format(self.SectionName, self.get_target_bias()))
+                self.IsBusy = False
 
     @staticmethod
     def mimic_cmd():
