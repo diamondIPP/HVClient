@@ -24,24 +24,19 @@ class Keithley24XX(KeithleyHead):
         self.removeCharacters = '\r\n\x00\x13\x11\x10'
         self.init_keithley(hot_start)
         self.output = ''
+        self.hot_start()
 
     def init_keithley(self, hot_start=False):
-        if hot_start:
-            sleep(1)
-            self.clear_buffer()
-            self.identify()
-            self.set_source_output()
-            self.set_measurement_speed(2)  # was 10 before
-            self.clear_error_queue()
-            sleep(1)
-        else:
-            sleep(.1)
-            self.set_output(False)
+        sleep(.2)
+        self.clear_buffer()
+        self.identify()
+        self.set_source_output()
+        self.set_voltage_range(self.MaxVoltage)
+        self.set_measurement_speed(2)  # was 10 before
+
+        if not hot_start:
+            self.set_output(OFF)
             self.reset()
-            self.clear_buffer()
-            self.identify()
-            self.set_max_voltage()
-            self.set_voltage_range(self.max_voltage)
             self.set_source_output()
             self.set_fixed_volt_mode()
             self.set_standard_output_format(':FORM:ELEM VOLT,CURR,RES,TIME,STAT')
@@ -50,18 +45,17 @@ class Keithley24XX(KeithleyHead):
             self.set_average_filter(True)
             self.set_average_filter_count(3)
             self.set_current_protection(100e-6)
-            self.set_measurement_speed(2)  # was 10 before
-            self.clear_error_queue()
             self.set_compliance_abort_level('LATE')
-            # self.setComplianceAbortLevel('NEVER')
-            sleep(.1)
+
+        sleep(.3)
+        self.clear_error_queue()
 
     # ============================
     # SET-FUNCTIONS
 
-    def set_bias(self, voltage):
-        voltage = self.validate_voltage(voltage)
-        return self.write(':SOUR:VOLT %s' % voltage)
+    def set_bias(self, voltage, channel=0):
+        if self.validate_voltage(voltage):
+            return self.write(':SOUR:VOLT %s' % voltage)
 
     def set_beeper(self, status):
         data = ':SYST:BEEP:STAT '
@@ -127,6 +121,9 @@ class Keithley24XX(KeithleyHead):
             raise Exception('setting currentProtection: not valid current: %s' % value)
         return self.write(':CURR:PROT:LEV %s' % value)
 
+    def set_max_voltage(self):
+        self.MaxVoltage = 200 if self.Model == 2400 else 1100
+
     # ============================
     # GET-FUNCTIONS
     # returns the activated concurrent measured values
@@ -155,8 +152,8 @@ class Keithley24XX(KeithleyHead):
 
     def set_volt_sweep_stop(self, stop):
         print 'set sweepstopValue: %s' % stop
-        if self.max_voltage < math.fabs(stop):
-            stop = math.copysign(self.max_voltage, stop)
+        if self.MaxVoltage < math.fabs(stop):
+            stop = math.copysign(self.MaxVoltage, stop)
             print 'set voltage to maximum allowed voltage: %s' % stop
         stop_voltage = float(stop)
         if not self.validate_voltage(stop_voltage):
@@ -199,9 +196,9 @@ class Keithley24XX(KeithleyHead):
             raise Exception('Sweep Spacing Type not valid %s' % spacing_type)
         return self.write(':SOUR:SWE:SPAC %s' % spacing_type)
 
-    def set_sense_function(self, function):
+    def set_sense_function(self, f):
         # todo: check if function ok..
-        return self.write(':SENSE:FUNC \"%s\"' % function)
+        return self.write(':SENSE:FUNC \"%s\"' % f)
 
     def set_sense_resistance_range(self, res_range):
         if isfloat(res_range):
@@ -242,11 +239,11 @@ class Keithley24XX(KeithleyHead):
             print 'Protection Voltage no a Float: %s' % prot_volt
         pass
 
-    def set_source_function(self, function):
-        if function in ['VOLT', 'CURR', 'VOLTAGE', 'CURRENT']:
-            return self.write(':SOURCE:FUNC %s' % function)
+    def set_source_function(self, f):
+        if f in ['VOLT', 'CURR', 'VOLTAGE', 'CURRENT']:
+            return self.write(':SOURCE:FUNC %s' % f)
         else:
-            print 'try to set not valid source Function: %s' % function
+            print 'try to set not valid source Function: %s' % f
             return False
         pass
 
