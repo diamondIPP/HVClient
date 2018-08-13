@@ -77,7 +77,8 @@ class LiveMonitor(object):
         self.ax1.cla()
         self.ax2.cla()
         self.format()
-        self.TMin = self.time[0] if t_displayed == 'inf' else date2num(num2date(self.time[-1]) - timedelta(hours=times[t_displayed]))
+        if self.time:
+            self.TMin = self.time[0] if t_displayed == 'inf' else date2num(num2date(self.time[-1]) - timedelta(hours=times[t_displayed]))
 
         if len(self.time) > 2:
             try:
