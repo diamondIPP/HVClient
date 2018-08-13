@@ -117,7 +117,7 @@ if __name__ == '__main__':
     config.read(join(dirname(realpath(__file__)), 'config', 'keithley.cfg'))
 
     # devices = get_devices(config, False)
-    devices = [ISEG(config, 3, True)]
+    devices = [ISEG(config, 2, True)]
     print(devices[0].ActiveChannels)
     # devices = [Keithley24XX(config, 1, True)]
     app = QApplication([5])
