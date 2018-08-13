@@ -10,10 +10,9 @@ from PyQt4.QtCore import QTimer
 from sys import exit as end
 from ConfigParser import ConfigParser
 from DeviceReader import get_devices
-from devices.Keithley24XX import Keithley24XX
-from devices.ISEG import ISEG
 from os.path import dirname, realpath, join
 from DeviceBox import DeviceBox
+from argparse import ArgumentParser
 
 
 ON = True
@@ -113,13 +112,16 @@ class MenuBar(object):
 
 if __name__ == '__main__':
 
-    config = ConfigParser()
-    config.read(join(dirname(realpath(__file__)), 'config', 'keithley.cfg'))
+    parser = ArgumentParser()
+    parser.add_argument('--config', '-c', help='Config file', default='keithley.cfg')
+    parser.add_argument('--restart', '-R', action='store_true', help='restart hv devices (turn all OFF and set voltage to 0)')
+    args = parser.parse_args()
 
-    # devices = get_devices(config, False)
-    devices = [ISEG(config, 2, True)]
-    print(devices[0].ActiveChannels)
-    # devices = [Keithley24XX(config, 1, True)]
+    config = ConfigParser()
+    config.read(join(dirname(realpath(__file__)), 'config', args.config))
+
+    devices = get_devices(config, not args.restart)
+
     app = QApplication([5])
     app.setStyle('Macintosh')
     g = Gui(devices)

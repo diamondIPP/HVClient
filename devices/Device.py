@@ -102,28 +102,6 @@ class Device(Thread):
 
     # ============================
     # region INIT
-    # def init_interface(self, config, device_num, hot_start):
-    #     # if statements for model name
-    #     try:
-    #         print 'Instantiation:', self.SectionName, self.Config.get(self.SectionName, 'name')
-    #     except NoOptionError:
-    #         print 'Instantiation:', self.SectionName
-    #     model = self.ModelNumber
-    #     self.IsBusy = True
-    #     if model == 2400 or model == 2410:
-    #         self.interface = Keithley24XX(config, device_num, hot_start)
-    #     elif model == (237 or 236 or 238):
-    #         self.interface = Keithley23X(config, device_num, hot_start)
-    #     elif model == '6517B' or model == 6517:
-    #         self.interface = Keithley6517B(config, device_num, hot_start)
-    #     elif model == '2657A' or model == 2657:
-    #         self.interface = Keithley2657(config, device_num, hot_start)
-    #     elif model == 'NHS-6220x':
-    #         self.interface = ISEG(config, device_num, hot_start)
-    #     else:
-    #         print "unknown model number: could not instantiate any device", '--> exiting program'
-    #         sys.exit(-2)
-    #     self.IsBusy = False
         
     def init_logger(self):
         return [Logger(self.SectionName, channel, self.Config, on=channel in self.ActiveChannels) for channel in xrange(self.NChannels)]
