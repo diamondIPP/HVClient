@@ -24,9 +24,9 @@ ALL = 'all'
 # MAIN CLASS
 # ============================
 class ISEG(Device):
-    def __init__(self, config, device_no=1, hot_start=False):
+    def __init__(self, config, device_no=1, hot_start=False, print_logs=False):
 
-        Device.__init__(self, config, device_no, hot_start)
+        Device.__init__(self, config, device_no, hot_start, print_logs)
 
         # Basics
         self.CommandEndCharacter = '\r\n'

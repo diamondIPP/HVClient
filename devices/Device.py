@@ -18,7 +18,7 @@ OFF = False
 # MAIN CLASS
 # ============================
 class Device(Thread):
-    def __init__(self, config, device_num, hot_start):
+    def __init__(self, config, device_num, hot_start, print_logs=False):
         Thread.__init__(self)
 
         self.Dir = dirname(dirname(realpath(__file__)))
@@ -27,6 +27,7 @@ class Device(Thread):
         self.Config = config
         self.SectionName = 'HV{}'.format(device_num)
         self.HotStart = hot_start
+        self.PrintLogs = print_logs
 
         # Channel stuff
         self.NChannels = self.read_n_channels()
@@ -84,7 +85,7 @@ class Device(Thread):
 
     def write_logs(self):
         for channel in self.ActiveChannels:
-            self.Logger[channel].write_log(self.get_status(channel), self.get_bias(channel), self.get_current(channel), self.is_ramping(channel), self.get_target_bias(channel))
+            self.Logger[channel].write_log(self.get_status(channel), self.get_bias(channel), self.get_current(channel), self.is_ramping(channel), self.get_target_bias(channel), prnt=self.PrintLogs)
 
     def connect(self):
         log_warning('"connect" not implemented')

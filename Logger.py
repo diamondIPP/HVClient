@@ -56,27 +56,29 @@ class Logger:
     def create_new_log_file(self):
         self.configure()
 
-    def add_entry(self, txt):
+    def add_entry(self, txt, prnt=False):
+        if prnt:
+            print '{}\t{}'.format(txt, self.DeviceName)
         self.Logger.warning('{}\t{}'.format(txt, self.DeviceName))
 
-    def write_log(self, status, bias, current, is_ramping, target_bias):
+    def write_log(self, status, bias, current, is_ramping, target_bias, prnt=False):
         if strftime('%d') != self.Day:
             self.create_new_log_file()
         if status != self.LastStatus and self.LastStatus is not None:
             log_info('writing log on/off')
-            self.add_entry('DEVICE_{}'.format('ON' if status else 'OFF'))
+            self.add_entry('DEVICE_{}'.format('ON' if status else 'OFF'), prnt=prnt)
         self.LastStatus = status
         # only write measurements when device is ON
         if not status:
             return
-        self.add_entry('{v:10.3e} {c:10.3e}'.format(v=bias, c=current))
+        self.add_entry('{v:10.3e} {c:10.3e}'.format(v=bias, c=current), prnt=prnt)
         # write when ramping starts
         if is_ramping and not self.WasRamping:
-            self.add_entry('START_RAMPING_AT {0:7.1f}'.format(bias))
-            self.add_entry('TARGET_BIAS' + '{0:7.1f}'.format(target_bias))
+            self.add_entry('START_RAMPING_AT {0:7.1f}'.format(bias), prnt=prnt)
+            self.add_entry('TARGET_BIAS' + '{0:7.1f}'.format(target_bias), prnt=prnt)
         # write when ramping stops
         if self.WasRamping and not is_ramping:
-            self.add_entry('FINISH_RAMPING_AT {0:7.1f}'.format(bias))
+            self.add_entry('FINISH_RAMPING_AT {0:7.1f}'.format(bias), prnt=prnt)
         self.WasRamping = is_ramping
         self.Day = strftime('%d')
 
