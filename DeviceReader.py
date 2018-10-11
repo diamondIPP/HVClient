@@ -55,7 +55,7 @@ if __name__ == '__main__':
     conf = ConfigParser()
     conf.read(join(dirname(realpath(__file__)), 'config', args.config))
 
-    devices = get_devices(conf, not args.restart)
+    devices = get_devices(conf, not args.restart, print_logs=True)
 
     for device in devices:
         device.start()
