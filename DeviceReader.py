@@ -14,6 +14,7 @@ from devices.Keithley6517B import Keithley6517B
 from argparse import ArgumentParser
 from ConfigParser import ConfigParser
 from os.path import dirname, realpath, join
+import signal
 
 device_dic = {'2400': Keithley24XX,
               '2410': Keithley24XX,
@@ -32,7 +33,7 @@ def get_devices(config, hot_start, print_logs=False):
     print 'Loading HV devices: {}'.format(device_nrs)
     print '======================================='
     print '\n=============INSTANTIATION============='
-    return [init_device(config, nr, hot_start) for nr in device_nrs]
+    return [init_device(config, nr, hot_start, print_logs) for nr in device_nrs]
 
 
 def init_device(config, device_nr, hot_start, print_logs=False):
@@ -57,5 +58,12 @@ if __name__ == '__main__':
 
     devices = get_devices(conf, not args.restart, print_logs=True)
 
-    for device in devices:
-        device.start()
+    def signal_handler(signal, frame):
+        print 'Received SIGINT bla'
+        for dev in devices:
+            dev.IsKilled = True
+
+    signal.signal(signal.SIGINT, signal_handler)
+
+    for dev in devices:
+        dev.start()
