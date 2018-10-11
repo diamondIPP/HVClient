@@ -58,7 +58,7 @@ class Logger:
 
     def add_entry(self, txt, prnt=False):
         if prnt:
-            log_info('{}\t{}\t{}'.format(txt, self.DeviceName, self.Name))
+            log_info('{}\t{}\tCH{}'.format(txt, self.DeviceName, self.Channel))
         self.Logger.warning('{}\t{}'.format(txt, self.DeviceName))
 
     def write_log(self, status, bias, current, is_ramping, target_bias, prnt=False):
