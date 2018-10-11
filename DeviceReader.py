@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 # --------------------------------------------------------
 #       Tool to select to correct devices
 # created on Aug 13th 2018 by M. Reichmann (remichae@phys.ethz.ch)
