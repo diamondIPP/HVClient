@@ -43,6 +43,12 @@ class LiveMonitor(object):
         self.voltage = []
         self.current = []
 
+    def init(self, lst):
+        for data in lst:
+            self.current.append(data[2])
+            self.voltage.append(data[1])
+            self.time.append(date2num(data[0]))
+
     def get_duration(self):
         return num2date(self.time[-1]) - num2date(self.time[0]) if len(self.time) > 1 else timedelta(seconds=1)
 
@@ -61,10 +67,9 @@ class LiveMonitor(object):
             self.fig.subplots_adjust(bottom=.15)
             self.ax1.grid(ls='--', lw=.4)
 
-
-    def add_data(self, t, v, i):
+    def add_data(self, t, v, i, dttime=False):
         if v and (not self.time or t != self.time[-1] and v != 0):
-            self.time.append(date2num(datetime.fromtimestamp(t)))
+            self.time.append(date2num(datetime.fromtimestamp(t) if not dttime else t))
             self.voltage.append(float(v))
             self.current.append(float(i))
 
@@ -76,9 +81,9 @@ class LiveMonitor(object):
         self.VMax = vmax
         self.ax1.cla()
         self.ax2.cla()
-        self.format()
         if self.time:
             self.TMin = self.time[0] if t_displayed == 'inf' else date2num(num2date(self.time[-1]) - timedelta(hours=times[t_displayed]))
+        self.format()
 
         if len(self.time) > 2:
             try:
