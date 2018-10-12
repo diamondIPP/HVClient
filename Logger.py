@@ -28,7 +28,11 @@ class Logger:
         self.Config = config
         self.DeviceName = self.Config.get(self.Name, 'name')
         self.ModelName = self.Config.get(self.Name, 'model')
-        
+
+        # Directories
+        self.LoggingDir = join(self.Dir, self.Config.get('Main', 'testbeam_name'))
+        self.LogFileDir = join(self.LoggingDir, '{}_CH{}'.format(self.DeviceName, self.Channel))
+
         # Info fields
         self.LastStatus = None
         self.WasRamping = False
@@ -38,14 +42,12 @@ class Logger:
             self.configure()
 
     def configure(self):
-        logging_dir = join(self.Dir, self.Config.get('Main', 'testbeam_name'))
-        log_file_dir = join(logging_dir, '{}_CH{}'.format(self.DeviceName, self.Channel))
         # check if directories exist and create them if not
-        ensure_dir(logging_dir)
-        ensure_dir(log_file_dir)
+        ensure_dir(self.LoggingDir)
+        ensure_dir(self.LogFileDir)
 
         file_name = '{hv}_{dev}_{mod}_{t}.log'.format(hv=self.Name, dev=self.DeviceName, mod=self.ModelName, t=strftime('%Y_%m_%d_%H_%M_%S'))
-        file_path = join(log_file_dir, file_name)
+        file_path = join(self.LogFileDir, file_name)
         log_info('Creating LOGFILE: {}'.format(file_path))
         self.Logger.removeHandler(self.FileHandler)
         self.FileHandler = FileHandler(file_path)
@@ -86,4 +88,4 @@ class Logger:
 if __name__ == '__main__':
     conf = ConfigParser()
     conf.read('config/keithley.cfg')
-    l = Logger('HV1', 0, conf)
+    logger = Logger('HV1', 0, conf)
