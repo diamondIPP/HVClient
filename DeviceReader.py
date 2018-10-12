@@ -15,6 +15,7 @@ from argparse import ArgumentParser
 from ConfigParser import ConfigParser
 from os.path import dirname, realpath, join
 import signal
+from devices.Device import Device
 
 device_dic = {'2400': Keithley24XX,
               '2410': Keithley24XX,
@@ -34,6 +35,11 @@ def get_devices(config, hot_start, print_logs=False):
     print '======================================='
     print '\n=============INSTANTIATION============='
     return [init_device(config, nr, hot_start, print_logs) for nr in device_nrs]
+
+
+def get_log_dirs(config):
+    dev_list = [Device(config, nr, hot_start=True, init_logger=False) for nr in loads(config.get('Main', 'devices'))]
+    return [device.Logger[ch].LogFileDir for device in dev_list for ch in device.ActiveChannels]
 
 
 def init_device(config, device_nr, hot_start, print_logs=False):
@@ -58,12 +64,12 @@ if __name__ == '__main__':
 
     devices = get_devices(conf, not args.restart, print_logs=True)
 
+    for dev in devices:
+        dev.start()
+
     def signal_handler(signal, frame):
         print 'Received SIGINT bla'
         for dev in devices:
             dev.IsKilled = True
 
     signal.signal(signal.SIGINT, signal_handler)
-
-    for dev in devices:
-        dev.start()
