@@ -37,9 +37,9 @@ def get_devices(config, hot_start, print_logs=False):
     return [init_device(config, nr, hot_start, print_logs) for nr in device_nrs]
 
 
-def get_log_dirs(config):
-    dev_list = [Device(config, nr, hot_start=True, init_logger=False) for nr in loads(config.get('Main', 'devices'))]
-    return [device.Logger[ch].LogFileDir for device in dev_list for ch in device.ActiveChannels]
+def get_logging_devices(config, start_time):
+    return [Device(config, nr, hot_start=True, init_logger=False, start_time=start_time) for nr in loads(config.get('Main', 'devices'))]
+    # return [device.Logger[ch].LogFileDir for device in dev_list for ch in device.ActiveChannels]
 
 
 def init_device(config, device_nr, hot_start, print_logs=False):
