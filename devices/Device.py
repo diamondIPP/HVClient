@@ -18,7 +18,7 @@ OFF = False
 # MAIN CLASS
 # ============================
 class Device(Thread):
-    def __init__(self, config, device_num, hot_start, print_logs=False):
+    def __init__(self, config, device_num, hot_start, print_logs=False, init_logger=True):
         Thread.__init__(self)
 
         self.Dir = dirname(dirname(realpath(__file__)))
@@ -62,7 +62,7 @@ class Device(Thread):
         self.LastUpdate = time()
         self.CanRamp = False  # set in inheriting classes if ramping is available
 
-        self.Logger = self.init_logger()
+        self.Logger = self.init_logger(init_logger)
 
         print '---------------------------------------'
 
@@ -104,8 +104,8 @@ class Device(Thread):
     # ============================
     # region INIT
         
-    def init_logger(self):
-        return [Logger(self.SectionName, channel, self.Config, on=channel in self.ActiveChannels) for channel in xrange(self.NChannels)]
+    def init_logger(self, init=True):
+        return [Logger(self.SectionName, channel, self.Config, on=channel in self.ActiveChannels if init else False) for channel in xrange(self.NChannels)]
 
     def get_device_name(self, chan=0):
         return self.ChannelNames[chan] if self.HasChannels else self.DeviceName
