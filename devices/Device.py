@@ -4,9 +4,11 @@ from time import time, sleep
 from math import copysign
 import sys
 from Logger import Logger
-from Utils import log_warning, log_info, isint, log_critical
+from Utils import log_warning, log_info, isint, log_critical, isfloat
 from json import loads
-from os.path import dirname, realpath, join
+from os.path import dirname, realpath, join, basename
+from glob import glob
+from datetime import datetime
 
 __author__ = 'Michael Reichmann'
 
@@ -18,7 +20,7 @@ OFF = False
 # MAIN CLASS
 # ============================
 class Device(Thread):
-    def __init__(self, config, device_num, hot_start, print_logs=False, init_logger=True):
+    def __init__(self, config, device_num, hot_start, print_logs=False, init_logger=True, start_time=None):
         Thread.__init__(self)
 
         self.Dir = dirname(dirname(realpath(__file__)))
@@ -63,21 +65,23 @@ class Device(Thread):
         self.CanRamp = False  # set in inheriting classes if ramping is available
 
         self.Logger = self.init_logger(init_logger)
+        self.FromLogs = False
+        self.StartTime = self.load_start_time(start_time)
 
         print '---------------------------------------'
 
     # ============================
     # MAIN LOOP FOR THREAD (overwriting thread run)
     def run(self):
-        i = 0
         while not self.IsKilled:
-            sleep(.1)
+            sleep(.5 if self.FromLogs else .1)
             if not self.IsManual:
-                # print i
-                self.update_voltage_current()
-                self.write_logs()
-                self.ramp()
-                i += 1
+                if not self.FromLogs:
+                    self.update_voltage_current()
+                    self.write_logs()
+                    self.ramp()
+                else:
+                    self.update()
 
     def stop(self):
         self.IsKilled = True
@@ -109,6 +113,20 @@ class Device(Thread):
 
     def get_device_name(self, chan=0):
         return self.ChannelNames[chan] if self.HasChannels else self.DeviceName
+
+    @staticmethod
+    def load_start_time(start_time):
+        if start_time is None:
+            return datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        try:
+            t = datetime.strptime(start_time, '%H:%M')
+            return datetime.now().replace(hour=t.hour, minute=t.minute, second=0, microsecond=0)
+        except ValueError:
+            try:
+                t = datetime.strptime(start_time, '%d.%m.')
+                return datetime.now().replace(hour=t.hour, minute=t.minute, second=0, day=t.day, month=t.month, microsecond=0)
+            except ValueError:
+                log_critical('Format of date has to be either hh:mm or dd.mm.')
 
     def set_device_name(self, device_name, channel):
         if self.DeviceName != device_name:
@@ -200,6 +218,47 @@ class Device(Thread):
 
     def get_update_time(self):
         return self.LastUpdate
+
+    def get_data_from_logs(self, channel=0):
+        files = sorted(glob(join(self.Logger[channel].LogFileDir, '*')))
+        dates = [datetime.strptime('-'.join(basename(f).strip('.log').split('_')[-6:]), '%Y-%m-%d-%H-%M-%S') for f in files]
+
+        first_file_ind = dates.index(next(d for d in dates if d > self.StartTime)) - 1 if self.StartTime < dates[-1] else -1
+        data = []
+        for name, d in zip(files[first_file_ind:], dates[first_file_ind:]):
+            with open(name) as f:
+                for line in f.readlines():
+                    info = self.make_data(line, d)
+                    if info[0] and info[0] > self.StartTime:
+                        data.append(info)
+        return data
+
+    def get_last_data(self):
+        data = {}
+        for channel in self.ActiveChannels:
+            filename = sorted(glob(join(self.Logger[channel].LogFileDir, '*')))[-1]
+            d = datetime.strptime('-'.join(basename(filename).strip('.log').split('_')[-6:]), '%Y-%m-%d-%H-%M-%S')
+            f = open(filename)
+            f.seek(-50, 2)
+            info = f.readlines()[-1]
+            data[channel] = self.make_data(info, d)
+        return data
+
+    @staticmethod
+    def make_data(string, d):
+        info = string.split()
+        if isfloat(info[1]):
+            t = datetime.strptime(info[0], '%H:%M:%S')
+            return [d.replace(hour=t.hour, minute=t.minute, second=t.second), float(info[1]), float(info[2])]
+        return [0, 0, 0]
+
+    def update(self):
+        data = self.get_last_data()
+        for channel in self.ActiveChannels:
+            self.BiasNow[channel] = data[channel][1]
+            self.CurrentNow[channel] = data[channel][2]
+            self.LastUpdate = data[channel][0]
+
     # endregion
 
     # ============================
@@ -343,10 +402,5 @@ class Device(Thread):
 if __name__ == '__main__':
     conf = ConfigParser()
     conf.read('config/keithley.cfg')
-    device_no = 7
-    y = Device(conf, device_no, False)
-
-    # keithley1 = HVDevice(conf, 6, False)
-    # #keithley2 = HVDevice(conf, 2, False)
-    # keithley1.logger.warning("HALLO")
-    # #keithley2.logger.warning("HALLO")
+    device_no = loads(conf.get('Main', 'devices'))[0]
+    z = Device(conf, device_no, False, init_logger=False, start_time=None)
