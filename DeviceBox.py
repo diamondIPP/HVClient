@@ -56,8 +56,6 @@ class DeviceBox(QGroupBox):
 
     def update(self):
         self.set_status_labels()
-        current, voltage, t = self.Device.get_current(self.Channel), self.Device.get_bias(self.Channel), self.Device.LastUpdate
-        self.LiveMonitor.add_data(t, voltage, current)
         self.LiveMonitor.update(convert_unicode(self.Units.currentText()), int(self.MinCurrent.text()), int(self.MaxCurrent.text()), int(self.MinVoltage.text()), int(self.MaxVoltage.text()),
                                 t_displayed=str(self.DisplayTimes.currentText()))
         self.BiasButton.setEnabled(bool(self.Running.isChecked()))
@@ -89,19 +87,6 @@ class DeviceBox(QGroupBox):
         layout.addWidget(self.RampField, 7, 1, Qt.AlignLeft)
         layout.addWidget(self.create_ramp_button(), 7, 0)
 
-        # drawing
-        layout.addWidget(QLabel('Displayed Time'), 8, 0, Qt.AlignRight)
-        layout.addWidget(self.DisplayTimes, 8, 1, Qt.AlignLeft)
-        layout.addWidget(QLabel('Current Limits'), 9, 0, Qt.AlignRight)
-        layout.addWidget(self.MinCurrent, 9, 1, Qt.AlignLeft)
-        layout.addWidget(self.MaxCurrent, 9, 2, Qt.AlignLeft)
-        layout.addWidget(QLabel('Voltage Limits'), 10, 0, Qt.AlignRight)
-        layout.addWidget(self.MinVoltage, 10, 1, Qt.AlignLeft)
-        layout.addWidget(self.MaxVoltage, 10, 2, Qt.AlignLeft)
-        layout.addWidget(QLabel('Current Unit'), 11, 0, Qt.AlignRight)
-        layout.addWidget(self.Units, 11, 1, Qt.AlignLeft)
-        layout.addWidget(self.LiveMonitor.canvas, 0, 3, 12, 1)
-        layout.setColumnStretch(3, 50)
         for widget in self.children():
             if widget == self.StatusLabel:
                 continue
