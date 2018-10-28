@@ -81,7 +81,10 @@ class Device(Thread):
                     self.write_logs()
                     self.ramp()
                 else:
-                    self.update()
+                    try:
+                        self.update()
+                    except IOError:
+                        pass
 
     def stop(self):
         self.IsKilled = True
