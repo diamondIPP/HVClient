@@ -26,8 +26,8 @@ class DataBox(QGroupBox):
         format_widget(self, color='red', bold=True, font_size=22)
 
         # Drawing
-        self.MaxCurrent = make_spinbox(-1000, 1000, 0, 1)
-        self.MinCurrent = make_spinbox(-1000, 1000, 0, 1)
+        self.MaxCurrent = make_spinbox(-10000, 10000, 0, 1)
+        self.MinCurrent = make_spinbox(-10000, 10000, 0, 1)
         self.MinVoltage = make_spinbox(-1500, 1500, -1000, 50)
         self.MaxVoltage = make_spinbox(-1500, 1500, 1000, 50)
         self.DisplayTimes = make_combobox(times.keys(), ind=len(times) - 1)
