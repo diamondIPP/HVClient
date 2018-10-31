@@ -6,13 +6,14 @@ __author__ = 'micha'
 import os
 import sys
 import inspect
-from HV_interface import HVInterface
+from Device import Device
 import serial
 from time import sleep, time
 from collections import deque
 from string import maketrans
-import math
 from ConfigParser import ConfigParser
+from Utils import log_info, log_warning, isint
+from termcolor import colored
 
 
 # ============================
@@ -28,38 +29,39 @@ OFF = 0
 # ============================
 # MAIN CLASS
 # ============================
-class KeithleyHead(HVInterface):
+class KeithleyHead(Device):
     def __init__(self, config, device_no=1, hot_start=False):
-        HVInterface.__init__(self, config, device_no, hot_start)
+
+        Device.__init__(self, config, device_no, hot_start)
+
+        # Serial
         self.bOpen = False
         self.bOpenInformed = False
-        self.serialPortName = config.get(self.section_name, 'address')
+        self.serialPortName = config.get(self.SectionName, 'address')
+        self.baudrate = config.getint(self.SectionName, 'baudrate')
+        self.serial = None
+        self.commandEndCharacter = chr(13) + chr(10)
+
         self.writeSleepTime = 0.1
         self.readSleepTime = 0.2
-        self.baudrate = config.getint(self.section_name, 'baudrate')
-        self.commandEndCharacter = chr(13) + chr(10)
-        self.measurments = deque()
+        self.measurements = deque()
         self.last_voltage = 0
-        self.serial = None
-        self.model = None
         self.identifier = None
-        self.max_voltage = None
+        self.Model = None
+        self.MaxVoltage = None
         self.manual = False
+        self.open_serial_port()
+
+    def connect(self):
         self.open_serial_port()
 
     def open_serial_port(self):
         try:
-            self.serial = serial.Serial(
-                port=self.serialPortName,
-                baudrate=57600,
-                parity=serial.PARITY_NONE,
-                stopbits=serial.STOPBITS_ONE,
-                bytesize=serial.EIGHTBITS,
-                timeout=1, )
+            self.serial = serial.Serial(port=self.serialPortName, baudrate=57600, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, bytesize=serial.EIGHTBITS, timeout=1, )
             self.bOpen = True
-            print 'Open serial port: \'%s\'' % self.serialPortName
+            log_info('Open serial port: {}'.format(self.serialPortName))
         except serial.SerialException:
-            print 'Could not open serial Port: \'%s\'' % self.serialPortName
+            log_warning('Could not open serial port: {}'.format(self.serialPortName))
             self.bOpen = False
 
     def port_is_open(self):
@@ -70,7 +72,7 @@ class KeithleyHead(HVInterface):
     def is_tripped(self, statusword):
         bit = 0x08
         if int(statusword) & bit == bit:
-            print 'keithley is tripped'
+            log_warning('keithley is tripped')
             self.clear_error_queue()
             self.clear_buffer()
             sleep(1)
@@ -79,12 +81,10 @@ class KeithleyHead(HVInterface):
 
     # ============================
     # DEVICE FUNCTIONS
-    def set_output(self, status):
-        print_value = 'set Output to '
-        data = ':OUTP '
-        data += ('ON' if status else 'OFF')
-        print_value += ('ON' if status else 'OFF')
-        print print_value
+    def set_output(self, status, channel=0):
+        out = 'ON' if status else 'OFF'
+        log_info('Set output to {}'.format(out))
+        data = ':OUTP {}'.format(out)
         return self.write(data)
 
     def reset(self):
@@ -108,27 +108,20 @@ class KeithleyHead(HVInterface):
 
     # ============================
     # SET-FUNCTIONS
-    def set_bias(self, voltage):
-        self.set_voltage(voltage)
-
-    # def set_voltage(self, value):
-    #     pass
+    def set_bias(self, voltage, channel=0):
+        log_warning('set_bias not implemented')
 
     def set_immediate_voltage(self, voltage):
         voltage = self.validate_voltage(voltage)
-        data = ('SOUR:VOLT:LEV:IMM:AMPL ' if self.model == '6517B' else 'SOUR:VOLT:IMM:AMPL ')
+        data = ('SOUR:VOLT:LEV:IMM:AMPL ' if self.Model == '6517B' else 'SOUR:VOLT:IMM:AMPL ')
         data += voltage
         return self.write(data)
 
     def set_max_voltage(self):
-        if self.model == '6517B':
-            self.max_voltage = 1000
-        elif self.model == 2400:
-            self.max_voltage = 200
-        elif self.model == 2410:
-            self.max_voltage = 1100
+        if self.Model == '6517B':
+            self.MaxVoltage = 1000
         else:
-            self.max_voltage = 0
+            self.MaxVoltage = 0
             raise ValueError('could not find the model name --> setting max voltage to zero')
 
     # set the format s.t. it returns the measurement of the given value and the voltage of the output
@@ -141,14 +134,7 @@ class KeithleyHead(HVInterface):
         return self.write(':SENS:CURR:NPLC %s' % value)
 
     def set_to_manual(self, status):
-        target = 0
-        if not status:
-            self.write(':SYST:REM')
-            target = float(self.get_answer_for_query(':SOUR:VOLT?'))
-        else:
-            self.write(':SYST:LOCAL')
-        self.manual = status
-        return target
+        self.write(':SYST:{}'.format('LOCAL' if status else 'REM'))
 
     def set_filter_type(self, filter_type):
         pass
@@ -162,7 +148,7 @@ class KeithleyHead(HVInterface):
     # ============================
     # GET-FUNCTIONS
     def get_model_name(self):
-        self.model = 9999
+        self.Model = 9999
         if self.identifier == '':
             self.identify()
         else:
@@ -170,13 +156,13 @@ class KeithleyHead(HVInterface):
             if len(ident_list) > 5:
                 if ident_list[3].lower().startswith('model'):
                     mod = ident_list[4]
-                    self.model = int(mod) if self.is_number(mod) else mod
-            print 'Connected Keithley Model', self.model
+                    self.Model = int(mod) if isint(mod) else mod
+            log_info(colored('Connected to Keithley Model {}'.format(self.Model), 'green'))
         self.set_max_voltage()
 
-    def get_output_status(self):
+    def get_output_status(self, channel=0):
         answer = self.get_answer_for_query(':OUTP?')
-        while len(answer) > 1 and not self.is_number(answer):
+        while len(answer) > 1 and not isint(answer):
             answer = self.get_answer_for_query(':OUTP?')
         if len(answer) > 0 and not answer == '':
             if answer.isdigit():
@@ -251,15 +237,15 @@ class KeithleyHead(HVInterface):
     # ============================
     # READ FUNCTIONS
     def read_current(self):
-        if len(self.measurments) == 0:
+        if len(self.measurements) == 0:
             return 0
-        return self.measurments[-1][2]
+        return self.measurements[-1][2]
         pass
 
     def read_voltage(self):
-        if len(self.measurments) == 0:
+        if len(self.measurements) == 0:
             return 0
-        return self.measurments[-1][1]
+        return self.measurements[-1][1]
         pass
 
     def read_iv(self):
@@ -268,13 +254,13 @@ class KeithleyHead(HVInterface):
             answer = answer.split()
             voltage = float(answer[0])
             current = float(answer[1])
-            if self.model == '6517B':
+            if self.Model == '6517B':
                 [voltage, current] = [current, voltage]
 
             rest = answer[2:] if len(answer) > 2 else None
-            measurment = [float(x) for x in answer]
-            self.measurments.append(measurment)
-            return {'current': current, 'voltage': voltage, 'rest': rest}
+            measurement = [float(x) for x in answer]
+            self.measurements.append(measurement)
+            return [{'current': current, 'voltage': voltage, 'rest': rest}]
         except Exception, err:
             print err
             raise Exception('Could not perform valid IV Measurement, received "%s"' % answer)
@@ -287,15 +273,15 @@ class KeithleyHead(HVInterface):
         data = data.translate(maketrans(',', ' '))
         return data.strip()
 
-    def validate_voltage(self, voltage):
-        if self.max_voltage < math.fabs(voltage) and self.is_float(voltage):
-            voltage = math.copysign(self.max_voltage, float(voltage))
-            print 'set voltage to maximum allowed voltage: %s' % voltage
-        elif not self.is_float(voltage):
-            print 'invalid Voltage: %s' % voltage
-            voltage = 0
-        self.target_voltage = voltage
-        return voltage
+    # def validate_voltage(self, voltage):
+    #     if self.max_voltage < math.fabs(voltage) and self.is_float(voltage):
+    #         voltage = math.copysign(self.max_voltage, float(voltage))
+    #         print 'set voltage to maximum allowed voltage: %s' % voltage
+    #     elif not self.is_float(voltage):
+    #         print 'invalid Voltage: %s' % voltage
+    #         voltage = 0
+    #     self.target_voltage = voltage
+    #     return voltage
 
     def convert_data(self, timestamp, data):
         try:
@@ -311,13 +297,13 @@ class KeithleyHead(HVInterface):
             # if len(new_data) > 5:
             #     retVal = self.convert_data(timestamp, new_data[:5])
             #     retVal = self.convert_data(timestamp, new_data[5:])
-            measurment = [float(x) for x in new_data]
-            measurment.insert(0, timestamp)
-            self.measurments.append(measurment)
-            # self.last_voltage = measurment[0]
-            tripped = self.is_tripped(measurment[5])
+            measurement = [float(x) for x in new_data]
+            measurement.insert(0, timestamp)
+            self.measurements.append(measurement)
+            # self.last_voltage = measurement[0]
+            tripped = self.is_tripped(measurement[5])
             print '%d: Measured at %8.2f V: %8.2e A, %s   ==>Length of Queue: %s' % (
-                measurment[0], measurment[1], measurment[2], tripped, len(self.measurments))  # , self.nTrigs)
+                measurement[0], measurement[1], measurement[2], tripped, len(self.measurements))  # , self.nTrigs)
             if tripped:
                 return False
             else:
@@ -325,7 +311,8 @@ class KeithleyHead(HVInterface):
         except:
             raise
 
+
 if __name__ == '__main__':
     conf = ConfigParser()
-    conf.read('keithley.cfg')
-    keithley = KeithleyHead(conf, 2)
+    conf.read('config/keithley.cfg')
+    keithley = KeithleyHead(conf, 1)
