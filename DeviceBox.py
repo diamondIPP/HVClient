@@ -20,7 +20,7 @@ class DeviceBox(QGroupBox):
     def __init__(self, device, channel):
 
         super(DeviceBox, self).__init__()
-        self.setTitle(device.read_device_name(channel))
+        self.setTitle('CH{c} - {n}'.format(n=device.read_device_name(channel), c=channel))
 
         self.Device = device
         self.Channel = channel
