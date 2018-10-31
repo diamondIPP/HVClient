@@ -15,13 +15,16 @@ HEIGHT = 20
 
 class DataBox(QGroupBox):
 
-    def __init__(self, device, channel):
+    def __init__(self, device=None, channel=None):
 
         super(DataBox, self).__init__()
-        self.setTitle('CH{c} - {n}'.format(n=device.read_device_name(channel), c=channel))
-
         self.Device = device
         self.Channel = channel
+        if self.Device is None:
+            self.make_placeholder()
+            return
+
+        self.setTitle('CH{c} - {n}'.format(n=device.read_device_name(channel), c=channel))
 
         format_widget(self, color='red', bold=True, font_size=22)
 
@@ -39,9 +42,18 @@ class DataBox(QGroupBox):
         self.make()
 
     def update(self):
+        if self.Device is None:
+            return
         self.LiveMonitor.add_data(self.Device.LastUpdate, self.Device.BiasNow[self.Channel], self.Device.CurrentNow[self.Channel], dttime=True)
         self.LiveMonitor.update(convert_unicode(self.Units.currentText()), int(self.MinCurrent.text()), int(self.MaxCurrent.text()), int(self.MinVoltage.text()), int(self.MaxVoltage.text()),
                                 t_displayed=str(self.DisplayTimes.currentText()))
+
+    def make_placeholder(self):
+        layout = QGridLayout(self)
+        layout.setContentsMargins(4, 4, 4, 4)
+        dummy = LiveMonitor(dummy=True)
+        layout.addWidget(dummy.canvas, 0, 3, 12, 1)
+        self.setLayout(layout)
 
     def make(self):
         layout = QGridLayout(self)

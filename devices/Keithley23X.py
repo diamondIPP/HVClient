@@ -9,8 +9,8 @@ import serial
 import os,sys,inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
-sys.path.insert(0,parentdir) 
-from HV_interface import HVInterface
+sys.path.insert(0,parentdir)
+from KeithleyHead import KeithleyHead
 from time import sleep,time
 import math
 
@@ -24,10 +24,10 @@ OFF = 0
 # ============================
 # MAIN CLASS
 # ============================
-class Keithley23X(HVInterface):
+class Keithley23X(KeithleyHead):
     def __init__(self, config, device_no=1, hot_start=False,init=True):
+        KeithleyHead.__init__(self, config, device_no,hot_start)
         self.Busy = False
-        HVInterface.__init__(self, config, device_no,hot_start)
         self.bOpen = False
         self.read_config(config)
         self.lastVoltage = 0

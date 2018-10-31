@@ -59,8 +59,8 @@ class Gui(QMainWindow):
         for device_box in self.DeviceBoxes:
             try:
                 device_box.update()
-            except (ValueError, SerialException):
-                pass
+            except (ValueError, SerialException) as err:
+                print err
 
     def configure(self):
         self.setGeometry(2000, 300, 1000, 100 + self.NDevices / 2 * 300)
@@ -84,6 +84,10 @@ class Gui(QMainWindow):
                 vboxes[i / 2].addWidget(box)
                 boxes.append(box)
                 i += 1
+        if self.NDevices % 2 == 1:
+            box = DeviceBox() if not self.FromLogs else DataBox()
+            vboxes[-1].addWidget(box)
+            boxes.append(box)
         for box in vboxes:
             self.MainBox.addLayout(box)
         return boxes
