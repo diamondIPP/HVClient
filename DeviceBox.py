@@ -20,10 +20,14 @@ class DeviceBox(QGroupBox):
     def __init__(self, device=None, channel=None):
 
         super(DeviceBox, self).__init__()
-        self.setTitle('CH{c} - {n}'.format(n=device.read_device_name(channel), c=channel))
 
         self.Device = device
         self.Channel = channel
+        if self.Device is None:
+            self.make_placeholder()
+            return
+
+        self.setTitle('CH{c} - {n}'.format(n=device.read_device_name(channel), c=channel))
 
         format_widget(self, color='red', bold=True, font_size=22)
 
@@ -69,6 +73,9 @@ class DeviceBox(QGroupBox):
     def make_placeholder(self):
         layout = QGridLayout(self)
         layout.setContentsMargins(4, 4, 4, 4)
+        dummy = LiveMonitor(dummy=True)
+        layout.addWidget(dummy.canvas, 0, 3, 12, 1)
+        self.setLayout(layout)
 
     def make(self):
         layout = QGridLayout(self)

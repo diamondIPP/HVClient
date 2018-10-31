@@ -5,7 +5,7 @@
 # created on June 29th 2018 by M. Reichmann (remichae@phys.ethz.ch)
 # --------------------------------------------------------
 
-from PyQt4.QtGui import QGroupBox, QGridLayout, QLabel, QLineEdit, QPushButton, QSpinBox, QComboBox, QCheckBox
+from PyQt4.QtGui import QGroupBox, QGridLayout, QLabel, QLineEdit, QPushButton, QSpinBox, QComboBox, QCheckBox, QPlainTextEdit
 from PyQt4.QtCore import Qt
 from Utils import do, convert_unicode
 from LiveMonitor import LiveMonitor, times, units
@@ -103,6 +103,14 @@ def make_line_edit(txt='', length=None):
     line_edit.setText(txt)
     do(line_edit.setMaximumWidth, length)
     return line_edit
+
+
+def make_text_edit(txt='', length=None, min_height=None):
+    text_edit = QPlainTextEdit()
+    text_edit.setPlainText(txt)
+    do(text_edit.setMaximumWidth, length)
+    do(text_edit.setMinimumHeight, min_height)
+    return text_edit
 
 
 def make_button(txt, size=None, height=HEIGHT):

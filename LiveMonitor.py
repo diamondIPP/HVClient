@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from matplotlib.dates import DateFormatter, date2num, num2date
 from datetime import datetime, timedelta
 from collections import OrderedDict
+from warnings import filterwarnings
 
 
 times = OrderedDict([('5min', 5 / 60.), ('10min', 10 / 60.), ('20min', 20 / 60.), ('0.5', .5), ('1', 1), ('2', 2), ('4', 4), ('8', 8), ('inf', 1000)])
@@ -27,15 +28,7 @@ class LiveMonitor(object):
         self.fig = fig
         self.ax1 = ax1
         if dummy:
-            col = 'snow'
-            ax1.spines['bottom'].set_color(col)
-            ax1.spines['top'].set_color(col)
-            ax1.spines['right'].set_color(col)
-            ax1.spines['left'].set_color(col)
-            ax1.tick_params(axis='x', colors=col)
-            ax1.tick_params(axis='y', colors=col)
-            ax1.set_facecolor(col)
-            fig.patch.set_facecolor(col)
+            self.format_dummy(ax1, fig)
             self.canvas = FigureCanvas(fig)
             return
 
@@ -60,6 +53,18 @@ class LiveMonitor(object):
             self.current.append(data[2])
             self.voltage.append(data[1])
             self.time.append(date2num(data[0]))
+
+    def format_dummy(self, ax, fig):
+        filterwarnings('ignore')
+        col = 'snow'
+        ax.spines['bottom'].set_color(col)
+        ax.spines['top'].set_color(col)
+        ax.spines['right'].set_color(col)
+        ax.spines['left'].set_color(col)
+        ax.tick_params(axis='x', colors=col)
+        ax.tick_params(axis='y', colors=col)
+        ax.set_axis_bgcolor(col)
+        fig.patch.set_facecolor(col)
 
     def get_duration(self):
         return num2date(self.time[-1]) - num2date(self.time[0]) if len(self.time) > 1 else timedelta(seconds=1)

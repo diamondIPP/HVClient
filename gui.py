@@ -63,7 +63,7 @@ class Gui(QMainWindow):
                 print err
 
     def configure(self):
-        self.setGeometry(2000, 300, 1000, 100 + self.NDevices / 2 * 300)
+        self.setGeometry(2000, 300, (800 if self.FromLogs else 400) * ((self.NDevices + 1) / 2), 400)
         self.setWindowTitle('ETH High Voltage Client')
         self.setWindowIcon(QIcon(join(self.Dir, 'Pics', 'icon.svg')))
         self.setCentralWidget(QWidget())
