@@ -17,7 +17,7 @@ HEIGHT = 20
 
 class DeviceBox(QGroupBox):
 
-    def __init__(self, device, channel):
+    def __init__(self, device=None, channel=None):
 
         super(DeviceBox, self).__init__()
         self.setTitle('CH{c} - {n}'.format(n=device.read_device_name(channel), c=channel))
@@ -65,6 +65,10 @@ class DeviceBox(QGroupBox):
         self.set_status_label()
         self.set_voltage_label()
         self.set_current_label()
+
+    def make_placeholder(self):
+        layout = QGridLayout(self)
+        layout.setContentsMargins(4, 4, 4, 4)
 
     def make(self):
         layout = QGridLayout(self)

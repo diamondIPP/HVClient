@@ -14,7 +14,7 @@ units = OrderedDict([('pA', 1e-12), ('nA', 1e-9), (u'μA', 1e-6), ('mA', 1e-3), 
 
 class LiveMonitor(object):
 
-    def __init__(self):
+    def __init__(self, dummy=False):
 
         self.Unit = 'nA'
         self.VMin = -100
@@ -26,6 +26,18 @@ class LiveMonitor(object):
         fig, ax1 = plt.subplots()
         self.fig = fig
         self.ax1 = ax1
+        if dummy:
+            col = 'snow'
+            ax1.spines['bottom'].set_color(col)
+            ax1.spines['top'].set_color(col)
+            ax1.spines['right'].set_color(col)
+            ax1.spines['left'].set_color(col)
+            ax1.tick_params(axis='x', colors=col)
+            ax1.tick_params(axis='y', colors=col)
+            ax1.set_facecolor(col)
+            fig.patch.set_facecolor(col)
+            self.canvas = FigureCanvas(fig)
+            return
 
         self.ax1.set_xlabel('Time [hh:mm]')
         self.ax1.set_ylabel('Leakage Current [{}]'.format(self.Unit), color='r')

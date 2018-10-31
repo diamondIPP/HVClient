@@ -84,6 +84,10 @@ class Gui(QMainWindow):
                 vboxes[i / 2].addWidget(box)
                 boxes.append(box)
                 i += 1
+        if self.NDevices % 2 == 1:
+            box = DeviceBox() if not self.FromLogs else DataBox()
+            vboxes[-1].addWidget(box)
+            boxes.append(box)
         for box in vboxes:
             self.MainBox.addLayout(box)
         return boxes
