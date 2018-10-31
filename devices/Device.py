@@ -81,10 +81,7 @@ class Device(Thread):
                     self.write_logs()
                     self.ramp()
                 else:
-                    try:
-                        self.update()
-                    except IOError:
-                        pass
+                    self.update()
 
     def stop(self):
         self.IsKilled = True
@@ -239,12 +236,15 @@ class Device(Thread):
     def get_last_data(self):
         data = {}
         for channel in self.ActiveChannels:
-            filename = sorted(glob(join(self.Logger[channel].LogFileDir, '*')))[-1]
-            d = datetime.strptime('-'.join(basename(filename).strip('.log').split('_')[-6:]), '%Y-%m-%d-%H-%M-%S')
-            f = open(filename)
-            f.seek(-50, 2)
-            info = f.readlines()[-1]
-            data[channel] = self.make_data(info, d)
+            try:
+                filename = sorted(glob(join(self.Logger[channel].LogFileDir, '*')))[-1]
+                d = datetime.strptime('-'.join(basename(filename).strip('.log').split('_')[-6:]), '%Y-%m-%d-%H-%M-%S')
+                f = open(filename)
+                f.seek(-50, 2)
+                info = f.readlines()[-1]
+                data[channel] = self.make_data(info, d)
+            except IOError:
+                data[channel] = [0, 0, 0]
         return data
 
     @staticmethod
