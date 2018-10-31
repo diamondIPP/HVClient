@@ -59,6 +59,8 @@ class DeviceBox(QGroupBox):
         self.make()
 
     def update(self):
+        if self.Device is None:
+            return
         self.set_status_labels()
         self.LiveMonitor.update(convert_unicode(self.Units.currentText()), int(self.MinCurrent.text()), int(self.MaxCurrent.text()), int(self.MinVoltage.text()), int(self.MaxVoltage.text()),
                                 t_displayed=str(self.DisplayTimes.currentText()))
