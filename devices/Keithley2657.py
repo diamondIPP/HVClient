@@ -12,7 +12,7 @@ import os,sys,inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir) 
-from HV_interface import HVInterface
+from KeithleyHead import KeithleyHead
 from time import sleep,time
 
 # ============================
@@ -24,11 +24,11 @@ OFF = 0
 # ============================
 # MAIN CLASS
 # ============================
-class Keithley2657(HVInterface):
+class Keithley2657(KeithleyHead):
     def __init__(self, config, device_no=1, hot_start=False):
-        HVInterface.__init__(self, config, device_no, hot_start)
+        KeithleyHead.__init__(self, config, device_no, hot_start)
         self.bOpen = False
-        self.ip_address = config.get(self.section_name, 'ip_address')
+        self.ip_address = config.get(self.SectionName, 'ip_address')
         self.rm = visa.ResourceManager('@py')
         self.inst = None
         self.identifier = None
@@ -40,11 +40,11 @@ class Keithley2657(HVInterface):
 
     def read_config(self):
         self.compliance = 1e-6
-        if self.config.has_option(self.section_name,'compliance'):
-            self.compliance = float(self.config.get(self.section_name,'compliance'))
+        if self.Config.has_option(self.SectionName,'compliance'):
+            self.compliance = float(self.Config.get(self.SectionName,'compliance'))
         self.measure_range_current = 1e-6
-        if self.config.has_option(self.section_name,'measure_range'):
-            self.measure_range_current = float(self.config.get(self.section_name,'measure_range'))
+        if self.Config.has_option(self.SectionName,'measure_range'):
+            self.measure_range_current = float(self.Config.get(self.SectionName,'measure_range'))
         pass
     
     def check_port(self,port_no):
