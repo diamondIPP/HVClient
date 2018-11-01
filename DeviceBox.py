@@ -129,7 +129,7 @@ class DeviceBox(QGroupBox):
 
     def set_voltage_label(self):
         self.VoltageLabel.setText('{v:4.1f} V'.format(v=self.Device.get_bias(self.Channel)) if self.Device.get_status(self.Channel) else '---')
-        format_widget(self.VoltageLabel, color='blue', font_size=FONTSIZE * 2, bold=True, font='ubuntu')
+        format_widget(self.VoltageLabel, color='darkCyan', font_size=FONTSIZE * 2, bold=True, font='ubuntu')
 
     def set_current_label(self):
         unit = convert_unicode(self.Units.currentText())

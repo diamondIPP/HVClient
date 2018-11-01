@@ -147,7 +147,7 @@ if __name__ == '__main__':
     devices = get_devices(config, not args.restart, print_logs=True) if not args.from_logs else get_logging_devices(config, start_time)
     # devices = get_dummies(config)
 
-    app = QApplication([5])
+    app = QApplication(['5'])
     filterwarnings('ignore')
     app.setStyleSheet(qdarkstyle.load_stylesheet_pyside())
     g = Gui(devices, args.from_logs)
