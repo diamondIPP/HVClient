@@ -139,7 +139,7 @@ class DeviceBox(QGroupBox):
 
     def set_current_unit(self, current):
         for unit, value in units.iteritems():
-            if current / value < 1000:
+            if float(current) / value < 1000:
                 self.Unit = unit
 
     def create_ramp_button(self):
