@@ -133,6 +133,7 @@ class DeviceBox(QGroupBox):
 
     def set_current_label(self):
         current = self.Device.get_current(self.Channel)
+        self.set_current_unit(current)
         self.CurrentLabel.setText(u'{c:3.1f} {u}'.format(c=current / units[self.Unit], u=self.Unit) if self.Device.get_status(self.Channel) else '---')
         format_widget(self.CurrentLabel, color='red', font_size=FONTSIZE * 2, bold=True, font='ubuntu')
 
