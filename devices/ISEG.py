@@ -151,7 +151,11 @@ class ISEG(Device):
         return self.write(':CONF:RAMP:{type} {s:.2f}'.format(type=ramp_type, s=speed))
 
     def configure_ramp_speed_voltage(self, speed=None):
+        log_info('Set ramp speed to {}'.format(speed))
         self.configure_ramp_speed('VOLT', speed)
+
+    def set_ramp_speed(self, speed):
+        self.configure_ramp_speed_voltage(speed)
 
     def configure_ramp_speed_current(self, speed=None):
         self.configure_ramp_speed('CURR', speed)
