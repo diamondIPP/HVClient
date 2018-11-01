@@ -9,12 +9,14 @@ from PyQt4.QtGui import QMainWindow, QIcon, QApplication, QAction, QFontDialog, 
 from PyQt4.QtCore import QTimer
 from sys import exit as end
 from ConfigParser import ConfigParser
-from DeviceReader import get_devices, get_logging_devices
+from DeviceReader import get_devices, get_logging_devices, get_dummies
 from os.path import dirname, realpath, join
 from DeviceBox import DeviceBox
 from DataBox import DataBox
 from argparse import ArgumentParser
 from serial import SerialException
+import qdarkstyle
+from warnings import filterwarnings, catch_warnings
 
 
 ON = True
@@ -143,8 +145,10 @@ if __name__ == '__main__':
     start_time = None if args.start_time == 'now' else args.start_time
 
     devices = get_devices(config, not args.restart, print_logs=True) if not args.from_logs else get_logging_devices(config, start_time)
+    # devices = get_dummies(config)
 
     app = QApplication([5])
-    app.setStyle('Macintosh')
+    filterwarnings('ignore')
+    app.setStyleSheet(qdarkstyle.load_stylesheet_pyside())
     g = Gui(devices, args.from_logs)
     end(app.exec_())
