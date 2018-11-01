@@ -39,7 +39,10 @@ def get_devices(config, hot_start, print_logs=False):
 
 def get_logging_devices(config, start_time):
     return [Device(config, nr, hot_start=True, init_logger=False, start_time=start_time) for nr in loads(config.get('Main', 'devices'))]
-    # return [device.Logger[ch].LogFileDir for device in dev_list for ch in device.ActiveChannels]
+
+
+def get_dummies(config):
+    return [Device(config, nr, hot_start=True, init_logger=False) for nr in loads(config.get('Main', 'devices'))]
 
 
 def init_device(config, device_nr, hot_start, print_logs=False):
