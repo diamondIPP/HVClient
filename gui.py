@@ -149,6 +149,6 @@ if __name__ == '__main__':
 
     app = QApplication(['5'])
     filterwarnings('ignore')
-    app.setStyleSheet(qdarkstyle.load_stylesheet_pyside())
+    app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt())
     g = Gui(devices, args.from_logs)
     end(app.exec_())

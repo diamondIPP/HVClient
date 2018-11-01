@@ -48,7 +48,7 @@ class DeviceBox(QGroupBox):
         self.MinVoltage = make_spinbox(-1500, 1500, -1000, 50)
         self.MaxVoltage = make_spinbox(-1500, 1500, 1000, 50)
         self.DisplayTimes = make_combobox(times.keys(), ind=len(times) - 1)
-        self.Units = make_combobox(units.keys(), ind=1)
+        self.Unit = 'nA'
 
         # Status labels
         self.StatusLabel = make_label('')
@@ -64,7 +64,7 @@ class DeviceBox(QGroupBox):
         if self.Device is None:
             return
         self.set_status_labels()
-        self.LiveMonitor.update(convert_unicode(self.Units.currentText()), int(self.MinCurrent.text()), int(self.MaxCurrent.text()), int(self.MinVoltage.text()), int(self.MaxVoltage.text()),
+        self.LiveMonitor.update(convert_unicode(self.Unit), int(self.MinCurrent.text()), int(self.MaxCurrent.text()), int(self.MinVoltage.text()), int(self.MaxVoltage.text()),
                                 t_displayed=str(self.DisplayTimes.currentText()))
         self.BiasButton.setEnabled(bool(self.Running.isChecked()))
         self.OnButton.setEnabled(bool(self.Running.isChecked()))
@@ -128,13 +128,18 @@ class DeviceBox(QGroupBox):
         format_widget(self.StatusLabel, color=color, font_size=FONTSIZE * 2, bold=True, font='ubuntu')
 
     def set_voltage_label(self):
-        self.VoltageLabel.setText('{v:4.1f} V'.format(v=self.Device.get_bias(self.Channel)) if self.Device.get_status(self.Channel) else '---')
+        self.VoltageLabel.setText('{v:4.0f} V'.format(v=self.Device.get_bias(self.Channel)) if self.Device.get_status(self.Channel) else '---')
         format_widget(self.VoltageLabel, color='darkCyan', font_size=FONTSIZE * 2, bold=True, font='ubuntu')
 
     def set_current_label(self):
-        unit = convert_unicode(self.Units.currentText())
-        self.CurrentLabel.setText(u'{v:3.2f} {u}'.format(v=self.Device.get_current(self.Channel) / units[unit], u=unit) if self.Device.get_status(self.Channel) else '---')
+        current = self.Device.get_current(self.Channel)
+        self.CurrentLabel.setText(u'{c:3.1f} {u}'.format(c=current / units[self.Unit], u=self.Unit) if self.Device.get_status(self.Channel) else '---')
         format_widget(self.CurrentLabel, color='red', font_size=FONTSIZE * 2, bold=True, font='ubuntu')
+
+    def set_current_unit(self, current):
+        for unit, value in units.iteritems():
+            if current / value < 1000:
+                self.Unit = unit
 
     def create_ramp_button(self):
         button = make_button('Set Ramp Speed')
