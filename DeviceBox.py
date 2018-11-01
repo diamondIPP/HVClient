@@ -64,7 +64,7 @@ class DeviceBox(QGroupBox):
         if self.Device is None:
             return
         self.set_status_labels()
-        self.LiveMonitor.update(convert_unicode(self.Unit), int(self.MinCurrent.text()), int(self.MaxCurrent.text()), int(self.MinVoltage.text()), int(self.MaxVoltage.text()),
+        self.LiveMonitor.update(self.Unit, int(self.MinCurrent.text()), int(self.MaxCurrent.text()), int(self.MinVoltage.text()), int(self.MaxVoltage.text()),
                                 t_displayed=str(self.DisplayTimes.currentText()))
         self.BiasButton.setEnabled(bool(self.Running.isChecked()))
         self.OnButton.setEnabled(bool(self.Running.isChecked()))
