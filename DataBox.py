@@ -60,17 +60,17 @@ class DataBox(QGroupBox):
         layout.setContentsMargins(4, 4, 4, 4)
 
         # drawing
-        layout.addWidget(QLabel('Displayed Time'), 8, 0, Qt.AlignRight)
-        layout.addWidget(self.DisplayTimes, 8, 1, Qt.AlignLeft)
-        layout.addWidget(QLabel('Current Limits'), 9, 0, Qt.AlignRight)
-        layout.addWidget(self.MinCurrent, 9, 1, Qt.AlignLeft)
-        layout.addWidget(self.MaxCurrent, 9, 2, Qt.AlignLeft)
-        layout.addWidget(QLabel('Voltage Limits'), 10, 0, Qt.AlignRight)
-        layout.addWidget(self.MinVoltage, 10, 1, Qt.AlignLeft)
-        layout.addWidget(self.MaxVoltage, 10, 2, Qt.AlignLeft)
-        layout.addWidget(QLabel('Current Unit'), 11, 0, Qt.AlignRight)
-        layout.addWidget(self.Units, 11, 1, Qt.AlignLeft)
-        layout.addWidget(self.LiveMonitor.canvas, 0, 3, 12, 1)
+        layout.addWidget(QLabel('Displayed Time'), 1, 0, Qt.AlignRight)
+        layout.addWidget(self.DisplayTimes, 1, 1, Qt.AlignLeft)
+        layout.addWidget(QLabel('Current Limits'), 2, 0, Qt.AlignRight)
+        layout.addWidget(self.MinCurrent, 2, 1, Qt.AlignLeft)
+        layout.addWidget(self.MaxCurrent, 2, 2, Qt.AlignLeft)
+        layout.addWidget(QLabel('Voltage Limits'), 3, 0, Qt.AlignRight)
+        layout.addWidget(self.MinVoltage, 3, 1, Qt.AlignLeft)
+        layout.addWidget(self.MaxVoltage, 3, 2, Qt.AlignLeft)
+        layout.addWidget(QLabel('Current Unit'), 4, 0, Qt.AlignRight)
+        layout.addWidget(self.Units, 4, 1, Qt.AlignLeft)
+        layout.addWidget(self.LiveMonitor.canvas, 0, 3, 6, 1)
         layout.setColumnStretch(3, 50)
         for widget in self.children():
             try:
