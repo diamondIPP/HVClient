@@ -74,7 +74,7 @@ class DataBox(QGroupBox):
         layout.setColumnStretch(3, 50)
         for widget in self.children():
             try:
-                format_widget(widget, font='ubuntu', color='black', font_size=10, bold=False)
+                format_widget(widget, font='ubuntu', color='darkCyan', font_size=10, bold=False)
             except AttributeError:  # catch the widgets that can't be formatted by a stylesheet
                 pass
             except Exception as err:

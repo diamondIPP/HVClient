@@ -7,7 +7,7 @@
 
 from PyQt4.QtGui import QGroupBox, QGridLayout, QLabel, QLineEdit, QPushButton, QSpinBox, QComboBox, QCheckBox
 from PyQt4.QtCore import Qt
-from Utils import do, convert_unicode
+from Utils import do
 from LiveMonitor import LiveMonitor, times, units
 
 ON = True
@@ -78,9 +78,7 @@ class DeviceBox(QGroupBox):
     def make_placeholder(self):
         layout = QGridLayout(self)
         layout.setContentsMargins(4, 4, 4, 4)
-        for i in xrange(4):
-            layout.addWidget(make_label(''), i, 0)
-        # layout.addWidget(dummy.canvas, 0, 3, 12, 1)
+        layout.addWidget(make_label('', font_size=140), 0, 0)
         self.setLayout(layout)
 
     def make(self):
