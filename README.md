@@ -1,23 +1,23 @@
-### ETH High Voltage Client
+# ETH High Voltage Client
 
 Client to control and read out several HV supply units
 
 
-Installation:
+##Installation:
 
 needs packages:
 
-tkinter:
+ - tkinter:
 Ubuntu: sudo apt-get install python-tk idle python-pmw python-imaging
-
-visa: 
+- visa: 
 Ubuntu: sudo easy_install pyvisa
-
-termcolor, serial, matplotlib:
+- termcolor, serial, matplotlib:
 sudo pip install termcolor serial matplotlib
+- copy 88-keithley.rules to /etc/udev/rules-d/
+- enter: sudo reload udev
 
-copy 88-keithley.rules to /etc/udev/rules-d/
+## Running
 
-enter: sudo reload udev
-
+ - ./gui.py starts the control panel always in hotstart if the device is on
+ - ./gui.py -l (-s) starts the current viewer with start time -s (formats: hh:mm or dd.mm.) 
 
