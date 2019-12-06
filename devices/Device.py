@@ -260,7 +260,8 @@ class Device(Thread):
         for channel in self.ActiveChannels:
             self.BiasNow[channel] = data[channel][1]
             self.CurrentNow[channel] = data[channel][2]
-            self.LastUpdate = data[channel][0]
+            if data[channel][0]:
+                self.LastUpdate = data[channel][0]
 
     # endregion
 
