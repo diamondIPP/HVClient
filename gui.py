@@ -67,7 +67,7 @@ class Gui(QMainWindow):
     def configure(self):
         self.setGeometry(2000, 300, (800 if self.FromLogs else 400) * ((self.NDevices + 1) / 2), 400)
         self.setWindowTitle('ETH High Voltage Client')
-        self.setWindowIcon(QIcon(join(self.Dir, 'Pics', 'icon.svg')))
+        self.setWindowIcon(QIcon(join(self.Dir, 'figures', 'icon.svg')))
         self.setCentralWidget(QWidget())
         self.centralWidget().setLayout(self.MainBox)
 
@@ -137,6 +137,7 @@ if __name__ == '__main__':
     parser.add_argument('--restart', '-R', action='store_true', help='restart hv devices (turn all OFF and set voltage to 0)')
     parser.add_argument('--start_time', '-s', nargs='?', help='set start time', default='now')
     parser.add_argument('--from_logs', '-l', action='store_true', help='read data from logs')
+    parser.add_argument('--test', '-t', action='store_true', help='start test environment')
     args = parser.parse_args()
 
     config = ConfigParser()
@@ -144,8 +145,10 @@ if __name__ == '__main__':
 
     start_time = None if args.start_time == 'now' else args.start_time
 
-    devices = get_devices(config, not args.restart, print_logs=True) if not args.from_logs else get_logging_devices(config, start_time)
-    # devices = get_dummies(config)
+    if args.test:
+        devices = get_dummies(config)
+    else:
+        devices = get_devices(config, not args.restart, print_logs=True) if not args.from_logs else get_logging_devices(config, start_time)
 
     app = QApplication(['5'])
     filterwarnings('ignore')
