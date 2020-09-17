@@ -7,7 +7,7 @@
 
 from PyQt4.QtGui import QGroupBox, QGridLayout, QLabel, QLineEdit, QPushButton, QSpinBox, QComboBox, QCheckBox
 from PyQt4.QtCore import Qt
-from Utils import do
+from utils import do
 from LiveMonitor import LiveMonitor, times, units
 
 ON = True

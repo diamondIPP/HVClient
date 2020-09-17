@@ -15,27 +15,29 @@ import pickle
 from string import maketrans
 
 
-# ==============================================
-# UTILITY FUNCTIONS
-# ==============================================
+ON = True
+OFF = False
+ALL = 'all'
+
+
 def get_t_str():
     return datetime.now().strftime('%H:%M:%S')
 
 
-def log_warning(msg):
-    print '{head} {t} --> {msg}'.format(t=get_t_str(), msg=msg, head=colored('WARNING:', 'red'))
+def warning(msg):
+    print('{head} {t} --> {msg}'.format(t=get_t_str(), msg=msg, head=colored('WARNING:', 'red')))
 
 
-def log_info(msg):
-    print '{head} {t} --> {msg}'.format(t=get_t_str(), msg=msg, head=colored('INFO:', 'grey'))
+def info(msg):
+    print('{head} {t} --> {msg}'.format(t=get_t_str(), msg=msg, head=colored('INFO:', 'grey')))
 
 
-def log_critical(msg):
-    print '{head} {t} --> {msg}\n'.format(t=get_t_str(), msg=msg, head=colored('CRITICAL:', 'red'))
+def critical(msg):
+    print('{head} {t} --> {msg}\n'.format(t=get_t_str(), msg=msg, head=colored('CRITICAL:', 'red')))
     _exit(1)
 
 
-def log_message(msg, overlay=False, prnt=True):
+def message(msg, overlay=False, prnt=True):
     if prnt:
         print '{ov}{t} --> {msg}{end}'.format(t=get_t_str(), msg=msg, ov='\033[1A\r' if overlay else '', end=' ' * 20 if overlay else '')
 
@@ -73,7 +75,7 @@ def dir_exists(path):
 
 def ensure_dir(path):
     if not pth.exists(path):
-        log_message('Creating directory: {d}'.format(d=path))
+        message('Creating directory: {d}'.format(d=path))
         makedirs(path)
 
 
@@ -120,7 +122,7 @@ def get_resolution():
         m = get_monitors()
         return round_down_to(m[0].height, 500)
     except Exception as exc:
-        log_warning('Could not get resolution! Using default ...\n\t{e}'.format(e=exc))
+        warning('Could not get resolution! Using default ...\n\t{e}'.format(e=exc))
         return 1000
 
 

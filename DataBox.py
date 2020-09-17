@@ -7,7 +7,7 @@
 
 from PyQt4.QtGui import QGroupBox, QGridLayout, QLabel, QLineEdit, QPushButton, QSpinBox, QComboBox, QCheckBox, QPlainTextEdit
 from PyQt4.QtCore import Qt
-from Utils import do, convert_unicode
+from utils import do, convert_unicode
 from LiveMonitor import LiveMonitor, times, units
 
 HEIGHT = 20

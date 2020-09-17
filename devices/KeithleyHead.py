@@ -12,7 +12,7 @@ from time import sleep, time
 from collections import deque
 from string import maketrans
 from ConfigParser import ConfigParser
-from Utils import log_info, log_warning, isint
+from utils import info, warning, isint
 from termcolor import colored
 
 
@@ -59,9 +59,9 @@ class KeithleyHead(Device):
         try:
             self.serial = serial.Serial(port=self.serialPortName, baudrate=57600, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, bytesize=serial.EIGHTBITS, timeout=1, )
             self.bOpen = True
-            log_info('Open serial port: {}'.format(self.serialPortName))
+            info('Open serial port: {}'.format(self.serialPortName))
         except serial.SerialException:
-            log_warning('Could not open serial port: {}'.format(self.serialPortName))
+            warning('Could not open serial port: {}'.format(self.serialPortName))
             self.bOpen = False
 
     def port_is_open(self):
@@ -72,7 +72,7 @@ class KeithleyHead(Device):
     def is_tripped(self, statusword):
         bit = 0x08
         if int(statusword) & bit == bit:
-            log_warning('keithley is tripped')
+            warning('keithley is tripped')
             self.clear_error_queue()
             self.clear_buffer()
             sleep(1)
@@ -83,7 +83,7 @@ class KeithleyHead(Device):
     # DEVICE FUNCTIONS
     def set_output(self, status, channel=0):
         out = 'ON' if status else 'OFF'
-        log_info('Set output to {}'.format(out))
+        info('Set output to {}'.format(out))
         data = ':OUTP {}'.format(out)
         return self.write(data)
 
@@ -109,7 +109,7 @@ class KeithleyHead(Device):
     # ============================
     # SET-FUNCTIONS
     def set_bias(self, voltage, channel=0):
-        log_warning('set_bias not implemented')
+        warning('set_bias not implemented')
 
     def set_immediate_voltage(self, voltage):
         voltage = self.validate_voltage(voltage)
@@ -157,7 +157,7 @@ class KeithleyHead(Device):
                 if ident_list[3].lower().startswith('model'):
                     mod = ident_list[4]
                     self.Model = int(mod) if isint(mod) else mod
-            log_info(colored('Connected to Keithley Model {}'.format(self.Model), 'green'))
+            info(colored('Connected to Keithley Model {}'.format(self.Model), 'green'))
         self.set_max_voltage()
 
     def get_output_status(self, channel=0):

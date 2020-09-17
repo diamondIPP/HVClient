@@ -55,8 +55,8 @@ class HVGui():
         self.destroyed = False
         self.root = Tk.Tk()
 
-        self.OnButton = Tk.PhotoImage(file='Pics/OnButton.png')
-        self.OffButton = Tk.PhotoImage(file='Pics/OffButton.png')
+        self.OnButton = Tk.PhotoImage(file='figures/OnButton.png')
+        self.OffButton = Tk.PhotoImage(file='figures/OffButton.png')
         self.Labels = {}
         self.SpinBoxes = {}
         self.Buttons = {}

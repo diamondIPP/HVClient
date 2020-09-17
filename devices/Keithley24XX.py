@@ -5,7 +5,7 @@ from KeithleyHead import KeithleyHead
 from time import sleep
 from ConfigParser import NoOptionError, ConfigParser
 import math
-from Utils import isfloat, isint, log_warning
+from utils import isfloat, isint, warning
 
 
 # ============================
@@ -224,7 +224,7 @@ class Keithley24XX(KeithleyHead):
             elif state in ['False', 'FALSE', '0', 'OFF', 'Off']:
                 state = False
             else:
-                log_warning('Four Wire Measurement not valid state: {}'.format(state))
+                warning('Four Wire Measurement not valid state: {}'.format(state))
                 return False
         return self.write(':SENSE:RESISTANCE:OCOMPENSATED {}'.format('ON' if state else 'OFF'))
 

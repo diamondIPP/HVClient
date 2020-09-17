@@ -1,24 +1,19 @@
-from threading import Thread
-from ConfigParser import ConfigParser
-from time import time, sleep
-from math import copysign
 import sys
-from Logger import Logger
-from Utils import log_warning, log_info, isint, log_critical, isfloat
-from json import loads
-from os.path import dirname, realpath, join, basename
+from ConfigParser import ConfigParser
 from glob import glob
-from datetime import datetime
+from json import loads
+from math import copysign
+from numpy import zeros
+from os.path import dirname, realpath, basename
+from threading import Thread
+from time import sleep
+
+from Logger import Logger
+from utils import *
 
 __author__ = 'Michael Reichmann'
 
-ON = True
-OFF = False
 
-
-# ============================
-# MAIN CLASS
-# ============================
 class Device(Thread):
     def __init__(self, config, device_num, hot_start, print_logs=False, init_logger=True, start_time=None):
         Thread.__init__(self)
@@ -39,13 +34,13 @@ class Device(Thread):
         self.ChannelNames = self.read_channel_names()
 
         # Info fields
-        self.BiasNow = [0] * self.NChannels
-        self.CurrentNow = [0] * self.NChannels
-        self.Status = [0] * self.NChannels
+        self.BiasNow = zeros(self.NChannels)
+        self.CurrentNow = zeros(self.NChannels)
+        self.Status = zeros(self.NChannels)
 
         # Config data
         self.RampSpeed = config.getfloat(self.SectionName, 'ramp')
-        self.MaxStep = config.getint(self.SectionName, 'max_step') if config.has_option(self.SectionName, 'max_step') else None
+        self.MaxStep = config.getint(self.SectionName, 'max_step') if config.has_option(self.SectionName, 'max_step') else 200
         self.MinBias = self.read_min_bias()
         self.MaxBias = self.read_max_bias()
         self.TargetBias = self.read_target_bias()
@@ -85,14 +80,14 @@ class Device(Thread):
 
     def stop(self):
         self.IsKilled = True
-        log_critical('exiting')
+        critical('exiting')
 
     def write_logs(self):
         for channel in self.ActiveChannels:
             self.Logger[channel].write_log(self.get_status(channel), self.get_bias(channel), self.get_current(channel), self.is_ramping(channel), self.get_target_bias(channel), prnt=self.PrintLogs)
 
     def connect(self):
-        log_warning('"connect" not implemented')
+        warning('"connect" not implemented')
 
     def hot_start(self):
         if self.HotStart:
@@ -100,7 +95,7 @@ class Device(Thread):
                 self.set_status(channel, self.get_output_status(channel))
                 self.update_voltage_current()
                 voltage = self.get_bias(channel)
-                log_info('Measured voltage: {0:2.1f} V'.format(voltage))
+                info('Measured voltage: {0:2.1f} V'.format(voltage))
                 self.set_bias(voltage, channel)
                 self.set_target_bias(voltage, channel)
                 self.BiasNow[channel] = voltage
@@ -126,20 +121,20 @@ class Device(Thread):
                 t = datetime.strptime(start_time, '%d.%m.')
                 return datetime.now().replace(hour=t.hour, minute=t.minute, second=0, day=t.day, month=t.month, microsecond=0)
             except ValueError:
-                log_critical('Format of date has to be either hh:mm or dd.mm.')
+                critical('Format of date has to be either hh:mm or dd.mm.')
 
     def set_device_name(self, device_name, channel):
         if self.DeviceName != device_name:
             self.DeviceName = device_name
             self.Logger[channel].create_new_log_file()
-            log_info('Setting device name of {} to "{}"'.format(self.SectionName, self.DeviceName))
+            info('Setting device name of {} to "{}"'.format(self.SectionName, self.DeviceName))
 
     def read_device_name(self, channel=0):
         if self.HasChannels:
             return self.ChannelConfig.get('Names', 'CH{}'.format(channel))
         if self.Config.has_option('Names', self.SectionName):
             return self.Config.get('Names', self.SectionName)
-        log_warning('Setting device name to "UNKNOWN"')
+        warning('Setting device name to "UNKNOWN"')
         return 'UNKNOWN'
 
     def read_target_bias(self):
@@ -147,7 +142,7 @@ class Device(Thread):
         for i in xrange(self.NChannels):
             bias = self.ChannelConfig.getfloat('CH{}'.format(i), 'bias')
             if not self.validate_voltage(bias, i):
-                log_critical('End program')
+                critical('End program')
             biases.append(bias)
         return biases
 
@@ -159,7 +154,7 @@ class Device(Thread):
 
     def get_model_number(self):
         if not self.Config.has_option(self.SectionName, 'model'):
-            log_critical('You have to specify the model in the config file!')
+            critical('You have to specify the model in the config file!')
         model_number = self.Config.get(self.SectionName, 'model')
         return int(model_number) if isint(model_number) else model_number
 
@@ -197,8 +192,7 @@ class Device(Thread):
         return self.TargetBias[channel]
 
     def get_output_status(self, channel=0):
-        log_warning('get_output_status not implemented')
-        return False
+        warning('get_output_status not implemented')
 
     def get_output(self):
         return self.get_status()
@@ -228,9 +222,9 @@ class Device(Thread):
         for name, d in zip(files[first_file_ind:], dates[first_file_ind:]):
             with open(name) as f:
                 for line in f.readlines():
-                    info = self.make_data(line, d)
-                    if info[0] and info[0] > self.StartTime:
-                        data.append(info)
+                    info_str = self.make_data(line, d)
+                    if info_str[0] and info_str[0] > self.StartTime:
+                        data.append(info_str)
         return data
 
     def get_last_data(self):
@@ -241,18 +235,18 @@ class Device(Thread):
                 d = datetime.strptime('-'.join(basename(filename).strip('.log').split('_')[-6:]), '%Y-%m-%d-%H-%M-%S')
                 f = open(filename)
                 f.seek(-50, 2)
-                info = f.readlines()[-1]
-                data[channel] = self.make_data(info, d)
+                info_str = f.readlines()[-1]
+                data[channel] = self.make_data(info_str, d)
             except IOError:
                 data[channel] = [0, 0, 0]
         return data
 
     @staticmethod
     def make_data(string, d):
-        info = string.split()
-        if isfloat(info[1]):
-            t = datetime.strptime(info[0], '%H:%M:%S')
-            return [d.replace(hour=t.hour, minute=t.minute, second=t.second), float(info[1]), float(info[2])]
+        data = string.split()
+        if isfloat(data[1]):
+            t = datetime.strptime(data[0], '%H:%M:%S')
+            return [d.replace(hour=t.hour, minute=t.minute, second=t.second), float(data[1]), float(data[2])]
         return [0, 0, 0]
 
     def update(self):
@@ -268,24 +262,24 @@ class Device(Thread):
     # ============================
     # region SET-FUNCTIONS
     def set_bias(self, voltage, channel=0):
-        log_warning('set_bias not implemented')
+        warning('set_bias not implemented')
 
     def set_target_bias(self, target, channel):
         if not self.validate_voltage(target, channel):
             return
         self.TargetBias[channel] = target
         self.LastVChange = time()
-        log_info('Set target bias to {}'.format(target))
+        info('Set target bias to {}'.format(target))
         self.Logger[self.ActiveChannels.index(channel)].add_entry('SET_BIAS_TO {0:7.1f}'.format(target))
 
     def set_to_manual(self, status):
-        log_warning('set_to_manual not implemented')
+        warning('set_to_manual not implemented')
 
     def set_output(self, status, channel=0):
-        log_warning('set_output not implemented')
+        warning('set_output not implemented')
 
     def set_ramp_speed(self, speed):
-        log_info('Set ramp speed to {}'.format(speed))
+        info('Set ramp speed to {}'.format(speed))
         self.RampSpeed = speed
 
     def set_max_step(self, step):
@@ -305,7 +299,7 @@ class Device(Thread):
 
     def validate_voltage(self, voltage, channel=0):
         if not self.MinBias[channel] - .1 < voltage < self.MaxBias[channel] + .1:
-            log_warning('Invalid target voltage! {v} not in [{b}, {e}]'.format(v=voltage, b=self.MinBias[channel], e=self.MaxBias[channel]))
+            warning('Invalid target voltage! {v} not in [{b}, {e}]'.format(v=voltage, b=self.MinBias[channel], e=self.MaxBias[channel]))
             return False
         return True
 
@@ -319,7 +313,7 @@ class Device(Thread):
             sleep(.2)
 
     def read_iv(self):
-        log_warning('read_iv not implemented')
+        warning('read_iv not implemented')
         return []
 
     def update_voltage_current(self):
@@ -376,7 +370,7 @@ class Device(Thread):
             if self.IsPoweringDown[channel] and abs(self.BiasNow[channel]) < .5:
                 self.set_output(OFF, channel)
                 self.IsPoweringDown[channel] = False
-                log_info('CH{ch} of {dev} has ramped down and turned off'.format(ch=channel, dev=self.SectionName))
+                info('CH{ch} of {dev} has ramped down and turned off'.format(ch=channel, dev=self.SectionName))
                 return
         if self.CanRamp:
             for channel in self.ActiveChannels:
@@ -391,7 +385,7 @@ class Device(Thread):
                 self.set_bias(new_bias)
                 self.LastVChange = time()
                 if new_bias == self.get_target_bias(channel) and not self.IsPoweringDown[channel]:
-                    log_info('{} is done with ramping to {} V'.format(self.SectionName, self.get_target_bias()))
+                    info('{} is done with ramping to {} V'.format(self.SectionName, self.get_target_bias()))
                 self.IsBusy = False
 
     @staticmethod

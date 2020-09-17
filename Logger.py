@@ -8,7 +8,7 @@
 
 from logging import getLogger, FileHandler, INFO, Formatter
 from os.path import join, realpath, dirname
-from Utils import ensure_dir, log_info
+from utils import ensure_dir, info
 from ConfigParser import ConfigParser
 from time import strftime
 
@@ -48,7 +48,7 @@ class Logger:
 
         file_name = '{hv}_{dev}_{mod}_{t}.log'.format(hv=self.Name, dev=self.DeviceName, mod=self.ModelName, t=strftime('%Y_%m_%d_%H_%M_%S'))
         file_path = join(self.LogFileDir, file_name)
-        log_info('Creating LOGFILE: {}'.format(file_path))
+        info('Creating LOGFILE: {}'.format(file_path))
         self.Logger.removeHandler(self.FileHandler)
         self.FileHandler = FileHandler(file_path)
         self.FileHandler.setLevel(INFO)
@@ -60,14 +60,14 @@ class Logger:
 
     def add_entry(self, txt, prnt=False):
         if prnt:
-            log_info('{}\t{}\tCH{}'.format(txt, self.DeviceName, self.Channel))
+            info('{}\t{}\tCH{}'.format(txt, self.DeviceName, self.Channel))
         self.Logger.warning('{}\t{}'.format(txt, self.DeviceName))
 
     def write_log(self, status, bias, current, is_ramping, target_bias, prnt=False):
         if strftime('%d') != self.Day:
             self.create_new_log_file()
         if status != self.LastStatus and self.LastStatus is not None:
-            log_info('writing log on/off')
+            info('writing log on/off')
             self.add_entry('DEVICE_{}'.format('ON' if status else 'OFF'), prnt=prnt)
         self.LastStatus = status
         # only write measurements when device is ON

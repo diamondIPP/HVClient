@@ -10,14 +10,7 @@ import warnings
 from Device import Device
 from serial import Serial, PARITY_NONE, STOPBITS_ONE, EIGHTBITS, SerialException
 from time import sleep, time
-from Utils import log_info, log_warning, isint, clear_string, log_critical, colored
-
-
-# ============================
-# CONSTANTS
-ON = 1
-OFF = 0
-ALL = 'all'
+from utils import *
 
 
 # ============================
@@ -65,9 +58,9 @@ class ISEG(Device):
         try:
             self.Serial = Serial(port=self.SerialPortName, baudrate=9600, parity=PARITY_NONE, stopbits=STOPBITS_ONE, bytesize=EIGHTBITS, timeout=.5, )
             self.bOpen = True
-            log_info('Open serial port: {}'.format(self.SerialPortName))
+            info('Open serial port: {}'.format(self.SerialPortName))
         except SerialException:
-            log_warning('Could not open serial port: {}'.format(self.SerialPortName))
+            warning('Could not open serial port: {}'.format(self.SerialPortName))
             self.bOpen = False
 
     def init_device(self, hot_start):
@@ -146,12 +139,12 @@ class ISEG(Device):
     def configure_ramp_speed(self, ramp_type, speed=None):
         speed = (self.Config.getfloat(self.SectionName, 'ramp') if speed is None else speed) / 20.
         if 100 < speed < 0:
-            log_critical('Invalid ramp speed: {}'.format(speed * 20))
-        log_info('Set {type} ramp speed to {s:3.1f} {type}/s'.format(s=speed * 20, type=ramp_type))
+            critical('Invalid ramp speed: {}'.format(speed * 20))
+        info('Set {type} ramp speed to {s:3.1f} {type}/s'.format(s=speed * 20, type=ramp_type))
         return self.write(':CONF:RAMP:{type} {s:.2f}'.format(type=ramp_type, s=speed))
 
     def configure_ramp_speed_voltage(self, speed=None):
-        log_info('Set ramp speed to {}'.format(speed))
+        info('Set ramp speed to {}'.format(speed))
         self.configure_ramp_speed('VOLT', speed)
 
     def set_ramp_speed(self, speed):
@@ -327,7 +320,7 @@ class ISEG(Device):
             if len(ident_list) > 5:
                 mod = ident_list[3] + ident_list[4]
                 self.Model = int(mod) if isint(mod) else mod
-            log_info(colored('Connected iseg model {}'.format(self.Model), 'green'))
+            info(colored('Connected iseg model {}'.format(self.Model), 'green'))
         self.set_max_voltage()
 
     def get_channel_voltage(self, ch=-1):
@@ -468,7 +461,7 @@ class ISEG(Device):
                     self.LastStatusUpdate = now
                     return self.LastStatus
                 except Exception as err:
-                    log_warning('No valid channel status, retry: {}'.format(err))
+                    warning('No valid channel status, retry: {}'.format(err))
                     self.clear_buffer(warning=False)
         return self.LastStatus
 
