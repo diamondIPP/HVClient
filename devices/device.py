@@ -108,6 +108,7 @@ class Device(Thread):
 
     @staticmethod
     def load_start_time(start_time):
+        start_time = None if start_time == 'now' else start_time
         if start_time is None:
             return datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
         try:

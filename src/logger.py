@@ -7,13 +7,16 @@
 
 
 from logging import getLogger, FileHandler, INFO, Formatter
-from os.path import join, realpath, dirname
-from .utils import ensure_dir, info
-from configparser import ConfigParser
+from os.path import join, realpath, dirname, basename
+from src.utils import ensure_dir, info, load_config
 from time import strftime
+from glob import glob
+from datetime import datetime
 
 
 class Logger:
+
+    TimeFormat = '%Y_%m_%d_%H_%M_%S'
 
     def __init__(self, name, channel, config, on=True):
 
@@ -41,21 +44,27 @@ class Logger:
         if on:
             self.configure()
 
-    # TODO read in back log file from the same day!
+    # TODO save as hdf5
 
     def configure(self):
         # check if directories exist and create them if not
         ensure_dir(self.LoggingDir)
         ensure_dir(self.LogFileDir)
-
-        file_name = '{hv}_{dev}_{mod}_{t}.log'.format(hv=self.Name, dev=self.DeviceName, mod=self.ModelName, t=strftime('%Y_%m_%d_%H_%M_%S'))
-        file_path = join(self.LogFileDir, file_name)
-        info('Creating LOGFILE: {}'.format(file_path))
         self.Logger.removeHandler(self.FileHandler)
-        self.FileHandler = FileHandler(file_path)
+        self.FileHandler = FileHandler(self.get_log_file())
         self.FileHandler.setLevel(INFO)
         self.FileHandler.setFormatter(Formatter('%(asctime)s %(message)s', '%H:%M:%S'))
         self.Logger.addHandler(self.FileHandler)
+
+    def get_log_file(self):
+        """Check if there is already an existing log file for this day, otherwise create a new one."""
+        last_file = max(glob(join(self.LogFileDir, '*.log')), default='')
+        if last_file and datetime.strptime(basename(last_file).split(self.ModelName)[-1].strip('.log_'), self.TimeFormat).day == int(self.Day):
+            info('Reading old LOGFILE: {}'.format(last_file))
+            return last_file
+        file_path = join(self.LogFileDir, '{hv}_{dev}_{mod}_{t}.log'.format(hv=self.Name, dev=self.DeviceName, mod=self.ModelName, t=strftime(self.TimeFormat)))
+        info('Creating new LOGFILE: {}'.format(file_path))
+        return file_path
 
     def create_new_log_file(self):
         self.configure()
@@ -88,6 +97,8 @@ class Logger:
 
 
 if __name__ == '__main__':
-    conf = ConfigParser()
-    conf.read('config/keithley.cfg')
-    logger = Logger('HV1', 0, conf)
+    from json import loads
+    conf = load_config('config/keithley', 'cfg')
+    dev = 'HV{}'.format(loads(conf.get('Main', 'devices'))[0])
+    ch = loads(conf.get(dev, 'active_channels'))[0]
+    z = Logger(dev, ch, conf)
