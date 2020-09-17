@@ -5,10 +5,10 @@
 # created on June 29th 2018 by M. Reichmann (remichae@phys.ethz.ch)
 # --------------------------------------------------------
 
-from PyQt4.QtGui import QGroupBox, QGridLayout, QLabel, QLineEdit, QPushButton, QSpinBox, QComboBox, QCheckBox, QPlainTextEdit
-from PyQt4.QtCore import Qt
-from utils import do, convert_unicode
-from LiveMonitor import LiveMonitor, times, units
+from PyQt5.QtWidgets import QGroupBox, QGridLayout, QLabel, QLineEdit, QPushButton, QSpinBox, QComboBox, QCheckBox, QPlainTextEdit
+from PyQt5.QtCore import Qt
+from utils import do
+from live_monitor import LiveMonitor, times, units
 
 HEIGHT = 20
 
@@ -46,7 +46,7 @@ class DataBox(QGroupBox):
             return
         if self.Device.LastUpdate:
             self.LiveMonitor.add_data(self.Device.LastUpdate, self.Device.BiasNow[self.Channel], self.Device.CurrentNow[self.Channel], dttime=True)
-            self.LiveMonitor.update(convert_unicode(self.Units.currentText()), int(self.MinCurrent.text()), int(self.MaxCurrent.text()), int(self.MinVoltage.text()), int(self.MaxVoltage.text()),
+            self.LiveMonitor.update(self.Units.currentText(), int(self.MinCurrent.text()), int(self.MaxCurrent.text()), int(self.MinVoltage.text()), int(self.MaxVoltage.text()),
                                 t_displayed=str(self.DisplayTimes.currentText()))
 
     def make_placeholder(self):
@@ -79,7 +79,7 @@ class DataBox(QGroupBox):
             except AttributeError:  # catch the widgets that can't be formatted by a stylesheet
                 pass
             except Exception as err:
-                print err, type(err)
+                print(err, type(err))
                 pass
         self.setLayout(layout)
 
@@ -140,4 +140,4 @@ def format_widget(widget, color=None, bold=None, font_size=None, font=None):
 
 
 def make_style_sheet(dic):
-    return '; '.join('{key}: {val}'.format(key=key, val=value) for key, value in dic.iteritems() if value is not None)
+    return '; '.join('{key}: {val}'.format(key=key, val=value) for key, value in dic.items() if value is not None)

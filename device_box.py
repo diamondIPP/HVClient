@@ -5,10 +5,10 @@
 # created on June 29th 2018 by M. Reichmann (remichae@phys.ethz.ch)
 # --------------------------------------------------------
 
-from PyQt4.QtGui import QGroupBox, QGridLayout, QLabel, QLineEdit, QPushButton, QSpinBox, QComboBox, QCheckBox
-from PyQt4.QtCore import Qt
+from PyQt5.QtWidgets import QGroupBox, QGridLayout, QLabel, QLineEdit, QPushButton, QSpinBox, QComboBox, QCheckBox
+from PyQt5.QtCore import Qt
 from utils import do
-from LiveMonitor import LiveMonitor, times, units
+from live_monitor import LiveMonitor, times, units
 
 ON = True
 OFF = False
@@ -113,7 +113,7 @@ class DeviceBox(QGroupBox):
             except AttributeError:  # catch the widgets that can't be formatted by a stylesheet
                 pass
             except Exception as err:
-                print err, type(err)
+                print(err, type(err))
                 pass
         for label in stat_labels:
             format_widget(label, bg_col='darkCyan', font='ubuntu', color='black', font_size=FONTSIZE)
@@ -136,7 +136,7 @@ class DeviceBox(QGroupBox):
         format_widget(self.CurrentLabel, color='red', font_size=FONTSIZE * 2, bold=True, font='ubuntu')
 
     def set_current_unit(self, current):
-        for unit, value in units.iteritems():
+        for unit, value in units.items():
             if abs(float(current) / value) < 1000:
                 self.Unit = unit
                 break
@@ -219,4 +219,4 @@ def format_widget(widget, color=None, bold=None, font_size=None, font=None, bg_c
 
 
 def make_style_sheet(dic):
-    return '; '.join('{key}: {val}'.format(key=key, val=value) for key, value in dic.iteritems() if value is not None)
+    return '; '.join('{key}: {val}'.format(key=key, val=value) for key, value in dic.items() if value is not None)

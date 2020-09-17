@@ -1,35 +1,27 @@
 # implementation of Keithley 237
 # based on HV_interface class
 
-# ============================
-# IMPORTS
-# ============================
-import ConfigParser
-import serial
-import os,sys,inspect
+import inspect
+import os
+import sys
+
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
-sys.path.insert(0,parentdir)
-from KeithleyHead import KeithleyHead
-from time import sleep,time
+sys.path.insert(0, parentdir)
+from .Keithley import *
+from time import sleep, time
 import math
-
-# ============================
-# CONSTANTS
-# ============================
-ON = 1
-OFF = 0
 
 
 # ============================
 # MAIN CLASS
 # ============================
-class Keithley23X(KeithleyHead):
-    def __init__(self, config, device_no=1, hot_start=False,init=True):
-        KeithleyHead.__init__(self, config, device_no,hot_start)
+class Keithley23X(Keithley):
+    def __init__(self, config, device_no=1, hot_start=False, init=True):
+        Keithley.__init__(self, config, device_no, hot_start)
         self.Busy = False
         self.bOpen = False
-        self.read_config(config)
+        self.read_config()
         self.lastVoltage = 0
         self.serial = None
         self.model = 237
@@ -39,7 +31,7 @@ class Keithley23X(KeithleyHead):
         if init:
             self.init_keithley(hot_start)
         else:
-            print 'keithley initialisation is disabled, please run device.init_ketihley(hotstart)'
+            print('keithley initialisation is disabled, please run device.init_ketihley(hotstart)')
         pass
 
     def open_serial_port(self):
@@ -53,9 +45,9 @@ class Keithley23X(KeithleyHead):
                 timeout=1,
             )
             self.bOpen = True
-            print 'Open serial port: \'%s\'' % self.serialPortName
+            print('Open serial port: \'%s\'' % self.serialPortName)
         except:
-            print 'Could not open serial Port: \'%s\'' % self.serialPortName
+            print('Could not open serial Port: \'%s\'' % self.serialPortName)
             self.bOpen = False
             pass
         self.set_gbip_address()
@@ -63,15 +55,15 @@ class Keithley23X(KeithleyHead):
 
     def enable_system_controller(self):
         if self.bOpen:
-             self.serial.write('++ifc %d'%self.gbip)
-             print 'Sending InterFaceClear (IFC) to force the instruments to listen to the system controller'
+            self.serial.write('++ifc %d' % self.gbip)
+            print('Sending InterFaceClear (IFC) to force the instruments to listen to the system controller')
         sleep(.2)
 
     def set_gbip_address(self):
         if self.bOpen:
-             self.serial.write('++addr %d'%self.gbip)
-             retVal = self.__write('++addr ',1)
-             print 'Set GBIP Address to %d'%self.gbip
+            self.serial.write('++addr %d' % self.gbip)
+            self.__write('++addr ', 1)
+            print('Set GBIP Address to %d' % self.gbip)
 
     def init_keithley(self, hot_start):
         self.set_source_voltage_dc()
@@ -80,84 +72,83 @@ class Keithley23X(KeithleyHead):
         self.set_integration_time(self.integration_time)
         self.set_averaging_filter(self.n_average_filter)
         self.set_output_data_format()
-        self.set_compliance(self.measure_range_current,self.compliance)
+        self.set_compliance(self.measure_range_current, self.compliance)
         if not hot_start:
             self.set_off()
         pass
 
-    def read_config(self,config):
-        self.serialPortName = config.get(self.section_name, 'address')
-        self.gbip = config.getint(self.section_name, 'gbip')
+    def read_config(self):
+        self.serialPortName = self.Config.get(self.SectionName, 'address')
+        self.gbip = self.Config.getint(self.SectionName, 'gbip')
         self.integration_time = 3
-        if config.has_option(self.section_name,'integration_time'):
-            self.integration_time = config.getint(  self.section_name,'integration_time')
+        if self.Config.has_option(self.SectionName, 'integration_time'):
+            self.integration_time = self.Config.getint(self.SectionName, 'integration_time')
         self.n_average_filter = 32
-        if config.has_option(self.section_name,'n_average_filter'):
-            self.n_average_filter = config.getint(  self.section_name,'n_average_filter')
+        if self.Config.has_option(self.SectionName, 'n_average_filter'):
+            self.n_average_filter = self.Config.getint(self.SectionName, 'n_average_filter')
         self.compliance = 1e-6
-        if self.config.has_option(self.section_name,'compliance'):
-            self.compliance = float(self.config.get(self.section_name,'compliance'))
+        if self.Config.has_option(self.SectionName, 'compliance'):
+            self.compliance = float(self.Config.get(self.SectionName, 'compliance'))
         self.measure_range_current = 1e-6
-        if self.config.has_option(self.section_name,'measure_range'):
-            self.measure_range_current = float(self.config.get(self.section_name,'measure_range'))
+        if self.Config.has_option(self.SectionName, 'measure_range'):
+            self.measure_range_current = float(self.Config.get(self.SectionName, 'measure_range'))
         pass
 
-    def set_compliance(self,level,measurement_range):
-        ranges = {0:0,#auto
-                  1:1e-9,
-                  2:10e-9,
-                  3:100e-9,
-                  4:1e-6,
-                  5:10e-6,
-                  6:100e-6,
-                  7:1e-3,
-                  8:10e-3,
-                  9:100e-3,
-                  10:1
+    def set_compliance(self, level, measurement_range):
+        ranges = {0: 0,  # auto
+                  1: 1e-9,
+                  2: 10e-9,
+                  3: 100e-9,
+                  4: 1e-6,
+                  5: 10e-6,
+                  6: 100e-6,
+                  7: 1e-3,
+                  8: 10e-3,
+                  9: 100e-3,
+                  10: 1
                   }
-        if measurement_range not in ranges.values():
+        if measurement_range not in list(ranges.values()):
             measurement_range = 0
-            print 'set measurement_range to AUTO'
+            print('set measurement_range to AUTO')
         try:
-            measurement_range = ranges.keys()[ranges.values().index(measurement_range)]
+            measurement_range = list(ranges.keys())[list(ranges.values()).index(measurement_range)]
         except:
             measurement_range = 0
-            print 'set measurement_range to AUTO'
+            print('set measurement_range to AUTO')
         # if ranges[measurement_range]  < level:
         #     print 'cannot set level to a higher value than the measurement range'
-        self.__execute('L%5E,%d'%(level,measurement_range))
+        self.__execute('L%5E,%d' % (level, measurement_range))
 
-    
     def set_output_sense_local(self):
         return self.__execute('O0')
 
     def set_output_sense_remote(self):
         return self.__execute('O1')
-    
-    def set_averaging_filter_exponent(self,n):
+
+    def set_averaging_filter_exponent(self, n):
         if 0 > n > 5:
-             raise Exception('averaging Filter can only be between 0 - 5')
-        print 'setting filter to %d readings'%(2**n)
-        return self.__execute('P%d'%n)
-    
-    def set_averaging_filter(self,n):
-        if n  == 0:
+            raise Exception('averaging Filter can only be between 0 - 5')
+        print('setting filter to %d readings' % (2 ** n))
+        return self.__execute('P%d' % n)
+
+    def set_averaging_filter(self, n):
+        if n == 0:
             exponent = 0
         else:
-            exponent =  math.log(n)/math.log(2)
+            exponent =  math.log(n) / math.log(2)
         n = int(exponent)
-        if not exponent == int(exponent) or exponent > 5: 
+        if not exponent == int(exponent) or exponent > 5:
             raise Exception('averaging Filter can only be a factor of 2**X, X in 0 ..5')
         return self.set_averaging_filter_exponent(n)
-    
-    def set_integration_time(self,n):
+
+    def set_integration_time(self, n):
         if 0 > n > 3:
             raise Exception('integration time must be in 0-3: 0 [416mus], 1 [4ms], 2 [16.67ms], 3 [20ms]')
-        self.__execute('S%d'%n)
-    
-    def set_output_data_format(self,items=15,format=0,lines=0):
-        self.__execute('G%d,%d,%d'%(items,format,lines))
-    
+        self.__execute('S%d' % n)
+
+    def set_output_data_format(self, items=15, format=0, lines=0):
+        self.__execute('G%d,%d,%d' % (items, format, lines))
+
     def set_source_voltage_dc(self):
         return self.__execute('F0,0')
 
@@ -186,32 +177,32 @@ class Keithley23X(KeithleyHead):
     def __execute(self, message):
         message = message.strip('\r\n')
         if not message.endswith('X'):
-            message+='X'
+            message += 'X'
         retVal = self.__write(message)
         try:
-             return retVal[1][-1]
+            return retVal[1][-1]
         except Exception as e:
-            print retVal,e
+            print(retVal, e)
             raise e
         return self.__write(message)[1][-1]
 
-    def __write(self, message,max_time=10):
+    def __write(self, message, max_time=10):
         time0 = time()
         while self.Busy:
-            if time()-time0 > 10:
-                raise StandardError('Cannot write - device is busy')
-            sleep (.1)
+            if time() - time0 > 10:
+                raise Exception('Cannot write - device is busy')
+            sleep(.1)
         self.Busy = True
         if not message.startswith('++') and (not message.endswith('\r\n')):
             message += '\r\n'
         if not self.bOpen:
             self.Busy = False
-            return -1,[]
+            return -1, []
         retVal = self.serial.write(message)
         time0 = time()
         while not self.serial.inWaiting():
             time1 = time()
-            if time1-time0 > max_time:
+            if time1 - time0 > max_time:
                 break
             pass
         # print 'DELTA T: ', time1-time0
@@ -221,18 +212,18 @@ class Keithley23X(KeithleyHead):
         while self.serial.inWaiting() and exception_counter < 10:
             try:
                 retMsg.append(self.serial.readline().strip('\r\n'))
-            except serial.SerialException, e:
-                print 'Serial Exception! ',e
+            except serial.SerialException as e:
+                print('Serial Exception! ', e)
                 exception_counter += 1
-            except Exception,e:
-                self.Busy =  False
+            except Exception as e:
+                self.Busy = False
                 raise e
         self.Busy = False
-        return retVal,retMsg
+        return retVal, retMsg
 
-    def set_eoi_and_bus_hold_off(self,eoi,hold_off):
-        val = ((not eoi)<<0)+((not hold_off)<<1)
-        self.__execute('K%d'%val)
+    def set_eoi_and_bus_hold_off(self, eoi, hold_off):
+        val = ((not eoi) << 0) + ((not hold_off) << 1)
+        self.__execute('K%d' % val)
 
     def set_output(self, status):
         if status == True or status == 1:
@@ -241,7 +232,7 @@ class Keithley23X(KeithleyHead):
             return self.__execute('N0')
         pass
 
-    def set_bias(self, voltage):
+    def set_bias(self, voltage, channel=None):
         if not -1100 < voltage < 1100:
             raise Exception('Range of Keithley 237 is from -1100.0 V to 1100.0 V')
         self.target_voltage = voltage
@@ -251,12 +242,12 @@ class Keithley23X(KeithleyHead):
 
     def get_model_no_and_revision(self):
         retVal = self.__execute('U0')
-        retVal =  Keithley23X.extract_model_no_and_revision(retVal)
+        retVal = Keithley23X.extract_model_no_and_revision(retVal)
         self.model = retVal[0]
         return retVal
 
     def get_error_status_word(self):
-        retVal =  self.__execute('U1')
+        retVal = self.__execute('U1')
         return Keithley23X.extract_error_status_word(retVal)
 
     def get_stored_ascii_string(self):
@@ -264,13 +255,13 @@ class Keithley23X(KeithleyHead):
         return Keithley23X.extract_stored_ascii_string(retVal)
 
     def get_machine_status_word(self):
-        retVal =  self.__execute('U3')
+        retVal = self.__execute('U3')
         # print retVal
         try:
             return self.extract_machine_status_word(retVal)
         except Exception as e:
-            print "Couldn't convert machine status word '%s', exception: %s"%(retVal,e)
-            raise Exception("Couldn't convert '%s', exception: %s"%(retVal,e))
+            print("Couldn't convert machine status word '%s', exception: %s" % (retVal, e))
+            raise Exception("Couldn't convert '%s', exception: %s" % (retVal, e))
 
     def get_measurement_parameters(self):
         retVal = self.__execute('U4')
@@ -302,70 +293,71 @@ class Keithley23X(KeithleyHead):
     def get_sweep_measure_size(self):
         retVal = self.__execute('U11')
         return self.extract_sweep_measure_size(retVal)
-    
+
     @staticmethod
     def extract_data(value):
         # NS DC V +1.2345 E+OO, D +12.345 E+OO, NM DC I +1.23456 E+OO, T +123.456 E+OO, B 0000 CRLF
         value = value.split(',')
         retVal = {}
         for entry in value:
-            if entry.startswith('NS') or  entry.startswith('OS'):
+            if entry.startswith('NS') or entry.startswith('OS'):
                 retVal.update(Keithley23X.extract_source_data(entry))
             elif entry.startswith('D'):
                 retVal.update(Keithley23X.extract_delay(entry))
-            elif entry.startswith('NM') or  entry.startswith('OM'):
+            elif entry.startswith('NM') or entry.startswith('OM'):
                 retVal.update(Keithley23X.extract_measure_data(entry))
             elif entry.startswith('T'):
                 retVal.update(Keithley23X.extract_time_stamp(entry))
             elif entry.startswith('B'):
                 retVal.update(Keithley23X.extract_buffer_location(entry))
             else:
-                raise Exception('Cannot extract data from \'%s\''%entry) 
+                raise Exception('Cannot extract data from \'%s\'' % entry)
         return retVal
-#         source_prefix = value[:4]
-    
+
+    #         source_prefix = value[:4]
+
     @staticmethod
     def extract_source_data(entry):
         retVal = {}
-        retVal['source_prefix']= entry[:2]
+        retVal['source_prefix'] = entry[:2]
         retVal['source_function'] = entry[2:4]
         retVal['measure_type'] = entry[4]
         retVal['source_value'] = float(entry[5:])
         return retVal
-    
+
     @staticmethod
     def extract_delay(entry):
-        return {'delay_value':entry}
-        
+        return {'delay_value': entry}
+
     @staticmethod
     def extract_measure_data(entry):
         retVal = {}
-        retVal['measure_prefix']= entry[:2]
+        retVal['measure_prefix'] = entry[:2]
         retVal['measure_function'] = entry[2:4]
         retVal['measure_type'] = entry[4]
         retVal['measure_value'] = float(entry[5:])
         return retVal
-        
+
     @staticmethod
     def extract_time_stamp(entry):
         timestamp = float(entry[1:])
-        return {'timestamp_value':timestamp}
-        
+        return {'timestamp_value': timestamp}
+
     @staticmethod
     def extract_buffer_location(entry):
         buffer = int(entry[1:])
-        return {'buffer_location':buffer}
-    
-    #returns model no and revision number
+        return {'buffer_location': buffer}
+
+    # returns model no and revision number
     @staticmethod
     def extract_model_no_and_revision(value):
         value = value.strip()
         try:
             model = int(value[:3])
-            return model,value[3:]
+            return model, value[3:]
         except Exception as e:
-            raise Exception('Cannot extract model no and revision from \'%s\, %s'%(value,e))
-    
+            raise Exception('Cannot extract model no and revision from \'%s\, %s' % (value, e))
+
     @staticmethod
     def extract_error_status_word(value):
         value = value.strip()
@@ -399,7 +391,7 @@ class Keithley23X(KeithleyHead):
         # bit  2:Cal Constants Error
         # bit  1:Cal Invalid Error
         value = value[3:]
-        error_status_word = int(value,base=2)
+        error_status_word = int(value, base=2)
         return value
 
     @staticmethod
@@ -409,12 +401,12 @@ class Keithley23X(KeithleyHead):
             raise Exception('Cannot find suitable identifier \'DSP\'')
         value = value[3:]
         return value
-    
+
     @staticmethod
     def extract_machine_status_word(rawvalue):
         # example: MSTG01,0,0K0M000,0N0R1T4,0,0,0V1Y0 <TERM + EOI>
         value = rawvalue
-        if type(value)==list:
+        if type(value) == list:
             value = value[0]
         value = value.strip()
         if not value.startswith('MST'):
@@ -437,16 +429,16 @@ class Keithley23X(KeithleyHead):
             retVal.update(Keithley23X.extract_v1100_range_control(value[:2]))
             value = value[2:]
             retVal.update(Keithley23X.extract_terminator(value[:2]))
-        except Exception,e:
-            print 'error while converting \'%s\''%rawvalue
+        except Exception as e:
+            print('error while converting \'%s\'' % rawvalue)
             raise e
 
         return retVal
-    
+
     @staticmethod
     def extract_output_data_format(value):
-        #example: G 0 1, 0, 0
-        #G - Output Data Format
+        # example: G 0 1, 0, 0
+        # G - Output Data Format
         # Items (sum of bits)
         # 00 =No items
         # 01 = Source value
@@ -464,16 +456,16 @@ class Keithley23X(KeithleyHead):
         # 1 = One line from sweep buffer
         # 2 = All lines from sweep buffer
         if not value.startswith('G'):
-            raise Exception ("Cannot extract output data format, string doesn't start with \'G\', \'%s\'"%value)
-        retVal={}
+            raise Exception("Cannot extract output data format, string doesn't start with \'G\', \'%s\'" % value)
+        retVal = {}
         value = value[1:]
         retVal['output_items'] = int(value[:2])
         value = value[3:]
         retVal['output_format'] = int(value[0])
         value = value[2:]
-        retVal['output_lines'] = int (value)
+        retVal['output_lines'] = int(value)
         return retVal
-    
+
     @staticmethod
     def extract_eoi_and_bus_hold_off(value):
         # example: K 0
@@ -483,7 +475,7 @@ class Keithley23X(KeithleyHead):
         # 2 = Enable EOI, disable hold-off
         # 3 = Disable EOI and hold-off
         if not value.startswith('K'):
-            raise Exception ("Cannot extract eoi and bus hold off, string doesn't start with \'K\', \'%s\'"%value)
+            raise Exception("Cannot extract eoi and bus hold off, string doesn't start with \'K\', \'%s\'" % value)
         value = int(value[1:])
         retVal = {}
         if value == 0:
@@ -499,12 +491,12 @@ class Keithley23X(KeithleyHead):
             retVal['eoi'] = False
             retVal['bus_hold_off'] = False
         if len(retVal) == 0:
-            raise Exception("Couldn't convert eoi and bus hold off correctly, K%d"%value)
+            raise Exception("Couldn't convert eoi and bus hold off correctly, K%d" % value)
         return retVal
-    
+
     @staticmethod
     def extract_srq_mask_and_compliance_select(value):
-        #example: M 0 0 0, 0
+        # example: M 0 0 0, 0
         # M - SRQ Mask and Compliance
         # Select
         # Mask (sum of bits)
@@ -520,14 +512,14 @@ class Keithley23X(KeithleyHead):
         # O =Delay, measure, or idle compliance
         # 1 = Measurement compliance
         if not value.startswith('M'):
-            raise Exception ("Cannot extract srq mask and compliance select, string doesn't start with \'M\', \'%s\'"%value)
+            raise Exception("Cannot extract srq mask and compliance select, string doesn't start with \'M\', \'%s\'" % value)
         value = value[1:]
         retVal = {}
         retVal['srq_mask'] = int(value[:3])
         value = value[4:]
         retVal['compliance_select'] = bool(value)
         return retVal
-    
+
     @staticmethod
     def extract_operate(value):
         # example: N 0
@@ -535,10 +527,10 @@ class Keithley23X(KeithleyHead):
         # O =Standby
         # 1 =Operate
         if not value.startswith('N'):
-            raise Exception ("Cannot extract operate, string doesn't start with \'N\', \'%s\'"%value)
-        retVal = {'operate': int(value[1])==1}
+            raise Exception("Cannot extract operate, string doesn't start with \'N\', \'%s\'" % value)
+        retVal = {'operate': int(value[1]) == 1}
         return retVal
-    
+
     @staticmethod
     def extract_trigger_control(value):
         # example: R1
@@ -546,10 +538,10 @@ class Keithley23X(KeithleyHead):
         # O = Disable triggering
         # 1 = Enable triggering
         if not value.startswith('R'):
-            raise Exception ("Cannot extract trigger control, string doesn't start with \'R\', \'%s\'"%value)
+            raise Exception("Cannot extract trigger control, string doesn't start with \'R\', \'%s\'" % value)
         retVal = {'trigger_control': bool(value[1])}
         return retVal
-    
+
     @staticmethod
     def extract_trigger_configuration(value):
         # example: T 4, 0, 0, 0
@@ -584,7 +576,7 @@ class Keithley23X(KeithleyHead):
         # 0 = Disabled
         # 1 = Enabled
         if not value.startswith('T'):
-            raise Exception ("Cannot extract trigger control, string doesn't start with \'T\', \'%s\'"%value)
+            raise Exception("Cannot extract trigger control, string doesn't start with \'T\', \'%s\'" % value)
         value = value[1:]
         retVal = {}
         retVal['trigger_origin'] = int(value[0])
@@ -592,7 +584,7 @@ class Keithley23X(KeithleyHead):
         retVal['triggger_out'] = int(value[4])
         retVal['trigger_sweep_end_out'] = int(value[6])
         return retVal
-    
+
     @staticmethod
     def extract_v1100_range_control(value):
         # example: V 1 
@@ -600,14 +592,14 @@ class Keithley23X(KeithleyHead):
         # O = 11OOV Range Disabled
         # 1 = 11OOV Range Enabled (237 only)
         if not value.startswith('V'):
-            raise Exception ("Cannot extract v1100 range, string doesn't start with \'V\', \'%s\'"%value)
+            raise Exception("Cannot extract v1100 range, string doesn't start with \'V\', \'%s\'" % value)
         retVal = {'v1100_range': bool(value[1])}
         return retVal
-    
+
     @staticmethod
     def extract_terminator(value):
         if not value.startswith('Y'):
-            raise Exception ("Cannot extract terminator, string doesn't start with \'Y\', \'%s\'"%value)
+            raise Exception("Cannot extract terminator, string doesn't start with \'Y\', \'%s\'" % value)
         value = int(value[1])
         if value == 0:
             return {'terminator': '\r\n'}
@@ -618,7 +610,7 @@ class Keithley23X(KeithleyHead):
         elif value == 3:
             return {'terminator': ''}
         return value
-    
+
     @staticmethod
     def extract_calibration_status_word(value):
         value = value.strip()
@@ -630,7 +622,7 @@ class Keithley23X(KeithleyHead):
         value = value[3:]
         retVal['cal_lock_switch'] = bool(value[0])
         value = value[2:]
-        retVal['unit_calibrated'] = bool(value[0]) 
+        retVal['unit_calibrated'] = bool(value[0])
         return retVal
 
     @staticmethod
@@ -638,59 +630,59 @@ class Keithley23X(KeithleyHead):
         if 0 > value > 3:
             raise Exception('Invalid Value for conversion, allowed values are 0 - 3')
         if value == 0:
-            return 416e-6,4
+            return 416e-6, 4
         elif value == 1:
-            return 4e-3,5
+            return 4e-3, 5
         elif value == 2:
-            return 16.67e-3,5
+            return 16.67e-3, 5
         elif value == 3:
-            return 20e-3,5
+            return 20e-3, 5
         raise Exception()
 
     @staticmethod
     def extract_measurement_parameters(value):
         retVal = {}
-        print value
+        print(value)
         if not value.startswith('IMP'):
             raise Exception('Invalid input, input has to start with identifier \'IMP\'')
         value = value[3:]
-        print value
+        print(value)
         if not value.startswith('L,'):
             raise Exception('Invalid String cannot find compliance/measurement range, starting with \'L\'')
         retVal['measurement_range'] = int(value[2:4])
         value = value[4:]
-        print value
+        print(value)
         if not value.startswith('F'):
             raise Exception('Invalid String, cannot find source and function, starting with \'F\'')
         retVal['source_function'] = value[1:4]
         value = value[4:]
-        print value
+        print(value)
         if not value.startswith('O'):
             raise Exception('Invalid String, cannot find output sense, starting with \'O\'')
         retVal['output_sense'] = int(value[1])
         value = value[2:]
-        print value
+        print(value)
         if not value.startswith('P'):
             raise Exception('Invalid String, cannot find Filter, starting with \'P\'')
         ret = int(value[1])
         if ret != 0:
-            ret = 2**ret
+            ret = 2 ** ret
         retVal['filter'] = ret
         value = value[2:]
-        print value
+        print(value)
         if not value.startswith('S'):
             raise Exception('Invalid String, cannot find Integration Time, starting with \'S\'')
         retVal['integration_time'] = Keithley23X.convert_integration_time(int(value[1]))
         value = value[2:]
-        print value
+        print(value)
         if not value.startswith('W'):
             raise Exception('Invalid String, cannot find Default Delay, starting with \'W\'')
         retVal['default_delay'] = bool(value[1])
         value = value[2:]
-        print value
+        print(value)
         if not value.startswith('Z'):
             raise Exception('Invalid String, cannot find Suppression, starting with \'Z\'')
-        retVal['suppression'] =  bool(value[1])
+        retVal['suppression'] = bool(value[1])
         return retVal
 
     @staticmethod
@@ -707,7 +699,7 @@ class Keithley23X(KeithleyHead):
         value = value.strip()
         if value == '':
             return []
-        #todo
+        # todo
         return value
 
     @staticmethod
@@ -743,7 +735,7 @@ class Keithley23X(KeithleyHead):
         if not value.startswith('WRS'):
             raise Exception('Cannot find Identifier \'WRS\'')
         value = value[3:]
-        warning = int(value,base=2)
+        warning = int(value, base=2)
         # bit 10: uncalibrated
         # bit  9: Temporary Cal
         # bit  8: Value Out of Range
@@ -758,20 +750,20 @@ class Keithley23X(KeithleyHead):
 
     def get_output(self):
         retVal = self.get_machine_status_word()
-        if not retVal.has_key('operate'):
-            raise IndexError('Cannot find operate in machine status word: %s'%retVal)
+        if 'operate' not in retVal:
+            raise IndexError('Cannot find operate in machine status word: %s' % retVal)
         return retVal['operate']
 
     def get_output_status(self):
         return self.get_output()
 
     def read_iv(self):
-        retVal =  self.__execute('H0')
+        retVal = self.__execute('H0')
         converted = self.extract_data(retVal)
         current = converted['measure_value']
         voltage = converted['source_value']
-        return {'current':current, 'voltage':voltage}
-    
+        return {'current': current, 'voltage': voltage}
+
     def read_current(self):
         return self.read_iv()['current']
 
@@ -784,6 +776,4 @@ class Keithley23X(KeithleyHead):
 
 
 if __name__ == '__main__':
-    conf = ConfigParser.ConfigParser()
-    conf.read('../config/keithley.cfg')
-    k237 = Keithley23X(conf, 5, True,False)
+    k237 = Keithley23X(load_config('../config/keithley.cfg'), 5, True, False)

@@ -9,7 +9,7 @@
 from logging import getLogger, FileHandler, INFO, Formatter
 from os.path import join, realpath, dirname
 from utils import ensure_dir, info
-from ConfigParser import ConfigParser
+from configparser import ConfigParser
 from time import strftime
 
 
@@ -40,6 +40,8 @@ class Logger:
 
         if on:
             self.configure()
+
+    # TODO read in back log file from the same day!
 
     def configure(self):
         # check if directories exist and create them if not

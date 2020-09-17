@@ -5,18 +5,19 @@
 # created on June 29th 2018 by M. Reichmann (remichae@phys.ethz.ch)
 # --------------------------------------------------------
 
-from PyQt4.QtGui import QMainWindow, QIcon, QApplication, QAction, QFontDialog, QVBoxLayout, QWidget, QHBoxLayout
-from PyQt4.QtCore import QTimer
+from PyQt5.QtWidgets import QMainWindow, QApplication, QAction, QFontDialog, QVBoxLayout, QWidget, QHBoxLayout
+from PyQt5.QtGui import QIcon
+from PyQt5.QtCore import QTimer
 from sys import exit as end
-from ConfigParser import ConfigParser
-from DeviceReader import get_devices, get_logging_devices, get_dummies
-from os.path import dirname, realpath, join
-from DeviceBox import DeviceBox
-from DataBox import DataBox
+from device_reader import get_devices, get_logging_devices, get_dummies
+from os.path import dirname, realpath
+from device_box import DeviceBox
+from data_box import DataBox
 from argparse import ArgumentParser
 from serial import SerialException
 import qdarkstyle
-from warnings import filterwarnings, catch_warnings
+from warnings import filterwarnings
+from utils import *
 
 
 ON = True
@@ -62,10 +63,10 @@ class Gui(QMainWindow):
             try:
                 device_box.update()
             except (ValueError, SerialException) as err:
-                print err
+                print(err)
 
     def configure(self):
-        self.setGeometry(2000, 300, (800 if self.FromLogs else 400) * ((self.NDevices + 1) / 2), 400)
+        self.setGeometry(2000, 300, (800 if self.FromLogs else 400) * ((self.NDevices + 1) // 2), 400)
         self.setWindowTitle('ETH High Voltage Client')
         self.setWindowIcon(QIcon(join(self.Dir, 'figures', 'icon.svg')))
         self.setCentralWidget(QWidget())
@@ -78,12 +79,12 @@ class Gui(QMainWindow):
 
     def make_device_boxes(self):
         boxes = []
-        vboxes = [QVBoxLayout() for _ in xrange((self.NDevices + 1) / 2)]
+        vboxes = [QVBoxLayout() for _ in range((self.NDevices + 1) // 2)]
         i = 0
         for device in self.Devices:
             for channel in device.ActiveChannels:
                 box = DeviceBox(device, channel) if not self.FromLogs else DataBox(device, channel)
-                vboxes[i / 2].addWidget(box)
+                vboxes[i // 2].addWidget(box)
                 boxes.append(box)
                 i += 1
         if self.NDevices % 2 == 1:
@@ -124,7 +125,7 @@ class MenuBar(object):
             self.Window.CheckBoxes.B['Short'].setFont(font)
 
     def close_app(self):
-        print 'Closing application'
+        info('Closing application')
         for dev in self.Window.Devices:
             dev.IsKilled = True
         end(2)
@@ -152,6 +153,6 @@ if __name__ == '__main__':
 
     app = QApplication(['5'])
     filterwarnings('ignore')
-    app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt())
+    app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
     g = Gui(devices, args.from_logs)
     end(app.exec_())

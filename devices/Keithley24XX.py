@@ -1,26 +1,13 @@
-# ============================
-# IMPORTS
-# ============================
-from KeithleyHead import KeithleyHead
+from .Keithley import *
 from time import sleep
-from ConfigParser import NoOptionError, ConfigParser
+from configparser import NoOptionError
 import math
 from utils import isfloat, isint, warning
 
 
-# ============================
-# CONSTANTS
-# ============================
-ON = 1
-OFF = 0
-
-
-# ============================
-# MAIN CLASS
-# ============================
-class Keithley24XX(KeithleyHead):
+class Keithley24XX(Keithley):
     def __init__(self, config, device_no=1, hot_start=False):
-        KeithleyHead.__init__(self, config, device_no, hot_start)
+        Keithley.__init__(self, config, device_no, hot_start)
         self.removeCharacters = '\r\n\x00\x13\x11\x10'
         self.init_keithley(hot_start)
         self.output = ''
@@ -76,8 +63,8 @@ class Keithley24XX(KeithleyHead):
     def set_source_output(self):
         try:
             self.output = self.Config.get(self.SectionName, 'output')
-        except NoOptionError, err:
-            print err
+        except NoOptionError as err:
+            print(err)
         if self.output.lower().startswith('rear') or self.output.lower().startswith('back'):
             return self.write(':ROUT:TERM REAR')
         else:
@@ -88,7 +75,7 @@ class Keithley24XX(KeithleyHead):
 
     def set_trigger_counter(self, triggers):
         if triggers < 1 or triggers >= 2500:
-            print 'Trigger Counter is only allowed in range 1 to 2500! You entered: ', triggers
+            print('Trigger Counter is only allowed in range 1 to 2500! You entered: ', triggers)
             return -1
         return self.write(':TRIG:COUN %s' % int(triggers))
 
@@ -135,7 +122,7 @@ class Keithley24XX(KeithleyHead):
         data = self.get_answer_for_query(':SOUR:SWE:POIN?')
         if data == '':
             return -1
-        print 'Sweep Points: %s' % data
+        print('Sweep Points: %s' % data)
         return data if 0 <= int(data) <= 2500 else -1
 
     # ============================
@@ -151,10 +138,10 @@ class Keithley24XX(KeithleyHead):
         return self.write(':SOUR:VOLT:START %s' % start)
 
     def set_volt_sweep_stop(self, stop):
-        print 'set sweepstopValue: %s' % stop
+        print('set sweepstopValue: %s' % stop)
         if self.MaxVoltage < math.fabs(stop):
             stop = math.copysign(self.MaxVoltage, stop)
-            print 'set voltage to maximum allowed voltage: %s' % stop
+            print('set voltage to maximum allowed voltage: %s' % stop)
         stop_voltage = float(stop)
         if not self.validate_voltage(stop_voltage):
             return -1
@@ -163,7 +150,7 @@ class Keithley24XX(KeithleyHead):
     def set_volt_sweep_step(self, step):
         step_voltage = float(step)
         if not self.validate_voltage(step_voltage):
-            print 'invalid sweepStepValue: ', step_voltage
+            print('invalid sweepStepValue: ', step_voltage)
             return -1
         return self.write(':SOUR:VOLT:STEP %s' % step_voltage)
 
@@ -205,7 +192,7 @@ class Keithley24XX(KeithleyHead):
             # todo check if value is valid
             return self.write(':SENS:RES:RANG %s' % res_range)
         else:
-            print 'resistance is not in valid Range %s' % res_range
+            print('resistance is not in valid Range %s' % res_range)
             return False
         pass
 
@@ -213,7 +200,7 @@ class Keithley24XX(KeithleyHead):
         if mode in ['MAN', 'AUTO', 'MANUAL']:
             return self.write(':SENSE:RESISTANCE:MODE %s' % mode)
         else:
-            print 'Sense Resistance mode is not valid: %s' % mode
+            print('Sense Resistance mode is not valid: %s' % mode)
             return False
         pass
 
@@ -233,17 +220,17 @@ class Keithley24XX(KeithleyHead):
             if self.validate_voltage(prot_volt):
                 return self.write(':SENSE:VOLT:PROTECTION %s' % prot_volt)
             else:
-                print 'Protection Voltage not in valid area: %s' % prot_volt
+                print('Protection Voltage not in valid area: %s' % prot_volt)
                 return False
         else:
-            print 'Protection Voltage no a Float: %s' % prot_volt
+            print('Protection Voltage no a Float: %s' % prot_volt)
         pass
 
     def set_source_function(self, f):
         if f in ['VOLT', 'CURR', 'VOLTAGE', 'CURRENT']:
             return self.write(':SOURCE:FUNC %s' % f)
         else:
-            print 'try to set not valid source Function: %s' % f
+            print('try to set not valid source Function: %s' % f)
             return False
         pass
 
@@ -252,7 +239,7 @@ class Keithley24XX(KeithleyHead):
             if state in ['True', 'False', 'TRUE', 'FALSE']:
                 state = True
             else:
-                print 'Four Wire Measurement not valid state: %s' % state
+                print('Four Wire Measurement not valid state: %s' % state)
                 return False
         if state:
             return self.write(':SYST:RSENSE ON')
@@ -262,6 +249,4 @@ class Keithley24XX(KeithleyHead):
 
 
 if __name__ == '__main__':
-    conf = ConfigParser()
-    conf.read('config/keithley.cfg')
-    keithley = Keithley24XX(conf, 1, True)
+    keithley = Keithley24XX(load_config('config/keithley.cfg'), 1, True)

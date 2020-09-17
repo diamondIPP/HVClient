@@ -1,35 +1,19 @@
 __author__ = 'micha'
 
-# ============================
-# IMPORTS
-# ============================
+import inspect
 import os
 import sys
-import inspect
-from Device import Device
-import serial
-from time import sleep, time
 from collections import deque
-from string import maketrans
-from ConfigParser import ConfigParser
-from utils import info, warning, isint
-from termcolor import colored
+import serial
+from .device import *
 
 
-# ============================
-# CONSTANTS
-# ============================
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
-ON = 1
-OFF = 0
 
 
-# ============================
-# MAIN CLASS
-# ============================
-class KeithleyHead(Device):
+class Keithley(Device):
     def __init__(self, config, device_no=1, hot_start=False):
 
         Device.__init__(self, config, device_no, hot_start)
@@ -191,7 +175,7 @@ class KeithleyHead(Device):
         self.write(data)
         sleep(self.readSleepTime)
         data = self.read(minlength)
-        return self.clear_string(data)
+        return clear_string(data)
 
     def write(self, data):
         data += self.commandEndCharacter
@@ -206,7 +190,7 @@ class KeithleyHead(Device):
         out = ''
         if not self.bOpen:
             if not self.bOpenInformed:
-                print 'cannot read since Not serial port is not open'
+                print('cannot read since Not serial port is not open')
                 self.bOpenInformed = False
             return ''
         ts = time()
@@ -224,12 +208,12 @@ class KeithleyHead(Device):
                 break
             sleep(self.readSleepTime)
         if time() - ts > max_time:
-            print "Tried reading for %s seconds." % (time() - ts), out
+            print(("Tried reading for %s seconds." % (time() - ts), out))
             try:
-                print ord(out[-2]), ord(out[-1]), ord(self.commandEndCharacter[0]), ord(self.commandEndCharacter[1])
+                print((ord(out[-2]), ord(out[-1]), ord(self.commandEndCharacter[0]), ord(self.commandEndCharacter[1])))
             except IndexError:
-                print "Error trying: 'print ord(out[-2]),ord(out[-1])," \
-                      "ord(self.commandEndCharacter[0]),ord(self.commandEndCharacter[1]),len(out)'"
+                print("Error trying: 'print ord(out[-2]),ord(out[-1]),"
+                      "ord(self.commandEndCharacter[0]),ord(self.commandEndCharacter[1]),len(out)'")
             return ''
         # print 'received after %s tries: %s' % (k, out)
         return out
@@ -261,27 +245,12 @@ class KeithleyHead(Device):
             measurement = [float(x) for x in answer]
             self.measurements.append(measurement)
             return [{'current': current, 'voltage': voltage, 'rest': rest}]
-        except Exception, err:
-            print err
+        except Exception as err:
+            print(err)
             raise Exception('Could not perform valid IV Measurement, received "%s"' % answer)
 
     # ============================
     # HELPER FUNCTIONS
-    @staticmethod
-    def clear_string(data):
-        data = data.translate(None, '\r\n\x00\x13\x11\x10')
-        data = data.translate(maketrans(',', ' '))
-        return data.strip()
-
-    # def validate_voltage(self, voltage):
-    #     if self.max_voltage < math.fabs(voltage) and self.is_float(voltage):
-    #         voltage = math.copysign(self.max_voltage, float(voltage))
-    #         print 'set voltage to maximum allowed voltage: %s' % voltage
-    #     elif not self.is_float(voltage):
-    #         print 'invalid Voltage: %s' % voltage
-    #         voltage = 0
-    #     self.target_voltage = voltage
-    #     return voltage
 
     def convert_data(self, timestamp, data):
         try:
@@ -292,7 +261,7 @@ class KeithleyHead(Device):
             else:
                 raise Exception('convertData: unvalid type!')
             if len(new_data) % 5 != 0:
-                print 'Something is wrong with the string, length=%s  \'%s\'' % (len(new_data), data)
+                print('Something is wrong with the string, length=%s  \'%s\'' % (len(new_data), data))
                 return -1
             # if len(new_data) > 5:
             #     retVal = self.convert_data(timestamp, new_data[:5])
@@ -302,8 +271,8 @@ class KeithleyHead(Device):
             self.measurements.append(measurement)
             # self.last_voltage = measurement[0]
             tripped = self.is_tripped(measurement[5])
-            print '%d: Measured at %8.2f V: %8.2e A, %s   ==>Length of Queue: %s' % (
-                measurement[0], measurement[1], measurement[2], tripped, len(self.measurements))  # , self.nTrigs)
+            print('%d: Measured at %8.2f V: %8.2e A, %s   ==>Length of Queue: %s' % (
+                measurement[0], measurement[1], measurement[2], tripped, len(self.measurements)))  # , self.nTrigs)
             if tripped:
                 return False
             else:
@@ -313,6 +282,4 @@ class KeithleyHead(Device):
 
 
 if __name__ == '__main__':
-    conf = ConfigParser()
-    conf.read('config/keithley.cfg')
-    keithley = KeithleyHead(conf, 1)
+    keithley = Keithley(load_config('config/keithley.cfg'), 1)

@@ -1,14 +1,11 @@
-import sys
-from ConfigParser import ConfigParser
 from glob import glob
 from json import loads
 from math import copysign
-from numpy import zeros
 from os.path import dirname, realpath, basename
 from threading import Thread
 from time import sleep
 
-from Logger import Logger
+from logger import Logger
 from utils import *
 
 __author__ = 'Michael Reichmann'
@@ -63,7 +60,7 @@ class Device(Thread):
         self.FromLogs = False
         self.StartTime = self.load_start_time(start_time)
 
-        print '---------------------------------------'
+        print('---------------------------------------')
 
     # ============================
     # MAIN LOOP FOR THREAD (overwriting thread run)
@@ -104,7 +101,7 @@ class Device(Thread):
     # region INIT
         
     def init_logger(self, init=True):
-        return [Logger(self.SectionName, channel, self.Config, on=channel in self.ActiveChannels if init else False) for channel in xrange(self.NChannels)]
+        return [Logger(self.SectionName, channel, self.Config, on=channel in self.ActiveChannels if init else False) for channel in range(self.NChannels)]
 
     def get_device_name(self, chan=0):
         return self.ChannelNames[chan] if self.HasChannels else self.DeviceName
@@ -139,7 +136,7 @@ class Device(Thread):
 
     def read_target_bias(self):
         biases = []
-        for i in xrange(self.NChannels):
+        for i in range(self.NChannels):
             bias = self.ChannelConfig.getfloat('CH{}'.format(i), 'bias')
             if not self.validate_voltage(bias, i):
                 critical('End program')
@@ -147,10 +144,10 @@ class Device(Thread):
         return biases
 
     def read_min_bias(self):
-        return [self.ChannelConfig.getfloat('CH{}'.format(i), 'min_bias') for i in xrange(self.NChannels)]
+        return [self.ChannelConfig.getfloat('CH{}'.format(i), 'min_bias') for i in range(self.NChannels)]
 
     def read_max_bias(self):
-        return [self.ChannelConfig.getfloat('CH{}'.format(i), 'max_bias') for i in xrange(self.NChannels)]
+        return [self.ChannelConfig.getfloat('CH{}'.format(i), 'max_bias') for i in range(self.NChannels)]
 
     def get_model_number(self):
         if not self.Config.has_option(self.SectionName, 'model'):
@@ -177,7 +174,7 @@ class Device(Thread):
 
     def read_channel_names(self):
         if self.HasChannels:
-            return [self.ChannelConfig.get('Names', 'CH{}'.format(i)) for i in xrange(self.NChannels)]
+            return [self.ChannelConfig.get('Names', 'CH{}'.format(i)) for i in range(self.NChannels)]
     # endregion
     
     # ============================
@@ -317,19 +314,14 @@ class Device(Thread):
         return []
 
     def update_voltage_current(self):
-        verb = False
-        if verb:
-            print 'update_voltage_current'
         self.wait_for_device()
         self.IsBusy = True
         try:
             self.update_status()
         except Exception as inst:
-            print 'Could not update voltage/current- get output status:', inst, inst.args
+            warning('Could not update voltage/current- get output status: {} {}'.format(inst, inst.args))
             self.IsBusy = False
             return
-        if verb:
-            print '\tstatus', self.Status,
         status = any(self.Status)
         if status:
             try:
@@ -337,10 +329,8 @@ class Device(Thread):
                 self.fill_iv_now(iv)
                 self.LastUpdate = time()
             except Exception as inst:
-                print 'Could not read valid iv', type(inst), inst
+                warning('Could not read valid iv {} {}'.format(type(inst), inst))
         self.IsBusy = False
-        if verb:
-            print '\tDONE'
 
     def fill_iv_now(self, data):
         for channel in self.ActiveChannels:
@@ -388,17 +378,7 @@ class Device(Thread):
                     info('{} is done with ramping to {} V'.format(self.SectionName, self.get_target_bias()))
                 self.IsBusy = False
 
-    @staticmethod
-    def mimic_cmd():
-        print 'HV Cmd =>>> ',
-        sys.stdout.flush()
 
-
-# ============================
-# MAIN
-# ============================
 if __name__ == '__main__':
-    conf = ConfigParser()
-    conf.read('config/keithley.cfg')
-    device_no = loads(conf.get('Main', 'devices'))[0]
-    z = Device(conf, device_no, False, init_logger=False, start_time=None)
+    conf = load_config('config/keithley.cfg')
+    z = Device(conf, loads(conf.get('Main', 'devices'))[0], False, init_logger=False, start_time=None)

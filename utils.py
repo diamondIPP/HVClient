@@ -5,14 +5,14 @@
 
 from datetime import datetime, timedelta
 from termcolor import colored
-from numpy import sqrt
+from numpy import sqrt, zeros, concatenate
 from os import makedirs, _exit
 from os import path as pth
 from os.path import join
 from time import time
 from collections import OrderedDict
 import pickle
-from string import maketrans
+from configparser import ConfigParser
 
 
 ON = True
@@ -39,23 +39,15 @@ def critical(msg):
 
 def message(msg, overlay=False, prnt=True):
     if prnt:
-        print '{ov}{t} --> {msg}{end}'.format(t=get_t_str(), msg=msg, ov='\033[1A\r' if overlay else '', end=' ' * 20 if overlay else '')
+        print('{ov}{t} --> {msg}{end}'.format(t=get_t_str(), msg=msg, ov='\033[1A\r' if overlay else '', end=' ' * 20 if overlay else ''))
 
 
 def round_down_to(num, val):
-    return int(num) / val * val
+    return int(num) // val * val
 
 
 def round_up_to(num, val):
-    return int(num) / val * val + val
-
-
-def calc_mean(l):
-    l = [float(i) for i in l]
-    mean_ = sum(l) / len(l)
-    mean2 = sum(map(lambda x: x ** 2, l)) / len(l)
-    sigma = sqrt(mean2 - mean_ ** 2)
-    return mean_, sigma
+    return int(num) // val * val + val
 
 
 def calc_weighted_mean(means, sigmas):
@@ -80,11 +72,11 @@ def ensure_dir(path):
 
 
 def print_banner(msg, symbol='=', new_lines=True):
-    print '{n}{delim}\n{msg}\n{delim}{n}'.format(delim=len(str(msg)) * symbol, msg=msg, n='\n' if new_lines else '')
+    print('{n}{delim}\n{msg}\n{delim}{n}'.format(delim=len(str(msg)) * symbol, msg=msg, n='\n' if new_lines else ''))
 
 
 def print_small_banner(msg, symbol='-'):
-    print '\n{delim}\n{msg}\n'.format(delim=len(str(msg)) * symbol, msg=msg)
+    print('\n{delim}\n{msg}\n'.format(delim=len(str(msg)) * symbol, msg=msg))
 
 
 def print_elapsed_time(start, what='This', show=True):
@@ -126,15 +118,26 @@ def get_resolution():
         return 1000
 
 
-def print_table(rows, header=None):
-    closing_row = '~' * len('| {r} |'.format(r=' | '.join(rows[-1])))
-    if header is not None:
-        print closing_row
-        print '| {r} |'.format(r=' | '.join(header))
-    print closing_row
-    for row in rows:
-        print '| {r} |'.format(r=(' | '.join(row) if len(row) > 1 else row[0]).ljust(len(closing_row) - 4))
-    print closing_row
+def choose(v, default, decider='None', *args, **kwargs):
+    use_default = decider is None if decider != 'None' else v is None
+    if callable(default) and use_default:
+        default = default(*args, **kwargs)
+    return default if use_default else v
+
+
+def print_table(rows, header=None, footer=None, prnt=True):
+    head, foot = [choose([v], zeros((0, len(rows[0]))), v) for v in [header, footer]]
+    t = concatenate([head, rows, foot]).astype('str')
+    col_width = [len(max(t[:, i], key=len)) for i in range(t.shape[1])]
+    total_width = sum(col_width) + len(col_width) * 3 + 1
+    hline = '{}'.format('~' * total_width)
+    if prnt:
+        for i, row in enumerate(t):
+            if i in [0] + choose([1], [], header) + choose([t.shape[0] - 1], [], footer):
+                print(hline)
+            print('| {r} |'.format(r=' | '.join(word.ljust(n) for word, n in zip(row, col_width))))
+        print('{}\n'.format(hline))
+    return rows
 
 
 def get_base_dir():
@@ -167,29 +170,30 @@ def int_to_roman(integer):
     dic = OrderedDict([(1000, 'M'), (900, 'CM'), (500, 'D'), (400, 'CD'), (100, 'C'), (90, 'XC'), (50, 'L'), (40, 'XL'),
                        (10, 'X'), (9, 'IX'), (5, 'V'), (4, 'IV'), (1, 'I')])
     result = ''
-    for i, num in dic.iteritems():
+    for i, num in dic.items():
         count = int(integer / i)
         result += num * count
         integer -= i * count
     return result
 
 
+def load_config(name, ext='ini'):
+    parser = ConfigParser()
+    parser.read('{}.{}'.format(name, ext))
+    return parser
+
+
 def remove_letters(string):
-    new_str = ''
-    for l in string:
-        if l.isdigit():
-            new_str += l
-    return new_str
+    return ''.join(filter(lambda x: x.isdigit(), string))
+
+
+def remove_digits(string):
+    return ''.join(filter(lambda x: not x.isdigit(), string))
 
 
 def clear_string(data):
-    data = data.translate(None, '\r\n\x00\x13\x11\x10')
-    data = data.translate(maketrans(',', ' '))
-    return data.strip()
-
-
-def convert_unicode(qstring):
-    return unicode(str(qstring.toUtf8()).decode('utf8'))
+    data = data.translate(None, '\r\n\x00\x13\x11\x10')  # clear strange chars
+    return data.replace(',', ' ').strip()
 
 
 def do(fs, pars, exe=-1):

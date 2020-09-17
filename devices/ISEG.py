@@ -4,13 +4,10 @@
 # ============================
 # IMPORTS
 # ============================
-import ConfigParser
 import warnings
-
-from Device import Device
 from serial import Serial, PARITY_NONE, STOPBITS_ONE, EIGHTBITS, SerialException
-from time import sleep, time
-from utils import *
+from .device import *
+from typing import Any
 
 
 # ============================
@@ -91,7 +88,7 @@ class ISEG(Device):
     # endregion
 
     @staticmethod
-    def make_channel_string(channel):
+    def make_channel_string(channel: Any):
         if type(channel) is str and channel.lower() == 'all':
             return '(@0-5)'
         channels = channel if type(channel) is list else [channel]
@@ -107,13 +104,13 @@ class ISEG(Device):
 
     def set_emergency_off(self, channel='all'):
         ch_str = self.make_channel_string(channel)
-        print 'Emergency off for channel(s) %s' % channel
+        print('Emergency off for channel(s) %s' % channel)
         data = ':VOLT EMCY OFF,{ch}'.format(ch=ch_str)
         return self.write(data)
 
     def set_emergency_clear(self, channel='all'):
         ch_str = self.make_channel_string(channel)
-        print 'Emergency clear for channel(s) %s' % channel
+        print('Emergency clear for channel(s) %s' % channel)
         data = ':VOLT EMCY CLR,{ch}'.format(ch=ch_str)
         return self.write(data)
 
@@ -124,7 +121,7 @@ class ISEG(Device):
         return self.write(':CURR {c:.3f},{ch}'.format(c=current, ch=self.make_channel_string(channel)))
 
     def set_current_bound(self, current_bound, channel):
-        return self.write(':CURR:BOU {0:.3f}, {}'.format(current_bound, self.make_channel_string(channel)))
+        return self.write(':CURR:BOU {:.3f}, {}'.format(current_bound, self.make_channel_string(channel)))
 
     def clear_events(self, channel):
         return self.write(':EV:CLEAR {}'.format(self.make_channel_string(channel)))
@@ -158,7 +155,7 @@ class ISEG(Device):
         if not filterSteps in valid_steps:
             raise AttributeError('FilterSteps must be in %s' % valid_steps)
         data = ':CONF:AVER %d' % filterSteps
-        print 'Set Average Filter Steps to %d' % filterSteps
+        print('Set Average Filter Steps to %d' % filterSteps)
         return self.write(data)
 
     def get_average_filter_steps(self):
@@ -171,7 +168,7 @@ class ISEG(Device):
             retval = 'ENABLE'
         else:
             retval = 'DISABLE'
-        print '%s kill function' % retval.lower()
+        print('%s kill function' % retval.lower())
         return self.write(data % retval)
 
     def is_kill_function_active(self):
@@ -273,7 +270,7 @@ class ISEG(Device):
         out = ''
         if not self.bOpen:
             if not self.bOpenInformed:
-                print 'cannot read since Not serial port is not open'
+                print('cannot read since Not serial port is not open')
                 self.bOpenInformed = False
             return ''
         ts = time()
@@ -298,12 +295,12 @@ class ISEG(Device):
                 break
             sleep(self.ReadSleepTime)
         if time() - ts > max_time:
-            print "Tried reading for %s seconds." % (time() - ts), out
+            print("Tried reading for %s seconds." % (time() - ts), out)
             try:
-                print ord(out[-2]), ord(out[-1]), ord(self.CommandEndCharacter[0]), ord(self.CommandEndCharacter[1])
+                print(ord(out[-2]), ord(out[-1]), ord(self.CommandEndCharacter[0]), ord(self.CommandEndCharacter[1]))
             except IndexError:
-                print "Error trying: 'print ord(out[-2]),ord(out[-1])," \
-                      "ord(self.commandEndCharacter[0]),ord(self.commandEndCharacter[1]),len(out)'"
+                print("Error trying: 'print ord(out[-2]),ord(out[-1]),"
+                      "ord(self.commandEndCharacter[0]),ord(self.commandEndCharacter[1]),len(out)'")
             return ''
         # print 'received after %s tries: %s' % (k, out)
         return out
@@ -334,51 +331,51 @@ class ISEG(Device):
 
     def query_set_voltage(self, ch=-1):
         ch_str = self.make_channel_string(ch)
-        retVal = self.get_answer_for_query(':READ:VOLT?%s' % ch_str).split()
-        retVal = [float(k[:-1]) for k in retVal]
-        return retVal
+        value = self.get_answer_for_query(':READ:VOLT?%s' % ch_str).split()
+        value = [float(k[:-1]) for k in value]
+        return value
 
     def query_voltage_limit(self, ch=-1):
         ch_str = self.make_channel_string(ch)
-        retVal = self.get_answer_for_query(':READ:VOLT:LIM?%s' % ch_str).split()
-        retVal = [float(k[:-1]) for k in retVal]
-        return retVal
+        value = self.get_answer_for_query(':READ:VOLT:LIM?%s' % ch_str).split()
+        value = [float(k[:-1]) for k in value]
+        return value
 
     def query_voltage_nominal(self, ch=-1):
         ch_str = self.make_channel_string(ch)
-        retVal = self.get_answer_for_query(':READ:VOLT:NOM?%s' % ch_str).split()
-        retVal = [float(k[:-1]) for k in retVal]
-        return retVal
+        value = self.get_answer_for_query(':READ:VOLT:NOM?%s' % ch_str).split()
+        value = [float(k[:-1]) for k in value]
+        return value
 
     def query_voltage_bounds(self, ch=-1):
         ch_str = self.make_channel_string(ch)
-        retVal = self.get_answer_for_query(':READ:VOLT:BOU?%s' % ch_str).split()
-        retVal = [float(k[:-1]) for k in retVal]
-        return retVal
+        value = self.get_answer_for_query(':READ:VOLT:BOU?%s' % ch_str).split()
+        value = [float(k[:-1]) for k in value]
+        return value
 
     def query_channel_on(self, ch=-1):
         ch_str = self.make_channel_string(ch)
-        retVal = self.get_answer_for_query(':READ:VOLT:ON?%s' % ch_str).split()
-        retVal = [bool(k) for k in retVal]
-        return retVal
+        value = self.get_answer_for_query(':READ:VOLT:ON?%s' % ch_str).split()
+        value = [bool(k) for k in value]
+        return value
 
     def query_emergency_bit(self, ch=-1):
         ch_str = self.make_channel_string(ch)
-        retVal = self.get_answer_for_query(':READ:VOLT:EMCY?%s' % ch_str).split()
-        retVal = [bool(k) for k in retVal]
-        return retVal
+        value = self.get_answer_for_query(':READ:VOLT:EMCY?%s' % ch_str).split()
+        value = [bool(k) for k in value]
+        return value
 
     def query_set_current(self, ch=-1):
         ch_str = self.make_channel_string(ch)
-        retVal = self.get_answer_for_query(':READ:CURR?%s' % ch_str).split()
-        retVal = [float(k[:-1]) for k in retVal]
-        return retVal
+        value = self.get_answer_for_query(':READ:CURR?%s' % ch_str).split()
+        value = [float(k[:-1]) for k in value]
+        return value
 
     def query_set_current_limit(self, ch=-1):
         ch_str = self.make_channel_string(ch)
-        retVal = self.get_answer_for_query(':READ:CURR:LIM?%s' % ch_str).split()
-        retVal = [float(k[:-1]) for k in retVal]
-        return retVal
+        value = self.get_answer_for_query(':READ:CURR:LIM?%s' % ch_str).split()
+        value = [float(k[:-1]) for k in value]
+        return value
 
     def query_set_current_nominal(self, ch=-1):
         ch_str = self.make_channel_string(ch)
@@ -793,8 +790,7 @@ class ISEG(Device):
 
 
 if __name__ == '__main__':
-    conf = ConfigParser.ConfigParser()
-    conf.read('config/keithley.cfg')
-    d = ISEG(conf, 3, True)
+
+    d = ISEG(load_config('config/keithley.cfg'), 3, True)
     d.update_status()
     # d.start()

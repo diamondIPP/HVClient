@@ -3,15 +3,10 @@
 # created on September 17th 2020 by M. Reichmann (remichae@phys.ethz.ch)
 # --------------------------------------------------------
 
-import ConfigParser
-
-from Device import Device
-from time import time, sleep
-from utils import info, colored, round_down_to
+from copy import deepcopy
 from numpy import ones, array
 from numpy.random import rand
-from json import loads
-from copy import deepcopy
+from .device import *
 
 
 class Dummy(Device):
@@ -39,9 +34,9 @@ class Dummy(Device):
         self.CanRamp = False
         self.Output = ones(self.NChannels, 'bool')
 
-        self.hot_start()
         self.BiasNow = array([0 if ch not in self.ActiveChannels else round_down_to(self.MinBias[ch] * rand(), 10) for ch in range(self.NChannels)])
         self.TargetBias = deepcopy(self.BiasNow)
+        self.hot_start()
 
     # --------------------------------------
     # region SET METHODS
@@ -90,9 +85,8 @@ class Dummy(Device):
 
 
 if __name__ == '__main__':
-    conf = ConfigParser.ConfigParser()
-    conf.read('config/keithley.cfg')
-    device_no = loads(conf.get('Main', 'devices'))[0]
-    d = Dummy(conf, device_no, True)
+
+    from configparser import ConfigParser
+    d = Dummy(conf, loads(conf.get('Main', 'devices'))[0], True)
     d.update_status()
     # d.start()

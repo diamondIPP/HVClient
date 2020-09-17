@@ -1,26 +1,11 @@
 __author__ = 'micha'
 
-# ============================
-# IMPORTS
-# ============================
-from KeithleyHead import KeithleyHead
-from time import sleep
-import ConfigParser
+from .Keithley import *
 
 
-# ============================
-# CONSTANTS
-# ============================
-ON = 1
-OFF = 0
-
-
-# ============================
-# MAIN CLASS
-# ============================
-class Keithley6517B(KeithleyHead):
+class Keithley6517B(Keithley):
     def __init__(self, config, device_no=1, hot_start=False):
-        KeithleyHead.__init__(self, config, device_no)
+        Keithley.__init__(self, config, device_no)
         self.measure_value = 'CURR'
         self.init_keithley(hot_start)
 
@@ -55,7 +40,7 @@ class Keithley6517B(KeithleyHead):
         data = ':SYST:ZCH ON' if status else ':SYST:ZCH OFF'
         return self.write(data)
 
-    # there can only be one value be maesured at a time
+    # there can only be one value be measured at a time
     def config_readout(self, readout='current'):
         self.measure_value = 'VOLT' if readout.lower() == 'voltage' else 'CURR'
         data = ':CONF:VOLT:DC' if readout.lower() == 'voltage' else ':CONF:CURR:DC'
@@ -91,7 +76,7 @@ class Keithley6517B(KeithleyHead):
 
     # ============================
     # SET-FUNCTIONS
-    def set_bias(self, voltage):
+    def set_bias(self, voltage, channel=None):
         voltage = self.validate_voltage(voltage)
         self.set_range_voltage('low') if abs(voltage) <= 100 else self.set_range_voltage('high')
         data = ':SOUR:VOLT ' + str(voltage)
@@ -116,6 +101,4 @@ class Keithley6517B(KeithleyHead):
 
 
 if __name__ == '__main__':
-    conf = ConfigParser.ConfigParser()
-    conf.read('../config/keithley.cfg')
-    keithley = Keithley6517B(conf, 2, False)
+    keithley = Keithley6517B(load_config('../config/keithley.cfg'), 2, False)

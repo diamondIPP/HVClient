@@ -10,7 +10,7 @@ from __future__ import unicode_literals
 import matplotlib.dates as mdates
 import math
 
-time_converter = mdates.strpdate2num("%Y/%m/%d %H:%M:%S")
+time_converter = mdates.datestr2num("%Y/%m/%d %H:%M:%S")
 
 
 def convert(filename):
@@ -44,7 +44,7 @@ def convert(filename):
 
 
 #  plot_data[0],converted[-1]
-def update_plot(plot_data, fig, unit='nA',minrange=0,maxrange=0):
+def update_plot(plot_data, fig, unit='nA',minrange=0,marange=0):
     if len(plot_data) == 0:
         return
     fig.clear()
@@ -75,14 +75,14 @@ def update_plot(plot_data, fig, unit='nA',minrange=0,maxrange=0):
     elif unit == 'nA':
         factor = 1e9
         label = 'nA'
-    elif unicode(unit) == u'μA' or unicode(unit) == u'muA':
+    elif unit == u'μA' or unit == u'muA':
         factor = 1e6
         label = '$\mu$A'
     elif unit == 'mA':
         factor = 1e3
         label = 'mA'
     else:
-        print 'ERROR: ', unit, type(unit)
+        print('ERROR: ', unit, type(unit))
         factor = 1
         label = 'A'
     label = label_prefix + 'current [' + label + ']'
@@ -97,9 +97,9 @@ def update_plot(plot_data, fig, unit='nA',minrange=0,maxrange=0):
     min_v = min(voltages)
     max_c = max(currents)
     min_c = min(currents)
-    if minrange < maxrange:
+    if minrange < marange:
         min_c = minrange
-        max_c = maxrange
+        max_c = marange
     else:
 
         margin = find_margin(currents, factor)
