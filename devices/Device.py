@@ -36,7 +36,7 @@ class Device(Thread):
         # Info fields
         self.BiasNow = zeros(self.NChannels)
         self.CurrentNow = zeros(self.NChannels)
-        self.Status = zeros(self.NChannels)
+        self.Status = zeros(self.NChannels, bool)
 
         # Config data
         self.RampSpeed = config.getfloat(self.SectionName, 'ramp')
@@ -382,7 +382,7 @@ class Device(Thread):
             if self.is_ramping(channel):
                 self.IsBusy = True
                 new_bias = self.calc_ramp_bias(channel)
-                self.set_bias(new_bias)
+                self.set_bias(new_bias, channel)
                 self.LastVChange = time()
                 if new_bias == self.get_target_bias(channel) and not self.IsPoweringDown[channel]:
                     info('{} is done with ramping to {} V'.format(self.SectionName, self.get_target_bias()))

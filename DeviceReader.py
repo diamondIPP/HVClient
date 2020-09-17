@@ -16,6 +16,7 @@ from ConfigParser import ConfigParser
 from os.path import dirname, realpath, join
 import signal
 from devices.Device import Device
+from devices.Dummy import Dummy
 
 device_dic = {'2400': Keithley24XX,
               '2410': Keithley24XX,
@@ -42,7 +43,7 @@ def get_logging_devices(config, start_time):
 
 
 def get_dummies(config):
-    return [Device(config, nr, hot_start=True, init_logger=False) for nr in loads(config.get('Main', 'devices'))]
+    return [Dummy(config, nr, hot_start=True, init_logger=False) for nr in loads(config.get('Main', 'devices'))]
 
 
 def init_device(config, device_nr, hot_start, print_logs=False):
