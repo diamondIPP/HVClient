@@ -6,7 +6,6 @@ show how to add a matplotlib FigureCanvasGTK or FigureCanvasGTKAgg widget to a
 gtk.Window
 """
 
-from __future__ import unicode_literals
 import matplotlib.dates as mdates
 import math
 

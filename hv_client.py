@@ -5,23 +5,21 @@
 # created on June 29th 2018 by M. Reichmann (remichae@phys.ethz.ch)
 # --------------------------------------------------------
 
-from PyQt5.QtWidgets import QMainWindow, QApplication, QAction, QFontDialog, QVBoxLayout, QWidget, QHBoxLayout
-from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import QTimer
-from sys import exit as end
-from device_reader import get_devices, get_logging_devices, get_dummies
-from os.path import dirname, realpath
-from device_box import DeviceBox
-from data_box import DataBox
 from argparse import ArgumentParser
-from serial import SerialException
-import qdarkstyle
+from os.path import dirname, realpath
+from sys import exit as end
 from warnings import filterwarnings
-from utils import *
 
+import qdarkstyle
+from PyQt5.QtCore import QTimer
+from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import QMainWindow, QApplication, QAction, QFontDialog, QVBoxLayout, QWidget, QHBoxLayout
+from serial import SerialException
 
-ON = True
-OFF = False
+from src.data_box import DataBox
+from src.device_box import DeviceBox
+from src.device_reader import get_devices, get_logging_devices, get_dummies
+from src.utils import *
 
 
 # todo: add auto setting for max/min current
@@ -42,14 +40,13 @@ class Gui(QMainWindow):
         self.CurrentChannel = 0
         self.NDevices = sum(len(device.ActiveChannels) for device in devices)
 
-
         self.MainBox = QHBoxLayout()
         self.configure()
         self.MenuBar = MenuBar(self)
 
         self.DeviceBoxes = self.make_device_boxes()
 
-        self.timer = QTimer()  #updates the plot
+        self.timer = QTimer()  # updates the plot
         self.timer.timeout.connect(self.update)
         self.timer.start(1000)
 

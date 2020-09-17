@@ -8,7 +8,7 @@
 
 from logging import getLogger, FileHandler, INFO, Formatter
 from os.path import join, realpath, dirname
-from utils import ensure_dir, info
+from .utils import ensure_dir, info
 from configparser import ConfigParser
 from time import strftime
 
@@ -17,7 +17,7 @@ class Logger:
 
     def __init__(self, name, channel, config, on=True):
 
-        self.Dir = dirname(realpath(__file__))
+        self.Dir = dirname(dirname(realpath(__file__)))
 
         self.Name = name
         self.Channel = channel
@@ -30,7 +30,7 @@ class Logger:
         self.ModelName = self.Config.get(self.Name, 'model')
 
         # Directories
-        self.LoggingDir = join(self.Dir, self.Config.get('Main', 'testbeam_name'))
+        self.LoggingDir = join(self.Dir, 'data', self.Config.get('Main', 'testbeam_name'))
         self.LogFileDir = join(self.LoggingDir, '{}_CH{}'.format(self.DeviceName, self.Channel))
 
         # Info fields

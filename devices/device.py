@@ -5,8 +5,8 @@ from os.path import dirname, realpath, basename
 from threading import Thread
 from time import sleep
 
-from logger import Logger
-from utils import *
+from src.logger import Logger
+from src.utils import *
 
 __author__ = 'Michael Reichmann'
 

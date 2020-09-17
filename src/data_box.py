@@ -7,8 +7,8 @@
 
 from PyQt5.QtWidgets import QGroupBox, QGridLayout, QLabel, QLineEdit, QPushButton, QSpinBox, QComboBox, QCheckBox, QPlainTextEdit
 from PyQt5.QtCore import Qt
-from utils import do
-from live_monitor import LiveMonitor, times, units
+from .utils import do
+from .live_monitor import LiveMonitor, times, units
 
 HEIGHT = 20
 

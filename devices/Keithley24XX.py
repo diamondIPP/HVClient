@@ -1,8 +1,6 @@
-from .Keithley import *
-from time import sleep
-from configparser import NoOptionError
 import math
-from utils import isfloat, isint, warning
+from configparser import NoOptionError
+from .Keithley import *
 
 
 class Keithley24XX(Keithley):
