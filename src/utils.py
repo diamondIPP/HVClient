@@ -202,15 +202,12 @@ def remove_qss_entry(string, *names):
         if i == -1:
             warning('could not find {}'.format(name))
             continue
-        print(string[i: string.find('}', i) + 3])
         string = string.replace(string[i: string.find('}', i) + 3], '')
     return string
 
 
 def change_qss_entry(string, section, entry, value):
     i = string.find(entry, string.find(section))
-    print(i)
-    print(string[i: string.find(';', i)])
     return string.replace(string[i: string.find(';', i)], '{}: {}'.format(entry, value))
 
 
