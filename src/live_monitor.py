@@ -107,7 +107,7 @@ class LiveMonitor(object):
             try:
                 n_points = len(self.time) - 1  # prevent racing conditions
 
-                self.ax1.plot(self.time[:n_points], [c // units[self.Unit] for c in self.current[:n_points]], '.r', lw=.2, ls='-', ms=1)
+                self.ax1.plot(self.time[:n_points], [c / units[self.Unit] for c in self.current[:n_points]], '.r', lw=.2, ls='-', ms=1)
                 self.ax2.plot(self.time[:n_points], self.voltage[:n_points], '.b', lw=.2, ls='-', ms=1)
                 self.canvas.draw()
             except Exception as err:

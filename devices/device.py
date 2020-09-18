@@ -4,6 +4,7 @@ from math import copysign
 from os.path import dirname, realpath, basename
 from threading import Thread
 from time import sleep
+from os import SEEK_END
 
 from src.logger import Logger
 from src.utils import *
@@ -229,13 +230,14 @@ class Device(Thread):
         data = {}
         for channel in self.ActiveChannels:
             try:
-                filename = sorted(glob(join(self.Logger[channel].LogFileDir, '*')))[-1]
+                filename = self.Logger[channel].get_log_file(prnt=False)
                 d = datetime.strptime('-'.join(basename(filename).strip('.log').split('_')[-6:]), '%Y-%m-%d-%H-%M-%S')
-                f = open(filename)
-                f.seek(-50, 2)
-                info_str = f.readlines()[-1]
-                data[channel] = self.make_data(info_str, d)
-            except IOError:
+                with open(filename, 'rb') as f:
+                    f.seek(-50, SEEK_END)
+                    info_str = f.readlines()[-1].decode("utf-8")
+                    data[channel] = self.make_data(str(info_str), d)
+            except IOError as err:
+                print(err)
                 data[channel] = [0, 0, 0]
         return data
 

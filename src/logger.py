@@ -8,7 +8,7 @@
 
 from logging import getLogger, FileHandler, INFO, Formatter
 from os.path import join, realpath, dirname, basename
-from src.utils import ensure_dir, info, load_config
+from src.utils import ensure_dir, info, load_config, message
 from time import strftime
 from glob import glob
 from datetime import datetime
@@ -56,14 +56,14 @@ class Logger:
         self.FileHandler.setFormatter(Formatter('%(asctime)s %(message)s', '%H:%M:%S'))
         self.Logger.addHandler(self.FileHandler)
 
-    def get_log_file(self):
+    def get_log_file(self, prnt=True):
         """Check if there is already an existing log file for this day, otherwise create a new one."""
         last_file = max(glob(join(self.LogFileDir, '*.log')), default='')
         if last_file and datetime.strptime(basename(last_file).split(self.ModelName)[-1].strip('.log_'), self.TimeFormat).day == int(self.Day):
-            info('Reading old LOGFILE: {}'.format(last_file))
+            message('Reading old LOGFILE: {}'.format(last_file), prnt=prnt)
             return last_file
         file_path = join(self.LogFileDir, '{hv}_{dev}_{mod}_{t}.log'.format(hv=self.Name, dev=self.DeviceName, mod=self.ModelName, t=strftime(self.TimeFormat)))
-        info('Creating new LOGFILE: {}'.format(file_path))
+        message('Creating new LOGFILE: {}'.format(file_path), prnt=prnt)
         return file_path
 
     def create_new_log_file(self):
