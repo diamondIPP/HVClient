@@ -9,6 +9,7 @@ from argparse import ArgumentParser
 from os.path import dirname, realpath
 from sys import exit as end
 from warnings import filterwarnings
+from numpy import ceil
 
 import qdarkstyle
 from PyQt5.QtCore import QTimer
@@ -64,7 +65,9 @@ class Gui(QMainWindow):
                 print(err)
 
     def configure(self):
-        self.setGeometry(2000, 300, (800 if self.FromLogs else 400) * ((self.NDevices + 1) // 2), 400)
+        h = min(self.NDevices, 3) * 250 + 50
+        w = (800 if self.FromLogs else 350) * ceil(self.NDevices / 3)
+        self.setGeometry(2000, 300, w, h)
         self.setWindowTitle('ETH High Voltage Client')
         self.setWindowIcon(QIcon(join(dirname(self.Dir), 'figures', '{}.svg'.format('display' if self.FromLogs else 'hv'))))
         self.setCentralWidget(QWidget())
@@ -77,18 +80,19 @@ class Gui(QMainWindow):
 
     def make_device_boxes(self):
         boxes = []
-        vboxes = [QVBoxLayout() for _ in range((self.NDevices + 1) // 2)]
+        vboxes = [QVBoxLayout() for _ in range(ceil(self.NDevices / 3).astype('u2'))]
         i = 0
         for device in self.Devices:
             for channel in device.ActiveChannels:
                 box = DeviceBox(device, channel) if not self.FromLogs else DataBox(device, channel)
-                vboxes[i // 2].addWidget(box)
+                vboxes[i // 3].addWidget(box)
                 boxes.append(box)
                 i += 1
-        if self.NDevices % 2 == 1:
+        while i % 3 != 0 and i > 3:
             box = DeviceBox() if not self.FromLogs else DataBox()
             vboxes[-1].addWidget(box)
             boxes.append(box)
+            i += 1
         for box in vboxes:
             self.MainBox.addLayout(box)
         return boxes

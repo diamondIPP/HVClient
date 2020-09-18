@@ -23,6 +23,7 @@ class DataBox(QGroupBox):
         self.Channel = channel
         if self.Device is None:
             self.make_placeholder()
+            self.Widgets, self.Labels = [], []
             return
 
         self.setTitle('CH{c} - {n}'.format(n=device.read_device_name(channel), c=channel))

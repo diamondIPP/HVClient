@@ -39,6 +39,7 @@ class LiveMonitor(object):
         self.ax1.tick_params('x', colors=CYAN)
         self.ax1.set_ylabel('Leakage Current [{}]'.format(self.Unit), color=RED)
         self.ax1.tick_params('y', colors=RED)
+        self.ax1.set_facecolor('lightblue')
 
         self.ax2 = self.ax1.twinx()
         self.ax2.set_ylabel('Bias Voltage', color=CYAN)
@@ -62,15 +63,12 @@ class LiveMonitor(object):
     def format_dummy(self):
         with catch_warnings():
             filterwarnings('ignore')
-            col = 'snow'
-            self.ax1.spines['bottom'].set_color(col)
-            self.ax1.spines['top'].set_color(col)
-            self.ax1.spines['right'].set_color(col)
-            self.ax1.spines['left'].set_color(col)
-            self.ax1.tick_params(axis='x', colors=col)
-            self.ax1.tick_params(axis='y', colors=col)
-            self.ax1.set_axis_bgcolor(col)
-            self.fig.patch.set_facecolor(col)
+            plt.setp(self.ax1.spines.values(), color=BKG)
+            self.ax1.tick_params('y', colors=BKG)
+            self.ax1.tick_params('x', colors=BKG)
+            plt.setp([self.ax1.get_xticklabels(), self.ax1.get_yticklabels()], color=BKG)
+            self.ax1.set_facecolor(BKG)
+            self.fig.patch.set_facecolor(BKG)
 
     def get_duration(self):
         return num2date(self.time[-1]) - num2date(self.time[0]) if len(self.time) > 1 else timedelta(seconds=1)
@@ -132,3 +130,8 @@ class LiveMonitor(object):
         self.voltage = []
         self.current = []
         self.fig.clf()
+
+
+if __name__ == '__main__':
+
+    z = LiveMonitor(True)

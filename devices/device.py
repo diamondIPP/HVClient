@@ -214,6 +214,8 @@ class Device(Thread):
 
     def get_data_from_logs(self, channel=0):
         files = sorted(glob(join(self.Logger[channel].LogFileDir, '*')))
+        if not files:
+            return []
         dates = [datetime.strptime('-'.join(basename(f).strip('.log').split('_')[-6:]), '%Y-%m-%d-%H-%M-%S') for f in files]
 
         first_file_ind = dates.index(next(d for d in dates if d > self.StartTime)) - 1 if self.StartTime < dates[-1] else -1
@@ -237,7 +239,6 @@ class Device(Thread):
                     info_str = f.readlines()[-1].decode("utf-8")
                     data[channel] = self.make_data(str(info_str), d)
             except IOError as err:
-                print(err)
                 data[channel] = [0, 0, 0]
         return data
 
