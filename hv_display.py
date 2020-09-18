@@ -16,6 +16,10 @@ device_list = get_logging_devices(config, args.start_time)
 
 app = QApplication(['High Voltage Display'])
 filterwarnings('ignore')
-app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
+# fix for broken combobox...
+exclude = ['QWidget::item:selected', 'QComboBox QAbstractItemView:selected', 'QComboBox::indicator', 'QComboBox::indicator'] + ['QComboBox::item'] * 3
+style_str = remove_qss_entry(qdarkstyle.load_stylesheet_pyqt5(), *exclude)
+style_str = change_qss_entry(style_str, 'QComboBox {', 'padding-right', '4px')
+app.setStyleSheet(style_str)
 g = Gui(device_list, from_logs=True)
 end(app.exec_())

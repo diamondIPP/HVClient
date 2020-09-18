@@ -196,12 +196,29 @@ def clear_string(data):
     return data.replace(',', ' ').strip()
 
 
+def remove_qss_entry(string, *names):
+    for name in names:
+        i = string.find(name)
+        if i == -1:
+            warning('could not find {}'.format(name))
+            continue
+        print(string[i: string.find('}', i) + 3])
+        string = string.replace(string[i: string.find('}', i) + 3], '')
+    return string
+
+
+def change_qss_entry(string, section, entry, value):
+    i = string.find(entry, string.find(section))
+    print(i)
+    print(string[i: string.find(';', i)])
+    return string.replace(string[i: string.find(';', i)], '{}: {}'.format(entry, value))
+
+
 def do(fs, pars, exe=-1):
     fs, pars = ([fs], [pars]) if type(fs) is not list else (fs, pars)
     exe = pars if exe == -1 else [exe]
     for f, p, e in zip(fs, pars, exe):
         f(p) if e is not None else do_nothing()
-
 
 def do_nothing():
     pass
