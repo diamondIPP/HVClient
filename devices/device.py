@@ -354,7 +354,7 @@ class Device(Thread):
         delta_v = self.get_target_bias(channel) - self.get_bias(channel)
         step_size = copysign(abs(self.RampSpeed * (time() - self.LastVChange)), delta_v)  # get the voltage step by multiplying speed and update interval
         step_size = self.MaxStep if abs(step_size) > self.MaxStep else step_size
-        return self.get_target_bias(channel) if abs(delta_v) <= step_size else self.get_bias(channel) + step_size
+        return self.get_target_bias(channel) if abs(delta_v) <= abs(step_size) else self.get_bias(channel) + step_size
 
     def ramp(self):
         """ Try slowly ramp up the voltage by iteratively increasing the set voltage (if the device has not inherent ramping method) """
