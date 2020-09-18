@@ -5,7 +5,7 @@
 
 from copy import deepcopy
 from numpy import ones, array
-from numpy.random import rand
+from numpy.random import rand, normal, randint
 from .device import *
 
 
@@ -36,6 +36,7 @@ class Dummy(Device):
 
         self.BiasNow = array([0 if ch not in self.ActiveChannels else round_down_to(self.MinBias[ch] * rand(), 10) for ch in range(self.NChannels)])
         self.TargetBias = deepcopy(self.BiasNow)
+        self.SeedCurrent = randint(10, 80, self.NChannels) * 1e-9
         self.hot_start()
 
     # --------------------------------------
@@ -50,7 +51,7 @@ class Dummy(Device):
         self.CurrentNow[channel] = current
 
     def read_current(self):
-        return 5e-8 * (rand(self.NChannels) / 10. + .95)  # 5% fluctuations
+        return normal(self.SeedCurrent, 5e-9)
 
     def read_voltage(self):
         return self.BiasNow
@@ -86,7 +87,7 @@ class Dummy(Device):
 
 if __name__ == '__main__':
 
-    from configparser import ConfigParser
+    conf = load_config('config/keithley', 'cfg')
     d = Dummy(conf, loads(conf.get('Main', 'devices'))[0], True)
     d.update_status()
     # d.start()
