@@ -70,6 +70,9 @@ class DeviceBox(QGroupBox):
         self.OnButton.setEnabled(bool(self.Running.isChecked()))
         self.RampButton.setEnabled(bool(self.Running.isChecked()))
 
+    def set_fonts(self, font):
+        self.CurrentLabel.setFont(font)
+
     def set_status_labels(self):
         self.set_status_label()
         self.set_voltage_label()

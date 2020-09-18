@@ -7,6 +7,7 @@
 
 from PyQt5.QtWidgets import QGroupBox, QGridLayout, QLabel, QLineEdit, QPushButton, QSpinBox, QComboBox, QCheckBox, QPlainTextEdit
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QFont
 from .utils import do
 from .live_monitor import LiveMonitor, times, units
 
@@ -26,7 +27,8 @@ class DataBox(QGroupBox):
 
         self.setTitle('CH{c} - {n}'.format(n=device.read_device_name(channel), c=channel))
 
-        format_widget(self, color='red', bold=True, font_size=22)
+        self.setFont(QFont('Ubuntu', 8, QFont.Bold))
+        format_widget(self, color='red')
 
         # Drawing
         self.MaxCurrent = make_spinbox(-10000, 10000, 0, 1)
@@ -35,6 +37,8 @@ class DataBox(QGroupBox):
         self.MaxVoltage = make_spinbox(-1500, 1500, 1000, 50)
         self.DisplayTimes = make_combobox(times.keys(), ind=len(times) - 1)
         self.Units = make_combobox(units.keys(), ind=1)
+        self.Labels = self.make_labels()
+        self.Widgets = [self.MaxCurrent, self.MinCurrent, self.MinVoltage, self.MaxVoltage, self.DisplayTimes, self.Units]
 
         # Canvas
         self.LiveMonitor = LiveMonitor()
@@ -49,6 +53,16 @@ class DataBox(QGroupBox):
             self.LiveMonitor.update(self.Units.currentText(), int(self.MinCurrent.text()), int(self.MaxCurrent.text()), int(self.MinVoltage.text()), int(self.MaxVoltage.text()),
                                 t_displayed=str(self.DisplayTimes.currentText()))
 
+    def set_fonts(self, font):
+        for widget in self.Widgets:
+            widget.setFont(font)
+        for label in self.Labels:
+            label.setFont(font)
+
+    @staticmethod
+    def make_labels():
+        return [QLabel(n) for n in ['Displayed Time', 'Current Limits', 'Voltage Limits', 'Current Unit']]
+
     def make_placeholder(self):
         layout = QGridLayout(self)
         layout.setContentsMargins(4, 4, 4, 4)
@@ -61,21 +75,20 @@ class DataBox(QGroupBox):
         layout.setContentsMargins(4, 4, 4, 4)
 
         # drawing
-        layout.addWidget(QLabel('Displayed Time'), 1, 0, Qt.AlignRight)
+        for i, label in enumerate(self.Labels, 1):
+            layout.addWidget(label, i, 0, Qt.AlignRight)
         layout.addWidget(self.DisplayTimes, 1, 1, Qt.AlignLeft)
-        layout.addWidget(QLabel('Current Limits'), 2, 0, Qt.AlignRight)
         layout.addWidget(self.MinCurrent, 2, 1, Qt.AlignLeft)
         layout.addWidget(self.MaxCurrent, 2, 2, Qt.AlignLeft)
-        layout.addWidget(QLabel('Voltage Limits'), 3, 0, Qt.AlignRight)
         layout.addWidget(self.MinVoltage, 3, 1, Qt.AlignLeft)
         layout.addWidget(self.MaxVoltage, 3, 2, Qt.AlignLeft)
-        layout.addWidget(QLabel('Current Unit'), 4, 0, Qt.AlignRight)
         layout.addWidget(self.Units, 4, 1, Qt.AlignLeft)
         layout.addWidget(self.LiveMonitor.canvas, 0, 3, 6, 1)
         layout.setColumnStretch(3, 50)
         for widget in self.children():
             try:
-                format_widget(widget, font='ubuntu', color='darkCyan', font_size=10, bold=False)
+                widget.setFont(QFont('Ubuntu', 5))
+                format_widget(widget, color='darkCyan')
             except AttributeError:  # catch the widgets that can't be formatted by a stylesheet
                 pass
             except Exception as err:

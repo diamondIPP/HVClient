@@ -12,14 +12,15 @@ from warnings import filterwarnings
 
 import qdarkstyle
 from PyQt5.QtCore import QTimer
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QMainWindow, QApplication, QAction, QFontDialog, QVBoxLayout, QWidget, QHBoxLayout
+from PyQt5.QtGui import QIcon, QFont
+from PyQt5.QtWidgets import QMainWindow, QApplication, QAction, QFontDialog, QVBoxLayout, QWidget, QHBoxLayout, QInputDialog
 from serial import SerialException
 
 from src.data_box import DataBox
 from src.device_box import DeviceBox
 from src.device_reader import get_devices, get_logging_devices, get_dummies
 from src.utils import *
+from src.live_monitor import LiveMonitor
 
 
 # todo: add auto setting for max/min current
@@ -42,7 +43,7 @@ class Gui(QMainWindow):
 
         self.MainBox = QHBoxLayout()
         self.configure()
-        self.MenuBar = MenuBar(self)
+        self.MenuBar = MenuBar(self, from_logs)
 
         self.DeviceBoxes = self.make_device_boxes()
 
@@ -94,15 +95,20 @@ class Gui(QMainWindow):
 
 
 class MenuBar(object):
-    def __init__(self, gui):
+    def __init__(self, gui, display=False):
         self.Window = gui
         self.Menus = {}
+        self.Display = display
         self.load()
 
     def load(self):
         self.add_menu('File')
         self.add_menu_entry('File', 'Exit', 'Ctrl+Q', self.close_app, 'Close the Application')
         self.add_menu_entry('File', 'Font', 'Ctrl+F', self.font_choice, 'Open font dialog')
+        if self.Display:
+            self.add_menu('Settings')
+            self.add_menu_entry('Settings', 'Marker Size', 'Ctrl+M', self.set_ms, 'Open marker size dialog')
+            self.add_menu_entry('Settings', 'Line Width', 'Ctrl+L', self.set_lw, 'Open line width dialog')
 
     def add_menu(self, name):
         self.Window.statusBar()
@@ -117,15 +123,30 @@ class MenuBar(object):
         self.Menus[menu].addAction(action)
 
     def font_choice(self):
-        font, valid = QFontDialog.getFont()
+        font, valid = QFontDialog.getFont(self.Window)
         if valid:
-            self.Window.CheckBoxes.B['Short'].setFont(font)
+            for box in self.Window.DeviceBoxes:
+                header_font = QFont(font)
+                header_font.setPointSize(font.pointSize() * 1.4)
+                box.setFont(header_font)
+                box.set_fonts(font)
+            LiveMonitor.FD = {'family': font.family(), 'size': font.pointSize() * 1.4}
 
     def close_app(self):
         info('Closing application')
         for dev in self.Window.Devices:
             dev.IsKilled = True
         end(2)
+
+    def set_ms(self):
+        value, valid = QInputDialog.getInt(self.Window, 'Marker Size', 'Marker Size:')
+        if valid:
+            LiveMonitor.MS = value
+
+    def set_lw(self):
+        value, valid = QInputDialog.getInt(self.Window, 'Line Width', 'Line Width:')
+        if valid:
+            LiveMonitor.LW = value
 
 
 if __name__ == '__main__':

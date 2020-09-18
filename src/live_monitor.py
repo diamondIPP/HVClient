@@ -16,6 +16,7 @@ class LiveMonitor(object):
 
     MS = 3
     LW = .3
+    FD = {'size': 10}
 
     def __init__(self, dummy=False):
 
@@ -77,16 +78,25 @@ class LiveMonitor(object):
     def format(self):
         if len(self.time) > 2:
             self.ax1.xaxis.set_major_formatter(DateFormatter('%H:%M{}'.format(':%S' if self.get_duration().total_seconds() < 60 * 5 else '')))
-            self.ax1.set_xlabel('Time [hh:mm]', color=CYAN)
+            self.ax1.set_xlabel('Time [hh:mm]', color=CYAN, fontdict=LiveMonitor.FD)
             self.ax1.set_facecolor('lightblue')
-            self.ax2.set_ylabel('Bias Voltage', color=CYAN)
-            self.ax1.set_ylabel(u'Leakage Current [{}]'.format(self.Unit), color=RED)
+            self.ax2.set_ylabel('Bias Voltage', color=CYAN, fontdict=LiveMonitor.FD)
+            self.ax1.set_ylabel(u'Leakage Current [{}]'.format(self.Unit), color=RED, fontdict=LiveMonitor.FD)
             self.ax2.set_ylim(self.VMin, self.VMax)
             self.ax1.set_ylim(auto=True) if self.CMin == self.CMax else self.ax1.set_ylim(self.CMin, self.CMax)
             self.ax1.set_xlim(self.TMin, self.time[-1])
             self.ax2.set_xlim(self.TMin, self.time[-1])
+            self.format_ticks()
             self.fig.subplots_adjust(bottom=.15, right=.85)
             self.ax1.grid(ls='--', lw=.4)
+
+    def format_ticks(self):
+        for tick in self.ax1.get_xticklabels():
+            tick.set_fontsize(LiveMonitor.FD['size'])
+        for tick in self.ax1.get_yticklabels():
+            tick.set_fontsize(LiveMonitor.FD['size'])
+        for tick in self.ax2.get_yticklabels():
+            tick.set_fontsize(LiveMonitor.FD['size'])
 
     def add_data(self, t, v, i, dttime=False):
         if v and (not self.time or t != self.time[-1] and v != 0):
@@ -111,7 +121,7 @@ class LiveMonitor(object):
                 n_points = len(self.time) - 1  # prevent racing conditions
 
                 self.ax1.plot(self.time[:n_points], [c / units[self.Unit] for c in self.current[:n_points]], '.r', lw=LiveMonitor.LW, ls='-', ms=LiveMonitor.MS)
-                self.ax2.plot(self.time[:n_points], self.voltage[:n_points], '.b', lw=.2, ls='-', ms=1)
+                self.ax2.plot(self.time[:n_points], self.voltage[:n_points], '.b', lw=LiveMonitor.LW, ls='-', ms=LiveMonitor.MS)
                 self.canvas.draw()
             except Exception as err:
                 print(err)
