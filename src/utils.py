@@ -19,6 +19,11 @@ ON = True
 OFF = False
 ALL = 'all'
 
+RED = '#ff0000'
+WHITE = '#ffdead'
+CYAN = '#008b8b'
+BKG = '#19232D'
+
 
 def get_t_str():
     return datetime.now().strftime('%H:%M:%S')
