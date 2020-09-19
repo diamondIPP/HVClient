@@ -4,7 +4,7 @@
 # created on September 18th 2020 by M. Reichmann (remichae@phys.ethz.ch)
 # --------------------------------------------------------
 
-from os.path import join
+from os.path import join, getmtime
 from src.utils import *
 from typing import Any
 from json import loads
@@ -27,6 +27,10 @@ class Config(ConfigParser):
     def __call__(self, section, option):
         return self.get(section, option)
 
+    def is_old(self):
+        """Checks if the config file was changed during the last month."""
+        return time() - getmtime(self.MainFile) > 60 * 60 * 30
+
     def save(self):
         with open(self.MainFile, 'r+') as f:
             self.write(f)
@@ -47,11 +51,29 @@ class Config(ConfigParser):
         name_str = self.get_value(option)
         return [default] * self.NChannels if name_str is None else name_str.strip('[]').replace(' ', '').split(',')
 
-    def get_active(self):
-        return self.get_value('display' if self.Display else 'client', list, 'Active')
+    def get_active_devices(self):
+        return self.get_value('active', list, 'Devices')
 
-    def set_active(self, values):
-        self.set('Active', 'display' if self.Display else 'client', str(make_list(values)))
+    def set_active_devices(self, values: str):
+        if not values:
+            return
+        values = values if '[' in values else '[{}]'.format(values)
+        values = loads(values) if type(values) == str and '[' in values else make_list(int(values))
+        self.set('Devices', 'active', str(values))
+        self.save()
+
+    def set_section(self, section):
+        self.Section = section
+
+    def get_active_channels(self):
+        return self.get_value('active channels', list, default=[0])
+
+    def set_active_channels(self, values):
+        if not values:
+            return
+        values = values if '[' in values else '[{}]'.format(values)
+        values = loads(values) if type(values) == str and '[' in values else make_list(int(values))
+        self.set(self.Section, 'active channels', str(values))
         self.save()
 
 
