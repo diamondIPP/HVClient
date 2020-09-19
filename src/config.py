@@ -54,6 +54,15 @@ class Config(ConfigParser):
     def get_active_devices(self):
         return self.get_value('active', list, 'Devices')
 
+    def get_active_channels(self):
+        return self.get_value('active channels', list, default=[0])
+
+    def get_sections(self):
+        return {section: self.get(section, 'name') for section in self.sections() if section.startswith('HV')}
+
+    def set_section(self, section):
+        self.Section = section
+
     def set_active_devices(self, values: str):
         if not values:
             return
@@ -61,12 +70,6 @@ class Config(ConfigParser):
         values = loads(values) if type(values) == str and '[' in values else make_list(int(values))
         self.set('Devices', 'active', str(values))
         self.save()
-
-    def set_section(self, section):
-        self.Section = section
-
-    def get_active_channels(self):
-        return self.get_value('active channels', list, default=[0])
 
     def set_active_channels(self, values):
         if not values:
