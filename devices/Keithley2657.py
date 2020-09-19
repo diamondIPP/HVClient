@@ -20,7 +20,7 @@ class Keithley2657(Keithley):
     def __init__(self, config, device_no=1, hot_start=False):
         Keithley.__init__(self, config, device_no, hot_start)
         self.bOpen = False
-        self.ip_address = config.get(self.SectionName, 'ip_address')
+        self.ip_address = self.Config.get_value('ip address')
         self.rm = visa.ResourceManager('@py')
         self.inst = None
         self.identifier = None
@@ -31,13 +31,8 @@ class Keithley2657(Keithley):
         self.init_keithley(hot_start)
 
     def read_config(self):
-        self.compliance = 1e-6
-        if self.Config.has_option(self.SectionName, 'compliance'):
-            self.compliance = float(self.Config.get(self.SectionName, 'compliance'))
-        self.measure_range_current = 1e-6
-        if self.Config.has_option(self.SectionName, 'measure_range'):
-            self.measure_range_current = float(self.Config.get(self.SectionName, 'measure_range'))
-        pass
+        self.compliance = self.Config.get_value('compliance', float, default=1e-6)
+        self.measure_range_current = self.Config.get_value('measure_range', float, default=1e-6)
 
     def check_port(self, port_no):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

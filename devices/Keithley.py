@@ -21,8 +21,8 @@ class Keithley(Device):
         # Serial
         self.bOpen = False
         self.bOpenInformed = False
-        self.serialPortName = config.get(self.SectionName, 'address')
-        self.baudrate = config.getint(self.SectionName, 'baudrate')
+        self.SerialPortName = self.Config.get_value('address')
+        self.baudrate = self.Config.get_value('baudrate', int)
         self.serial = None
         self.commandEndCharacter = chr(13) + chr(10)
 
@@ -41,11 +41,11 @@ class Keithley(Device):
 
     def open_serial_port(self):
         try:
-            self.serial = serial.Serial(port=self.serialPortName, baudrate=57600, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, bytesize=serial.EIGHTBITS, timeout=1, )
+            self.serial = serial.Serial(port=self.SerialPortName, baudrate=57600, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, bytesize=serial.EIGHTBITS, timeout=1, )
             self.bOpen = True
-            info('Open serial port: {}'.format(self.serialPortName))
+            info('Open serial port: {}'.format(self.SerialPortName))
         except serial.SerialException:
-            warning('Could not open serial port: {}'.format(self.serialPortName))
+            warning('Could not open serial port: {}'.format(self.SerialPortName))
             self.bOpen = False
 
     def port_is_open(self):
@@ -158,8 +158,8 @@ class Keithley(Device):
         return self.get_output_status()
 
     def get_serial_port(self):  # OK, but extend to compare with self.serial.port
-        if self.serial.port == self.serialPortName:
-            return self.serialPortName
+        if self.serial.port == self.SerialPortName:
+            return self.SerialPortName
         else:
             raise Exception('serial ports do not match!')
 
@@ -277,7 +277,7 @@ class Keithley(Device):
                 return False
             else:
                 return True
-        except:
+        except Exception:
             raise
 
 

@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # --------------------------------------------------------
 #       Device for testing
 # created on September 17th 2020 by M. Reichmann (remichae@phys.ethz.ch)

@@ -60,7 +60,7 @@ class Keithley24XX(Keithley):
 
     def set_source_output(self):
         try:
-            self.output = self.Config.get(self.SectionName, 'output')
+            self.output = self.Config.get_value('output')
         except NoOptionError as err:
             print(err)
         if self.output.lower().startswith('rear') or self.output.lower().startswith('back'):

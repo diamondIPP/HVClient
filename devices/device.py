@@ -1,56 +1,52 @@
 from glob import glob
-from json import loads
 from math import copysign
-from os.path import dirname, realpath, basename
+from os.path import join, basename
 from threading import Thread
 from time import sleep
 from os import SEEK_END
 
 from src.logger import Logger
 from src.utils import *
+from src.config import Config
+from numpy import sign
 
 __author__ = 'Michael Reichmann'
 
 
 class Device(Thread):
-    def __init__(self, config, device_num, hot_start, print_logs=False, init_logger=True, start_time=None):
+    def __init__(self, device_num, config='main', hot_start=True, print_logs=False, init_logger=True, start_time='now'):
         Thread.__init__(self)
 
         self.Dir = dirname(dirname(realpath(__file__)))
 
         # Basic
-        self.Config = config
-        self.SectionName = 'HV{}'.format(device_num)
+        self.Config = Config(config, init_logger, 'HV{}'.format(device_num))
         self.HotStart = hot_start
         self.PrintLogs = print_logs
 
         # Channel stuff
-        self.NChannels = self.read_n_channels()
-        self.HasChannels = self.NChannels > 1
-        self.ActiveChannels = self.read_active_channels()
-        self.ChannelConfig = self.read_channel_config()
-        self.ChannelNames = self.read_channel_names()
+        self.NChannels = self.Config.get_value('number of channels', int, default=1)
+        self.ActiveChannels = self.Config.get_value('active channels', list, default=[0])
 
         # Info fields
         self.BiasNow = zeros(self.NChannels)
         self.CurrentNow = zeros(self.NChannels)
         self.Status = zeros(self.NChannels, bool)
 
-        # Config data
-        self.RampSpeed = config.getfloat(self.SectionName, 'ramp')
-        self.MaxStep = config.getint(self.SectionName, 'max_step') if config.has_option(self.SectionName, 'max_step') else 200
-        self.MinBias = self.read_min_bias()
-        self.MaxBias = self.read_max_bias()
+        # Channel Config Data
+        self.RampSpeed = self.Config.get_channel_values('ramping speed')
+        self.MaxStep = self.Config.get_channel_values('maximum step', float, default=200)
+        self.MaxBias = abs(self.Config.get_channel_values('maximum bias', float, default=200))
         self.TargetBias = self.read_target_bias()
+        self.Names = self.Config.get_strings('dut name')
 
-        self.ModelNumber = self.get_model_number()
-        self.DeviceName = self.read_device_name()
+        self.ModelNumber = self.read_model_number()
 
         # Status
         self.IsKilled = False
         self.IsBusy = False
         self.IsManual = False
-        self.IsPoweringDown = [False] * self.NChannels
+        self.IsPoweringDown = zeros(self.NChannels, bool)
         self.MaxWaitingTime = 20    # seconds
 
         self.LastVChange = time()
@@ -63,9 +59,8 @@ class Device(Thread):
 
         print('---------------------------------------')
 
-    # ============================
-    # MAIN LOOP FOR THREAD (overwriting thread run)
     def run(self):
+        """Main loop for the thread."""
         while not self.IsKilled:
             sleep(.5 if self.FromLogs else .1)
             if not self.IsManual:
@@ -98,89 +93,51 @@ class Device(Thread):
                 self.set_target_bias(voltage, channel)
                 self.BiasNow[channel] = voltage
 
-    # ============================
-    # region INIT
-        
-    def init_logger(self, init=True):
-        return [Logger(self.SectionName, channel, self.Config, on=channel in self.ActiveChannels if init else False) for channel in range(self.NChannels)]
+    def update(self):
+        data = self.get_last_data()
+        for channel in self.ActiveChannels:
+            self.BiasNow[channel] = data[channel][1]
+            self.CurrentNow[channel] = data[channel][2]
+            if data[channel][0]:
+                self.LastUpdate = data[channel][0]
 
-    def get_device_name(self, chan=0):
-        return self.ChannelNames[chan] if self.HasChannels else self.DeviceName
+    def update_status(self):
+        for channel in self.ActiveChannels:
+            self.set_status(channel, self.get_output_status(channel))
+
+    # -----------------------------------
+    # region INIT
+    def init_logger(self, init=True):
+        return [Logger(channel, self.Config, on=channel in self.ActiveChannels if init else False) for channel in range(self.NChannels)]
 
     @staticmethod
     def load_start_time(start_time):
-        start_time = None if start_time == 'now' else start_time
-        if start_time is None:
+        if start_time == 'now':
             return datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
         try:
-            t = datetime.strptime(start_time, '%H:%M')
-            return datetime.now().replace(hour=t.hour, minute=t.minute, second=0, microsecond=0)
+            t = datetime.strptime(start_time, '%H:%M') if ':' in start_time else datetime.strptime(start_time, '%d.%m.')
+            return datetime.now().replace(hour=t.hour, minute=t.minute, second=0, day=t.day, month=t.month, microsecond=0)
         except ValueError:
-            try:
-                t = datetime.strptime(start_time, '%d.%m.')
-                return datetime.now().replace(hour=t.hour, minute=t.minute, second=0, day=t.day, month=t.month, microsecond=0)
-            except ValueError:
-                critical('Format of date has to be either hh:mm or dd.mm.')
-
-    def set_device_name(self, device_name, channel):
-        if self.DeviceName != device_name:
-            self.DeviceName = device_name
-            self.Logger[channel].create_new_log_file()
-            info('Setting device name of {} to "{}"'.format(self.SectionName, self.DeviceName))
-
-    def read_device_name(self, channel=0):
-        if self.HasChannels:
-            return self.ChannelConfig.get('Names', 'CH{}'.format(channel))
-        if self.Config.has_option('Names', self.SectionName):
-            return self.Config.get('Names', self.SectionName)
-        warning('Setting device name to "UNKNOWN"')
-        return 'UNKNOWN'
+            critical('Format of date has to be either hh:mm or dd.mm.')
 
     def read_target_bias(self):
-        biases = []
-        for i in range(self.NChannels):
-            bias = self.ChannelConfig.getfloat('CH{}'.format(i), 'bias')
-            if not self.validate_voltage(bias, i):
-                critical('End program')
-            biases.append(bias)
+        biases = self.Config.get_channel_values('target bias', float, default=0)
+        if not self.validate_voltages(biases):
+            critical('End program')
         return biases
 
-    def read_min_bias(self):
-        return [self.ChannelConfig.getfloat('CH{}'.format(i), 'min_bias') for i in range(self.NChannels)]
-
-    def read_max_bias(self):
-        return [self.ChannelConfig.getfloat('CH{}'.format(i), 'max_bias') for i in range(self.NChannels)]
-
-    def get_model_number(self):
-        if not self.Config.has_option(self.SectionName, 'model'):
+    def read_model_number(self):
+        if self.Config.get_value('model') is None:
             critical('You have to specify the model in the config file!')
-        model_number = self.Config.get(self.SectionName, 'model')
-        return int(model_number) if isint(model_number) else model_number
-
-    def read_n_channels(self):
-        return self.Config.getint(self.SectionName, 'n_channels') if self.Config.has_option(self.SectionName, 'n_channels') else 1
-
-    def read_active_channels(self):
-        return loads(self.Config.get(self.SectionName, 'active_channels')) if self.HasChannels else [0]
-
-    def read_channel_config(self):
-        if not self.HasChannels:
-            config = ConfigParser()
-            config.add_section('CH0')
-            for option in self.Config.options(self.SectionName):
-                config.set('CH0', option, self.Config.get(self.SectionName, option))
-            return config
-        config = ConfigParser()
-        config.read(join(self.Dir, 'config', self.Config.get(self.SectionName, 'config_file')))
-        return config
-
-    def read_channel_names(self):
-        if self.HasChannels:
-            return [self.ChannelConfig.get('Names', 'CH{}'.format(i)) for i in range(self.NChannels)]
-    # endregion
+        return self.Config.get_value('model')
+    # endregion INIT
+    # -----------------------------------
     
-    # ============================
-    # region GET-FUNCTIONS
+    # -----------------------------------
+    # region GET
+    def get_name(self, channel=0):
+        return self.Names[channel]
+
     def get_current(self, channel=0):
         return self.CurrentNow[channel]
 
@@ -199,15 +156,11 @@ class Device(Thread):
     def get_status(self, channel=0):
         return self.Status[channel]
 
-    def get_ramp_speed(self):
-        return self.RampSpeed
+    def get_ramp_speed(self, channel=0):
+        return self.RampSpeed[channel]
 
-    def get_max_step(self):
-        return self.MaxStep
-
-    def update_status(self):
-        for channel in self.ActiveChannels:
-            self.set_status(channel, self.get_output_status(channel))
+    def get_max_step(self, channel=0):
+        return self.MaxStep[channel]
 
     def get_update_time(self):
         return self.LastUpdate
@@ -238,7 +191,7 @@ class Device(Thread):
                     f.seek(-50, SEEK_END)
                     info_str = f.readlines()[-1].decode("utf-8")
                     data[channel] = self.make_data(str(info_str), d)
-            except IOError as err:
+            except IOError:
                 data[channel] = [0, 0, 0]
         return data
 
@@ -249,19 +202,17 @@ class Device(Thread):
             t = datetime.strptime(data[0], '%H:%M:%S')
             return [d.replace(hour=t.hour, minute=t.minute, second=t.second), float(data[1]), float(data[2])]
         return [0, 0, 0]
+    # endregion GET
+    # -----------------------------------
 
-    def update(self):
-        data = self.get_last_data()
-        for channel in self.ActiveChannels:
-            self.BiasNow[channel] = data[channel][1]
-            self.CurrentNow[channel] = data[channel][2]
-            if data[channel][0]:
-                self.LastUpdate = data[channel][0]
+    # -----------------------------------
+    # region SET
+    def set_name(self, name, channel=0):
+        if self.Names != name:
+            self.Names = name
+            self.Logger.DeviceName = self.Names[channel]
+            info('Setting DUT name of {}{} to "{}"'.format(self.Config.Section, ' CH{}'.format(channel) if self.NChannels > 1 else '', self.Names[channel]))
 
-    # endregion
-
-    # ============================
-    # region SET-FUNCTIONS
     def set_bias(self, voltage, channel=0):
         warning('set_bias not implemented')
 
@@ -288,10 +239,11 @@ class Device(Thread):
 
     def set_status(self, channel, status):
         self.Status[channel] = status
-    # endregion
+    # endregion SET
+    # -----------------------------------
 
-    # ============================
-    # MISCELLANEOUS FUNCTIONS
+    # -----------------------------------
+    # region MISCELLANEOUS
     def is_ramping(self, channel=0):
         return abs(self.get_bias(channel) - self.get_target_bias(channel)) > .1 if self.get_status(channel) else False
 
@@ -299,10 +251,13 @@ class Device(Thread):
         return all(self.is_ramping(channel) for channel in self.ActiveChannels)
 
     def validate_voltage(self, voltage, channel=0):
-        if not self.MinBias[channel] - .1 < voltage < self.MaxBias[channel] + .1:
-            warning('Invalid target voltage! {v} not in [{b}, {e}]'.format(v=voltage, b=self.MinBias[channel], e=self.MaxBias[channel]))
+        if not abs(voltage) < self.MaxBias[channel] + .1:
+            warning('Invalid target voltage! {} larger than {}]'.format(voltage, sign(voltage) * self.MaxBias[channel]))
             return False
         return True
+
+    def validate_voltages(self, voltages):
+        return all([self.validate_voltage(v, ch) for ch, v in enumerate(voltages)])
 
     def power_down(self, channel=0):
         self.set_target_bias(0, channel)
@@ -364,14 +319,13 @@ class Device(Thread):
             if self.IsPoweringDown[channel] and abs(self.BiasNow[channel]) < .5:
                 self.set_output(OFF, channel)
                 self.IsPoweringDown[channel] = False
-                info('CH{ch} of {dev} has ramped down and turned off'.format(ch=channel, dev=self.SectionName))
+                info('CH{ch} of {dev} has ramped down and turned off'.format(ch=channel, dev=self.Config.Section))
                 return
         if self.CanRamp:
             for channel in self.ActiveChannels:
                 self.set_bias(self.get_target_bias(channel), channel)
             return
 
-        # TODO: Shouldn't this be also threaded if there would be a device with several channels and no ramping method?
         for channel in self.ActiveChannels:
             if self.is_ramping(channel):
                 self.IsBusy = True
@@ -379,10 +333,12 @@ class Device(Thread):
                 self.set_bias(new_bias, channel)
                 self.LastVChange = time()
                 if new_bias == self.get_target_bias(channel) and not self.IsPoweringDown[channel]:
-                    info('{} is done with ramping to {} V'.format(self.SectionName, self.get_target_bias()))
+                    info('{} is done with ramping to {} V'.format(self.Config.Section, self.get_target_bias()))
                 self.IsBusy = False
+    # endregion MISCELLANEOUS
+    # -----------------------------------
 
 
 if __name__ == '__main__':
-    conf = load_config('config/keithley.cfg')
-    z = Device(conf, loads(conf.get('Main', 'devices'))[0], False, init_logger=False, start_time=None)
+    conf = Config('main')
+    z = Device(conf.get_active()[0], 'main', False, init_logger=False)

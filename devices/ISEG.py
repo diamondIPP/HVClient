@@ -1,29 +1,22 @@
 # implementation of ISEG NIM Power supplies
 # based on HV_interface class
 
-# ============================
-# IMPORTS
-# ============================
 import warnings
 from serial import Serial, PARITY_NONE, STOPBITS_ONE, EIGHTBITS, SerialException
-from .device import *
+from devices.device import *
 from typing import Any
 
 
-# ============================
-# MAIN CLASS
-# ============================
 class ISEG(Device):
-    def __init__(self, config, device_no=1, hot_start=False, print_logs=False):
+    def __init__(self, device_no, config='main', hot_start=True, print_logs=False):
 
-        Device.__init__(self, config, device_no, hot_start, print_logs)
+        Device.__init__(self, device_no, config, hot_start, print_logs)
 
         # Basics
         self.CommandEndCharacter = '\r\n'
         self.ReadSleepTime = .1
         self.WriteSleepTime = .1
         self.AnswerTime = .1
-        self.Config = config
         self.MaxVoltage = None
 
         self.Identifier = None
@@ -31,7 +24,7 @@ class ISEG(Device):
 
         # Serial
         self.bOpen = False
-        self.SerialPortName = self.Config.get(self.SectionName, 'address')
+        self.SerialPortName = self.Config.get_value('address')
         self.Serial = None
         self.open_serial_port()
 
@@ -134,7 +127,7 @@ class ISEG(Device):
     # todo :CONFIGURE:INH
 
     def configure_ramp_speed(self, ramp_type, speed=None):
-        speed = (self.Config.getfloat(self.SectionName, 'ramp') if speed is None else speed) / 20.
+        speed = (self.RampSpeed[0] if speed is None else speed) / 20.
         if 100 < speed < 0:
             critical('Invalid ramp speed: {}'.format(speed * 20))
         info('Set {type} ramp speed to {s:3.1f} {type}/s'.format(s=speed * 20, type=ramp_type))
@@ -772,25 +765,17 @@ class ISEG(Device):
                 "KillEnable",  # 14
                 "Reserved15",  # 15
                 ]
-        retVal = {}
+        values = {}
         for i in range(len(bits)):
             if bits[i].startswith('Reserved'):
                 continue
-            retVal[bits[i]] = ISEG.check_bit(status, i)
-        return retVal
-
-    def get_list_of_active_channels(self):
-        mask = self.Config.getint(self.SectionName, 'active_channels')
-        n_channels = self.query_module_channels()
-        retval = []
-        for i in range(n_channels):
-            if (mask & (1 << i) == (1 << i)):
-                retval.append(i)
-        return retval
+            values[bits[i]] = ISEG.check_bit(status, i)
+        return values
 
 
 if __name__ == '__main__':
 
-    d = ISEG(load_config('config/keithley.cfg'), 3, True)
+    conf = Config('main')
+    d = ISEG(conf.get_active()[0])
     d.update_status()
     # d.start()

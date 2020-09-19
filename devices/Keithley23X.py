@@ -78,21 +78,12 @@ class Keithley23X(Keithley):
         pass
 
     def read_config(self):
-        self.serialPortName = self.Config.get(self.SectionName, 'address')
-        self.gbip = self.Config.getint(self.SectionName, 'gbip')
-        self.integration_time = 3
-        if self.Config.has_option(self.SectionName, 'integration_time'):
-            self.integration_time = self.Config.getint(self.SectionName, 'integration_time')
-        self.n_average_filter = 32
-        if self.Config.has_option(self.SectionName, 'n_average_filter'):
-            self.n_average_filter = self.Config.getint(self.SectionName, 'n_average_filter')
-        self.compliance = 1e-6
-        if self.Config.has_option(self.SectionName, 'compliance'):
-            self.compliance = float(self.Config.get(self.SectionName, 'compliance'))
-        self.measure_range_current = 1e-6
-        if self.Config.has_option(self.SectionName, 'measure_range'):
-            self.measure_range_current = float(self.Config.get(self.SectionName, 'measure_range'))
-        pass
+        self.serialPortName = self.Config.get_value('address')
+        self.gbip = self.Config.get_value('gbip', int)
+        self.integration_time = self.Config.get_value('integration_time', int, default=3)
+        self.n_average_filter = self.Config.get_value('n_average_filter', int, default=32)
+        self.compliance = self.Config.get_value('compliance', float, default=1e-6)
+        self.measure_range_current = self.Config.get_value('measure_range', float, default=1e-6)
 
     def set_compliance(self, level, measurement_range):
         ranges = {0: 0,  # auto
