@@ -14,6 +14,7 @@ from devices.Keithley23X import Keithley23X
 from devices.Keithley24XX import Keithley24XX
 from devices.Keithley2657 import Keithley2657
 from devices.Keithley6517B import Keithley6517B
+from src.config import Config
 
 device_dic = {'2400': Keithley24XX,
               '2410': Keithley24XX,
@@ -28,27 +29,30 @@ device_dic = {'2400': Keithley24XX,
 
 def get_devices(config, hot_start, print_logs=False):
     print('\n=============CONFIGURATION=============')
-    device_nrs = loads(config.get('Main', 'devices'))
+    c = Config(config)
+    device_nrs = c.get_active_devices()
     print('Loading HV devices: {}'.format(device_nrs))
     print('=======================================')
     print('\n=============INSTANTIATION=============')
-    return [init_device(config, nr, hot_start, print_logs) for nr in device_nrs]
+    return [init_device(nr, config, hot_start, print_logs) for nr in device_nrs]
 
 
 def get_logging_devices(config, start_time):
-    return [Device(config, nr, hot_start=True, init_logger=False, start_time=start_time) for nr in loads(config.get('Main', 'devices'))]
+    c = Config(config)
+    return [Device(nr, config, hot_start=True, init_logger=False, start_time=start_time) for nr in c.get_active_devices()]
 
 
 def get_dummies(config):
-    return [Dummy(config, nr, hot_start=True, init_logger=False) for nr in loads(config.get('Main', 'devices'))]
+    c = Config(config)
+    return [Dummy(nr, config, hot_start=True, init_logger=False) for nr in c.get_active_devices()]
 
 
 def init_device(config, device_nr, hot_start, print_logs=False):
     section = 'HV{}'.format(device_nr)
     model = config.get(section, 'model')
     print('Instantiating {}'.format(model))
-    device = device_dic[model](config, device_nr, hot_start, print_logs)
-    print('successfully instantiated {} with model number {}'.format(device.DeviceName, device.Model))
+    device = device_dic[model](device_nr, config.MainFile, hot_start, print_logs)
+    print('successfully instantiated {} with model number {}'.format(device.Names, device.Model))
     print('active channels: {}'.format(device.ActiveChannels))
     return device
 
@@ -56,12 +60,11 @@ def init_device(config, device_nr, hot_start, print_logs=False):
 if __name__ == '__main__':
 
     parser = ArgumentParser()
-    parser.add_argument('--config', '-c', help='Config file', default='keithley.cfg')
+    parser.add_argument('--config', '-c', help='Config file', default='main')
     parser.add_argument('--restart', '-R', action='store_true', help='restart hv devices (turn all OFF and set voltage to 0)')
     args = parser.parse_args()
 
-    conf = load_config(join(dirname(realpath(__file__)), 'config', args.config))
-    devices = get_devices(conf, not args.restart, print_logs=True)
+    devices = get_devices(args.config, not args.restart, print_logs=True)
 
     for dev in devices:
         dev.start()
