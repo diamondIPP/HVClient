@@ -5,10 +5,10 @@
 
 from datetime import datetime, timedelta
 from termcolor import colored
-from numpy import sqrt, zeros, concatenate
+from numpy import sqrt, zeros, concatenate, array
 from os import makedirs, _exit
 from os import path as pth
-from os.path import join
+from os.path import dirname, realpath
 from time import time
 from collections import OrderedDict
 import pickle
@@ -146,7 +146,7 @@ def print_table(rows, header=None, footer=None, prnt=True):
 
 
 def get_base_dir():
-    return join('/', *__file__.split('/')[1:3])
+    return dirname(dirname(realpath(__file__)))
 
 
 def do_pickle(path, func, value=None, params=None, redo=False):
@@ -182,10 +182,22 @@ def int_to_roman(integer):
     return result
 
 
+def make_list(value, dtype=None):
+    v = array([choose(value, [])]).flatten()
+    return v.tolist() if dtype == list else v.astype(dtype) if dtype is not None else v
+
+
 def load_config(name, ext='ini'):
+    name = make_config_name(name, ext) if '.' not in name else name
     parser = ConfigParser()
-    parser.read('{}.{}'.format(name, ext))
+    parser.read(name)
     return parser
+
+
+def make_config_name(name, ext='ini'):
+    if '.' in name:
+        name = name.replace(name[name.find('.'):], '')
+    return '{}.{}'.format(name, ext.strip('.'))
 
 
 def remove_letters(string):
