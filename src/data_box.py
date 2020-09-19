@@ -26,7 +26,7 @@ class DataBox(QGroupBox):
             self.Widgets, self.Labels = [], []
             return
 
-        self.setTitle('CH{c} - {n}'.format(n=device.read_device_name(channel), c=channel))
+        self.setTitle(device.get_idname(channel))
 
         self.setFont(QFont('Ubuntu', 8, QFont.Bold))
         format_widget(self, color='red')

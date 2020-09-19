@@ -28,7 +28,7 @@ class DeviceBox(QGroupBox):
             self.make_placeholder()
             return
 
-        self.setTitle('CH{c} - {n}'.format(n=device.read_device_name(channel), c=channel))
+        self.setTitle(device.get_idname(channel))
 
         format_widget(self, color='red', bold=True, font_size=22)
 
