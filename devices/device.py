@@ -195,6 +195,9 @@ class Device(Thread):
                 data[channel] = [0, 0, 0]
         return data
 
+    def get_idname(self, channel=0):
+        return '{}{} - {}'.format(self.Config.get_value('short name', default=''), ', CH{}'.format(channel) if self.NChannels > 1 else '', self.Names[channel])
+
     @staticmethod
     def make_data(string, d):
         data = string.split()
