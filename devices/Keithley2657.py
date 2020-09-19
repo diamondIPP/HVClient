@@ -17,8 +17,8 @@ from time import sleep
 
 
 class Keithley2657(Keithley):
-    def __init__(self, config, device_no=1, hot_start=False):
-        Keithley.__init__(self, config, device_no, hot_start)
+    def __init__(self, device_no, config, hot_start=False):
+        Keithley.__init__(self, device_no, config, hot_start)
         self.bOpen = False
         self.ip_address = self.Config.get_value('ip address')
         self.rm = visa.ResourceManager('@py')

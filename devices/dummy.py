@@ -5,18 +5,18 @@
 # --------------------------------------------------------
 
 from copy import deepcopy
-from numpy import ones, array
+from numpy import ones
 from numpy.random import rand, normal, randint
-from .device import *
+from devices.device import *
 
 
 class Dummy(Device):
 
     N = 0
 
-    def __init__(self, config, device_no=1, hot_start=False, init_logger=False):
+    def __init__(self, device_no, config='main', hot_start=True, init_logger=False):
 
-        Device.__init__(self, config, device_no, hot_start, init_logger)
+        Device.__init__(self, device_no, config, hot_start, init_logger)
 
         # Basics
         self.Config = config
@@ -35,7 +35,7 @@ class Dummy(Device):
         self.CanRamp = False
         self.Output = ones(self.NChannels, 'bool')
 
-        self.BiasNow = array([0 if ch not in self.ActiveChannels else round_down_to(self.MinBias[ch] * rand(), 10) for ch in range(self.NChannels)])
+        self.BiasNow = array([0 if ch not in self.ActiveChannels else round_down_to(self.MaxBias[ch] * rand() * [-1, 1][randint(0, 1)], 10) for ch in range(self.NChannels)])
         self.TargetBias = deepcopy(self.BiasNow)
         self.SeedCurrent = randint(10, 80, self.NChannels) * 1e-9
         self.hot_start()
@@ -88,7 +88,6 @@ class Dummy(Device):
 
 if __name__ == '__main__':
 
-    conf = load_config('config/keithley', 'cfg')
-    d = Dummy(conf, loads(conf.get('Main', 'devices'))[0], True)
+    c = Config('main')
+    d = Dummy(c.get_active()[0])
     d.update_status()
-    # d.start()

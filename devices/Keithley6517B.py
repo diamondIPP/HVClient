@@ -4,8 +4,8 @@ from .Keithley import *
 
 
 class Keithley6517B(Keithley):
-    def __init__(self, config, device_no=1, hot_start=False):
-        Keithley.__init__(self, config, device_no)
+    def __init__(self, device_no, config, hot_start=False):
+        Keithley.__init__(self, device_no, config)
         self.measure_value = 'CURR'
         self.init_keithley(hot_start)
 

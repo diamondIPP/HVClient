@@ -17,8 +17,8 @@ import math
 # MAIN CLASS
 # ============================
 class Keithley23X(Keithley):
-    def __init__(self, config, device_no=1, hot_start=False, init=True):
-        Keithley.__init__(self, config, device_no, hot_start)
+    def __init__(self, device_no, config, hot_start=False, init=True):
+        Keithley.__init__(self, device_no, config, hot_start)
         self.Busy = False
         self.bOpen = False
         self.read_config()

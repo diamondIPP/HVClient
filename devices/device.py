@@ -1,6 +1,6 @@
 from glob import glob
 from math import copysign
-from os.path import join, basename
+from os.path import join
 from threading import Thread
 from time import sleep
 from os import SEEK_END

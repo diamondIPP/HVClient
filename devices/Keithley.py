@@ -14,9 +14,9 @@ sys.path.insert(0, parentdir)
 
 
 class Keithley(Device):
-    def __init__(self, config, device_no=1, hot_start=False):
+    def __init__(self, device_no, config, hot_start=False):
 
-        Device.__init__(self, config, device_no, hot_start)
+        Device.__init__(self, device_no, config, hot_start)
 
         # Serial
         self.bOpen = False
