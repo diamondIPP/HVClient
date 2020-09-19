@@ -26,7 +26,7 @@ class Device(Thread):
 
         # Channel stuff
         self.NChannels = self.Config.get_value('number of channels', int, default=1)
-        self.ActiveChannels = self.Config.get_value('active channels', list, default=[0])
+        self.ActiveChannels = self.Config.get_active_channels()
 
         # Info fields
         self.BiasNow = zeros(self.NChannels)
@@ -344,4 +344,4 @@ class Device(Thread):
 
 if __name__ == '__main__':
     conf = Config('main')
-    z = Device(conf.get_active()[0], 'main', False, init_logger=False)
+    z = Device(conf.get_active_devices()[0], 'main', False, init_logger=False)

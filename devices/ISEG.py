@@ -776,6 +776,6 @@ class ISEG(Device):
 if __name__ == '__main__':
 
     conf = Config('main')
-    d = ISEG(conf.get_active()[0])
+    d = ISEG(conf.get_active_devices()[0])
     d.update_status()
     # d.start()

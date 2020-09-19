@@ -6,15 +6,15 @@
 # --------------------------------------------------------
 
 from argparse import ArgumentParser
-from os.path import dirname, realpath
+from os.path import join
 from sys import exit as end
 from warnings import filterwarnings
 from numpy import ceil
 
 import qdarkstyle
 from PyQt5.QtCore import QTimer
-from PyQt5.QtGui import QIcon, QFont
-from PyQt5.QtWidgets import QMainWindow, QApplication, QAction, QFontDialog, QVBoxLayout, QWidget, QHBoxLayout, QInputDialog
+from PyQt5.QtGui import QIcon, QFont, QCursor
+from PyQt5.QtWidgets import QMainWindow, QApplication, QAction, QFontDialog, QVBoxLayout, QWidget, QHBoxLayout, QInputDialog, QLabel, QDialog, QPushButton, QLineEdit
 from serial import SerialException
 
 from src.data_box import DataBox
@@ -22,6 +22,7 @@ from src.device_box import DeviceBox
 from src.device_reader import get_devices, get_logging_devices, get_dummies
 from src.utils import *
 from src.live_monitor import LiveMonitor
+from src.config import Config
 
 
 # todo: add auto setting for max/min current
@@ -29,6 +30,9 @@ from src.live_monitor import LiveMonitor
 
 
 class Gui(QMainWindow):
+
+    BUTTON_HEIGHT = 50
+
     def __init__(self, devices, from_logs=False):
         super(Gui, self).__init__()
 
@@ -97,6 +101,75 @@ class Gui(QMainWindow):
             self.MainBox.addLayout(box)
         return boxes
 
+    @staticmethod
+    def query_devices(config):
+        config = Config(config)
+        a = QInputDialog()
+        a.setWindowTitle('Active Devices')
+        a.setLabelText('Choose active devices from:\n{}'.format('\n'.join('{}: {}'.format(key, value) for key, value in config.get_sections().items())))
+        a.setTextValue(str(config.get_active_devices()))
+        a.move(QCursor.pos())
+        if a.exec() == QDialog.Accepted:
+            i = a.textValue()
+            config.set_active_devices(i)
+        # i, j = QInputDialog.getText(QWidget(), 'Active Devices', 'Active Devices (current selection: {})'.format(config.get_active_devices()))
+
+
+class QueryChannels(QDialog):
+
+    def __init__(self, config):
+        super().__init__()
+        self.Running = True
+        self.Layout = QVBoxLayout()
+        self.Config = Config(config)
+        self.Sections = ['HV{}'.format(i) for i in self.Config.get_active_devices()]
+        self.LineEdits = []
+        self.configure()
+        self.move(QCursor.pos())
+        self.show()
+        if self.exec() == QDialog.Accepted:
+            self.save()
+
+    def save(self):
+        for i, section in enumerate(self.Sections):
+            self.Config.set_section(section)
+            self.Config.set_active_channels(self.LineEdits[i].text())
+
+    def configure(self):
+        self.setWindowTitle('Channel Query')
+        for i, section in enumerate(self.Sections):
+            self.Config.set_section(section)
+            label = QLabel(section)
+            line_edit = make_line_edit(str(self.Config.get_active_channels()))
+            label.setBuddy(line_edit)
+            self.Layout.addWidget(label)
+            self.Layout.addWidget(line_edit)
+            self.LineEdits.append(line_edit)
+        button = make_button('Done')
+        button.clicked.connect(self.finish)
+        self.Layout.addWidget(button)
+        self.setLayout(self.Layout)
+
+    def finish(self):
+        self.save()
+        self.Running = False
+        self.close()
+
+
+def make_line_edit(txt='', length=None):
+    line_edit = QLineEdit()
+    line_edit.setText(txt)
+    do(line_edit.setMaximumWidth, length)
+    return line_edit
+
+
+def make_button(txt, size=None, height=Gui.BUTTON_HEIGHT):
+    but = QPushButton()
+    but.setText(txt)
+    do(but.setFixedWidth, size)
+    do(but.setMaximumHeight, height)
+    return but
+
 
 class MenuBar(object):
     def __init__(self, gui, display=False):
@@ -163,15 +236,10 @@ if __name__ == '__main__':
     parser.add_argument('--test', '-t', action='store_true', help='start test environment')
     args = parser.parse_args()
 
-    config = ConfigParser()
-    config.read(join(dirname(realpath(__file__)), 'config', args.config))
-
-    start_time = None if args.start_time == 'now' else args.start_time
-
     if args.test:
-        device_list = get_dummies(config)
+        device_list = get_dummies(args.config)
     else:
-        device_list = get_devices(config, not args.restart, print_logs=True) if not args.from_logs else get_logging_devices(config, start_time)
+        device_list = get_devices(args.config, not args.restart, print_logs=True) if not args.from_logs else get_logging_devices(args.config, args.start_time)
 
     app = QApplication(['5'])
     filterwarnings('ignore')

@@ -18,9 +18,6 @@ class Dummy(Device):
 
         Device.__init__(self, device_no, config, hot_start, init_logger)
 
-        # Basics
-        self.Config = config
-
         self.Model = self.get_model_name()
 
         # Info
@@ -89,5 +86,5 @@ class Dummy(Device):
 if __name__ == '__main__':
 
     c = Config('main')
-    d = Dummy(c.get_active()[0])
+    d = Dummy(c.get_active_devices()[0])
     d.update_status()
