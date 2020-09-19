@@ -8,7 +8,7 @@ from termcolor import colored
 from numpy import sqrt, zeros, concatenate, array
 from os import makedirs, _exit
 from os import path as pth
-from os.path import dirname, realpath
+from os.path import dirname, realpath, basename
 from time import time
 from collections import OrderedDict
 import pickle
@@ -195,6 +195,7 @@ def load_config(name, ext='ini'):
 
 
 def make_config_name(name, ext='ini'):
+    name = basename(name)
     if '.' in name:
         name = name.replace(name[name.find('.'):], '')
     return '{}.{}'.format(name, ext.strip('.'))
