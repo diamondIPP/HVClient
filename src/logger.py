@@ -18,22 +18,22 @@ class Logger:
 
     TimeFormat = '%Y_%m_%d_%H_%M_%S'
 
-    def __init__(self, name, channel, config, on=True):
+    def __init__(self, channel, config, on=True):
 
         self.Dir = dirname(dirname(realpath(__file__)))
 
-        self.Name = name
+        self.Name = config.Section
         self.Channel = channel
-        self.Logger = getLogger('{}_CH{}'.format(name, channel))
+        self.Logger = getLogger('{}_CH{}'.format(self.Name, channel))
         self.FileHandler = None
 
         # Config
-        self.Config = config
-        self.DeviceName = self.Config.get(self.Name, 'name')
-        self.ModelName = self.Config.get(self.Name, 'model')
+        self.DeviceName = config.get_value('name')
+        self.ModelName = config.get_value('model')
+        self.DUTName = config.get_strings('dut name')[self.Channel]
 
         # Directories
-        self.LoggingDir = join(self.Dir, 'data', self.Config.get('Main', 'testbeam_name'))
+        self.LoggingDir = join(self.Dir, 'data', config.get('Data', 'directory'))
         self.LogFileDir = join(self.LoggingDir, '{}_CH{}'.format(self.DeviceName, self.Channel))
 
         # Info fields
@@ -43,8 +43,6 @@ class Logger:
 
         if on:
             self.configure()
-
-    # TODO save as hdf5
 
     def configure(self):
         # check if directories exist and create them if not
@@ -72,7 +70,7 @@ class Logger:
     def add_entry(self, txt, prnt=False):
         if prnt:
             info('{}\t{}\tCH{}'.format(txt, self.DeviceName, self.Channel))
-        self.Logger.warning('{}\t{}'.format(txt, self.DeviceName))
+        self.Logger.warning('{}\t{}'.format(txt, self.DUTName))
 
     def write_log(self, status, bias, current, is_ramping, target_bias, prnt=False):
         if strftime('%d') != self.Day:
