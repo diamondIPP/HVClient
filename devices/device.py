@@ -228,7 +228,7 @@ class Device(Thread):
         self.TargetBias[channel] = target
         self.LastVChange = time()
         info('Set target bias to {}'.format(target))
-        self.Logger[self.ActiveChannels.index(channel)].add_entry('SET_BIAS_TO {0:7.1f}'.format(target))
+        self.Logger[channel].add_entry('SET_BIAS_TO {0:7.1f}'.format(target))
 
     def set_to_manual(self, status):
         warning('set_to_manual not implemented')
@@ -236,12 +236,12 @@ class Device(Thread):
     def set_output(self, status, channel=0):
         warning('set_output not implemented')
 
-    def set_ramp_speed(self, speed):
+    def set_ramp_speed(self, speed, channel=0):
         info('Set ramp speed to {}'.format(speed))
-        self.RampSpeed = speed
+        self.RampSpeed[channel] = speed
 
-    def set_max_step(self, step):
-        self.MaxStep = step
+    def set_max_step(self, step, channel=0):
+        self.MaxStep[channel] = step
 
     def set_status(self, channel, status):
         self.Status[channel] = status
@@ -314,8 +314,8 @@ class Device(Thread):
     def calc_ramp_bias(self, channel=0):
         """ Calculate the next step of the voltage if there is no inherit ramping method. """
         delta_v = self.get_target_bias(channel) - self.get_bias(channel)
-        step_size = copysign(abs(self.RampSpeed * (time() - self.LastVChange)), delta_v)  # get the voltage step by multiplying speed and update interval
-        step_size = self.MaxStep if abs(step_size) > self.MaxStep else step_size
+        step_size = copysign(abs(self.RampSpeed[channel] * (time() - self.LastVChange)), delta_v)  # get the voltage step by multiplying speed and update interval
+        step_size = self.MaxStep[channel] if abs(step_size) > self.MaxStep[channel] else step_size
         return self.get_target_bias(channel) if abs(delta_v) <= abs(step_size) else self.get_bias(channel) + step_size
 
     def ramp(self):
