@@ -12,9 +12,9 @@ from warnings import filterwarnings
 from numpy import ceil
 
 import qdarkstyle
-from PyQt5.QtCore import QTimer, QPoint
+from PyQt5.QtCore import QTimer, QPoint, Qt
 from PyQt5.QtGui import QIcon, QFont, QCursor
-from PyQt5.QtWidgets import QMainWindow, QApplication, QAction, QFontDialog, QVBoxLayout, QWidget, QHBoxLayout, QInputDialog, QLabel, QDialog, QPushButton, QLineEdit, QGridLayout
+from PyQt5.QtWidgets import QMainWindow, QApplication, QAction, QFontDialog, QVBoxLayout, QWidget, QHBoxLayout, QInputDialog, QLabel, QDialog, QGridLayout
 from serial import SerialException
 
 from src.display_box import DisplayBox
@@ -23,6 +23,8 @@ from src.device_reader import get_devices, get_logging_devices, get_dummies
 from src.utils import *
 from src.live_monitor import LiveMonitor
 from src.config import Config
+
+from src.device_box import make_line_edit, make_button
 
 
 # todo: add auto setting for max/min current
@@ -101,74 +103,78 @@ class Gui(QMainWindow):
             self.MainBox.addLayout(box)
         return boxes
 
+    def reset_titles(self):
+        for box in self.DeviceBoxes:
+            if box.Device is not None:
+                box.set_title()
+
     @staticmethod
     def query_devices(config):
         config = Config(config)
-        a = QInputDialog()
-        a.setWindowTitle('Active Devices')
-        a.setLabelText('Choose active devices from:\n{}'.format('\n'.join('{}: {}'.format(key, value) for key, value in config.get_sections().items())))
-        a.setTextValue(str(config.get_active_devices()))
-        a.move(QCursor.pos())
-        if a.exec() == QDialog.Accepted:
-            i = a.textValue()
-            config.set_active_devices(i)
-        # i, j = QInputDialog.getText(QWidget(), 'Active Devices', 'Active Devices (current selection: {})'.format(config.get_active_devices()))
+        label = 'Choose active devices from:\n{}'.format('\n'.join('{}: {}'.format(key, value) for key, value in config.get_sections().items()))
+        value = query('Active Devices', label, config.get_active_devices())
+        if value is not None:
+            config.set_active_devices(value)
+
+    @staticmethod
+    def query_channels(config):
+        config = Config(config)
+        sections = ['HV{}'.format(i) for i in config.get_active_devices() if config.get_value('number of channels', int, 'HV{}'.format(i), 1) > 1]
+        if not len(sections):
+            return
+        values = query_list('Channel Numbers', sections, [config.get_active_channels(sec) for sec in sections])
+        if values is not None:
+            for section, value in zip(sections, values):
+                config.set_active_channels(section, value)
+
+    def set_device_names(self):
+        labels = ['{} - {}'.format(key, value) for key, value in self.Devices[0].Config.get_sections(active=True).items()]
+        values = query_list('Device Names', labels, [dev.get_id() for dev in self.Devices])
+        if values is not None:
+            for dev, value in zip(self.Devices, values):
+                dev.Config.set_id(value)
+            self.reset_titles()
+
+    def set_dut_names(self):
+        names = ['{} - CH{}'.format(dev.get_id(), ch) for dev in self.Devices for ch in dev.ActiveChannels]
+        values = query_list('DUT Names', names, [name for dev in self.Devices for name in dev.Config.get_dut_names(active=True)])
+        if values is not None:
+            i = 0
+            for dev in self.Devices:
+                for ch in dev.ActiveChannels:
+                    dev.Config.set_dut_name(values[i], ch)
+                    i += 1
+            self.reset_titles()
 
 
-class QueryChannels(QDialog):
-
-    def __init__(self, config):
-        super().__init__()
-        self.Running = True
-        self.Layout = QVBoxLayout()
-        self.Config = Config(config)
-        self.Sections = ['HV{}'.format(i) for i in self.Config.get_active_devices()]
-        self.LineEdits = []
-        self.configure()
-        self.move(QCursor.pos())
-        self.show()
-        if self.exec() == QDialog.Accepted:
-            self.save()
-
-    def save(self):
-        for i, section in enumerate(self.Sections):
-            self.Config.set_section(section)
-            self.Config.set_active_channels(self.LineEdits[i].text())
-
-    def configure(self):
-        self.setWindowTitle('Channel Query')
-        for i, section in enumerate(self.Sections):
-            self.Config.set_section(section)
-            label = QLabel(section)
-            line_edit = make_line_edit(str(self.Config.get_active_channels()))
-            label.setBuddy(line_edit)
-            self.Layout.addWidget(label)
-            self.Layout.addWidget(line_edit)
-            self.LineEdits.append(line_edit)
-        button = make_button('Done')
-        button.clicked.connect(self.finish)
-        self.Layout.addWidget(button)
-        self.setLayout(self.Layout)
-
-    def finish(self):
-        self.save()
-        self.Running = False
-        self.close()
+def query(title, label, init_value='', pos: QPoint = None):
+    q = QInputDialog()
+    q.setWindowTitle(title)
+    q.setLabelText(label)
+    q.setTextValue(str(init_value))
+    q.move(choose(pos, QCursor.pos()))
+    if q.exec() == QDialog.Accepted:
+        return q.textValue()
 
 
-def make_line_edit(txt='', length=None):
-    line_edit = QLineEdit()
-    line_edit.setText(txt)
-    do(line_edit.setMaximumWidth, length)
-    return line_edit
+def query_list(title, label_names, init_values=None, pos: QPoint = None):
+    q = QDialog()
 
-
-def make_button(txt, size=None, height=Gui.BUTTON_HEIGHT):
-    but = QPushButton()
-    but.setText(txt)
-    do(but.setFixedWidth, size)
-    do(but.setMaximumHeight, height)
-    return but
+    def done():
+        q.done(QDialog.Accepted)
+    q.setWindowTitle(title)
+    layout = QGridLayout()
+    layout.setContentsMargins(4, 4, 4, 4)
+    line_edits = []
+    for i, (name, init_value) in enumerate(zip(label_names, choose(init_values, [''] * len(label_names)))):
+        layout.addWidget(QLabel(name), i, 0, Qt.AlignRight)
+        line_edits.append(make_line_edit(str(init_value)))
+        layout.addWidget(line_edits[i], i, 1, Qt.AlignLeft)
+    layout.addWidget(make_button('Done', done), len(label_names) + 1, 1)
+    q.setLayout(layout)
+    q.move(choose(pos, QCursor.pos()))
+    if q.exec() == QDialog.Accepted:
+        return [edit.text() for edit in line_edits]
 
 
 class MenuBar(object):
@@ -186,6 +192,9 @@ class MenuBar(object):
             self.add_menu('Settings')
             self.add_menu_entry('Settings', 'Marker Size', 'Ctrl+M', self.set_ms, 'Open marker size dialog')
             self.add_menu_entry('Settings', 'Line Width', 'Ctrl+L', self.set_lw, 'Open line width dialog')
+        self.add_menu('Config')
+        self.add_menu_entry('Config', 'Set Device Names', 'Ctrl+N', self.Window.set_device_names, 'Change the names of the HV devices')
+        self.add_menu_entry('Config', 'Set DUT Names', 'Ctrl+D', self.Window.set_dut_names, 'Change the names of DUTs')
 
     def add_menu(self, name):
         self.Window.statusBar()

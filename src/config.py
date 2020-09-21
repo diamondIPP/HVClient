@@ -36,6 +36,9 @@ class Config(ConfigParser):
             self.write(f)
             f.truncate()
 
+    def reload(self):
+        self.read(self.MainFile)
+
     def get_value(self, option, dtype: Any = str, section=None, default=None):
         try:
             v = self.get(choose(section, self.Section), option)
@@ -54,26 +57,33 @@ class Config(ConfigParser):
     def get_active_devices(self):
         return self.get_value('active', list, 'Devices')
 
-    def get_active_channels(self):
+    def get_active_channels(self, section=None):
+        self.set_section(section)
         return self.get_value('active channels', list, default=[0])
 
-    def get_sections(self):
-        return {section: self.get(section, 'name') for section in self.sections() if section.startswith('HV')}
+    def get_sections(self, active=False):
+        dic = {section: self.get(section, 'name') for section in self.sections() if section.startswith('HV')}
+        return dict(array(list(dic.items()))[self.get_active_devices()]) if active else dic
 
-    def get_dut_names(self):
-        return self.get_strings('dut name')
+    def get_dut_names(self, active=False):
+        values = self.get_strings('dut name')
+        return array(values)[self.get_active_channels()] if active else values
 
     def set_section(self, section):
-        self.Section = section
+        if section is not None:
+            self.Section = section
 
     def set_id(self, value):
+        self.reload()
         self.set(self.Section, 'short name', value)
         self.save()
 
     def set_dut_name(self, name, channel=0):
+        self.reload()
         names = self.get_dut_names()
         names[channel] = name
-        self.set(self.Section, 'dut name', str(names).replace('\'', ''))
+        name_str = str(names).replace('\'', '') if len(names) > 1 else names[0]
+        self.set(self.Section, 'dut name', name_str)
         self.save()
 
     def set_active_devices(self, values: str):
@@ -84,12 +94,12 @@ class Config(ConfigParser):
         self.set('Devices', 'active', str(values))
         self.save()
 
-    def set_active_channels(self, values):
+    def set_active_channels(self, section, values):
         if not values:
             return
         values = values if '[' in values else '[{}]'.format(values)
         values = loads(values) if type(values) == str and '[' in values else make_list(int(values))
-        self.set(self.Section, 'active channels', str(values))
+        self.set(section, 'active channels', str(values))
         self.save()
 
 

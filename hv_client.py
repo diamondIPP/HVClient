@@ -18,7 +18,7 @@ app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
 filterwarnings('ignore')
 
 Gui.query_devices(args.config)
-QueryChannels(args.config)
+Gui.query_channels(args.config)
 
 device_list = get_dummies(args.config) if args.test else get_devices(args.config, not args.restart, print_logs=True)
 

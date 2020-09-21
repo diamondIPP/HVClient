@@ -21,7 +21,7 @@ style_str = change_qss_entry(style_str, 'QComboBox {', 'padding-right', '4px')
 app.setStyleSheet(style_str)
 
 Gui.query_devices(args.config)
-QueryChannels(args.config)
+Gui.query_channels(args.config)
 
 device_list = get_logging_devices(args.config, args.start_time)
 
