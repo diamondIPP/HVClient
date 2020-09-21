@@ -5,29 +5,18 @@
 # created on June 29th 2018 by M. Reichmann (remichae@phys.ethz.ch)
 # --------------------------------------------------------
 
-from PyQt5.QtWidgets import QGroupBox, QGridLayout, QLabel, QLineEdit, QPushButton, QSpinBox, QComboBox, QCheckBox
+from PyQt5.QtWidgets import QGridLayout
 from PyQt5.QtCore import Qt
-from .utils import do
 from .live_monitor import LiveMonitor, times, units
-from src.data_box import DeviceBox
+from src.device_box import *
+from src.utils import ON
 
 
-
-class HVBox(QGroupBox):
+class HVBox(DeviceBox):
 
     def __init__(self, device=None, channel=None):
 
-        super(HVBox, self).__init__()
-
-        self.Device = device
-        self.Channel = channel
-        if self.Device is None:
-            self.make_placeholder()
-            return
-
-        self.setTitle(device.get_idname(channel))
-
-        format_widget(self, color='red', bold=True, font_size=22)
+        super().__init__(device, channel)
 
         # Accessible widgets
         self.BiasField = make_line_edit('0', length=50)
@@ -66,9 +55,6 @@ class HVBox(QGroupBox):
         self.BiasButton.setEnabled(bool(self.Running.isChecked()))
         self.OnButton.setEnabled(bool(self.Running.isChecked()))
         self.RampButton.setEnabled(bool(self.Running.isChecked()))
-
-    def set_fonts(self, font):
-        self.CurrentLabel.setFont(font)
 
     def set_status_labels(self):
         self.set_status_label()
@@ -109,31 +95,31 @@ class HVBox(QGroupBox):
             if widget == self.StatusLabel:
                 continue
             try:
-                format_widget(widget, font='ubuntu', color='grey', font_size=FONTSIZE, bold=False)
+                format_widget(widget, font='ubuntu', color='grey', font_size=DeviceBox.FONTSIZE, bold=False)
             except AttributeError:  # catch the widgets that can't be formatted by a stylesheet
                 pass
             except Exception as err:
                 print(err, type(err))
                 pass
         for label in stat_labels:
-            format_widget(label, bg_col='darkCyan', font='ubuntu', color='black', font_size=FONTSIZE)
-        format_widget(self.OnButton, font='ubuntu', color='black', font_size=FONTSIZE * 1.05, bold=True)
+            format_widget(label, bg_col='darkCyan', font='ubuntu', color='black', font_size=DeviceBox.FONTSIZE)
+        format_widget(self.OnButton, font='ubuntu', color='black', font_size=DeviceBox.FONTSIZE * 1.05, bold=True)
         self.setLayout(layout)
 
     def set_status_label(self):
         self.StatusLabel.setText('RAMPING' if self.Device.is_ramping(self.Channel) else 'ON' if self.Device.get_status(self.Channel) else 'OFF')
         color = 'orange' if self.Device.is_ramping(self.Channel) else 'green' if self.Device.get_status(self.Channel) else 'red'
-        format_widget(self.StatusLabel, color=color, font_size=FONTSIZE * 2, bold=True, font='ubuntu')
+        format_widget(self.StatusLabel, color=color, font_size=DeviceBox.FONTSIZE * 2, bold=True, font='ubuntu')
 
     def set_voltage_label(self):
         self.VoltageLabel.setText('{v:4.0f} V'.format(v=self.Device.get_bias(self.Channel)) if self.Device.get_status(self.Channel) else '---')
-        format_widget(self.VoltageLabel, color='darkCyan', font_size=FONTSIZE * 2, bold=True, font='ubuntu')
+        format_widget(self.VoltageLabel, color='darkCyan', font_size=DeviceBox.FONTSIZE * 2, bold=True, font='ubuntu')
 
     def set_current_label(self):
         current = self.Device.get_current(self.Channel)
         self.set_current_unit(current)
         self.CurrentLabel.setText(u'{c:3.1f} {u}'.format(c=current / units[self.Unit], u=self.Unit) if self.Device.get_status(self.Channel) else '---')
-        format_widget(self.CurrentLabel, color='red', font_size=FONTSIZE * 2, bold=True, font='ubuntu')
+        format_widget(self.CurrentLabel, color='red', font_size=DeviceBox.FONTSIZE * 2, bold=True, font='ubuntu')
 
     def set_current_unit(self, current):
         for unit, value in units.items():
@@ -160,7 +146,7 @@ class HVBox(QGroupBox):
         return button
 
     def create_on_button(self):
-        button = make_button('OFF' if self.Device.get_status(self.Channel) else 'ON', size=50, height=HEIGHT * 2)
+        button = make_button('OFF' if self.Device.get_status(self.Channel) else 'ON', size=50, height=DeviceBox.HEIGHT * 2)
 
         def change_output():
             self.Device.power_down(self.Channel) if self.Device.get_status(self.Channel) else self.Device.set_output(ON, self.Channel)
@@ -168,55 +154,3 @@ class HVBox(QGroupBox):
 
         button.clicked.connect(change_output)
         return button
-
-
-def make_combobox(lst, ind=0):
-    combo_box = QComboBox()
-    combo_box.addItems(lst)
-    combo_box.setCurrentIndex(ind)
-    return combo_box
-
-
-def make_spinbox(low, high, value, step=1):
-    spin_box = QSpinBox()
-    spin_box.setRange(low, high)
-    spin_box.setValue(value)
-    spin_box.setSingleStep(step)
-    return spin_box
-
-
-def make_line_edit(txt='', length=None):
-    line_edit = QLineEdit()
-    line_edit.setText(txt)
-    do(line_edit.setMaximumWidth, length)
-    return line_edit
-
-
-def make_button(txt, size=None, height=HEIGHT):
-    but = QPushButton()
-    but.setText(txt)
-    do(but.setFixedWidth, size)
-    do(but.setMinimumHeight, height)
-    return but
-
-
-def make_check_box(value=False):
-    check_box = QCheckBox()
-    check_box.setChecked(value)
-    return check_box
-
-
-def make_label(txt, color=None, bold=False, font=None, font_size=FONTSIZE * 1.5, bg_col=None):
-    label = QLabel(txt)
-    format_widget(label, color, bold, font_size, font, bg_col)
-    return label
-
-
-def format_widget(widget, color=None, bold=None, font_size=None, font=None, bg_col=None):
-    dic = {'color': color, 'font-weight': 'bold' if bold else None, 'font-size': '{}px'.format(font_size) if font_size is not None else None, 'font-family': font, 'background-color':
-        bg_col if bg_col is not None else None}
-    widget.setStyleSheet(make_style_sheet(dic))
-
-
-def make_style_sheet(dic):
-    return '; '.join('{key}: {val}'.format(key=key, val=value) for key, value in dic.items() if value is not None)
