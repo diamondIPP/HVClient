@@ -6,12 +6,12 @@
 
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QGroupBox, QLabel, QLineEdit, QPushButton, QSpinBox, QComboBox, QCheckBox, QPlainTextEdit
-from .utils import do
+from .utils import do, do_nothing
 from src.live_monitor import LiveMonitor
 
 
 class DeviceBox(QGroupBox):
-    HEIGHT = 20
+    HEIGHT = 40
     FONTSIZE = 13
 
     def __init__(self, device=None, channel=None):
@@ -77,11 +77,12 @@ def make_text_edit(txt='', length=None, min_height=None):
     return text_edit
 
 
-def make_button(txt, size=None, height=DeviceBox.HEIGHT):
+def make_button(txt, f=do_nothing, size=None, height=DeviceBox.HEIGHT):
     but = QPushButton()
     but.setText(txt)
     do(but.setFixedWidth, size)
-    do(but.setMinimumHeight, height)
+    do(but.setMaximumHeight, height)
+    but.clicked.connect(f)
     return but
 
 
