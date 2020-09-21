@@ -34,7 +34,7 @@ def get_devices(config, hot_start, print_logs=False):
     print('Loading HV devices: {}'.format(device_nrs))
     print('=======================================')
     print('\n=============INSTANTIATION=============')
-    return [init_device(nr, config, hot_start, print_logs) for nr in device_nrs]
+    return [init_device(nr, c, hot_start, print_logs) for nr in device_nrs]
 
 
 def get_logging_devices(config, start_time):
@@ -47,9 +47,8 @@ def get_dummies(config):
     return [Dummy(nr, config, hot_start=True, init_logger=False) for nr in c.get_active_devices()]
 
 
-def init_device(config, device_nr, hot_start, print_logs=False):
-    section = 'HV{}'.format(device_nr)
-    model = config.get(section, 'model')
+def init_device(device_nr, config, hot_start, print_logs=False):
+    model = config.get('HV{}'.format(device_nr), 'model')
     print('Instantiating {}'.format(model))
     device = device_dic[model](device_nr, config.MainFile, hot_start, print_logs)
     print('successfully instantiated {} with model number {}'.format(device.Names, device.Model))
