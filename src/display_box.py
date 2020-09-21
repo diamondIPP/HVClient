@@ -15,6 +15,8 @@ class DisplayBox(DeviceBox):
     def __init__(self, device=None, channel=None):
 
         super().__init__(device, channel)
+        if device is None:
+            return
 
         # Drawing
         self.MaxCurrent = make_spinbox(-10000, 10000, 0, 1)
@@ -26,8 +28,6 @@ class DisplayBox(DeviceBox):
         self.Labels = self.make_labels()
         self.Widgets = [self.MaxCurrent, self.MinCurrent, self.MinVoltage, self.MaxVoltage, self.DisplayTimes, self.Units]
 
-        # Canvas
-        self.LiveMonitor = LiveMonitor()
         self.LiveMonitor.init(self.Device.get_data_from_logs(self.Channel))
         self.make()
 

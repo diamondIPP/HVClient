@@ -7,6 +7,7 @@
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QGroupBox, QLabel, QLineEdit, QPushButton, QSpinBox, QComboBox, QCheckBox, QPlainTextEdit
 from .utils import do
+from src.live_monitor import LiveMonitor
 
 
 class DeviceBox(QGroupBox):
@@ -16,13 +17,16 @@ class DeviceBox(QGroupBox):
     def __init__(self, device=None, channel=None):
 
         super(DeviceBox, self).__init__()
+
         self.Device = device
         self.Channel = channel
+        self.Widgets, self.Labels = [], []
         if self.Device is None:
             self.make_placeholder()
-            self.Widgets, self.Labels = [], []
             return
 
+        # Canvas
+        self.LiveMonitor = LiveMonitor()
         self.set_title()
 
     def set_title(self):

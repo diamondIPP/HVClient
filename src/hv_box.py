@@ -7,7 +7,7 @@
 
 from PyQt5.QtWidgets import QGridLayout
 from PyQt5.QtCore import Qt
-from .live_monitor import LiveMonitor, times, units
+from .live_monitor import times, units
 from src.device_box import *
 from src.utils import ON
 
@@ -17,6 +17,8 @@ class HVBox(DeviceBox):
     def __init__(self, device=None, channel=None):
 
         super().__init__(device, channel)
+        if device is None:
+            return
 
         # Accessible widgets
         self.BiasField = make_line_edit('0', length=50)
@@ -42,8 +44,6 @@ class HVBox(DeviceBox):
         self.CurrentLabel = make_label('')
         self.set_status_labels()
 
-        # Canvas
-        self.LiveMonitor = LiveMonitor()
         self.make()
 
     def update(self):
