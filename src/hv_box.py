@@ -14,6 +14,8 @@ from src.utils import ON
 
 class HVBox(DeviceBox):
 
+    HEIGHT = 20
+
     def __init__(self, device=None, channel=None):
 
         super().__init__(device, channel)
@@ -26,9 +28,9 @@ class HVBox(DeviceBox):
         self.Running = make_check_box()
 
         # Button
-        self.BiasButton = self.create_bias_button()
-        self.OnButton = self.create_on_button()
-        self.RampButton = self.create_ramp_button()
+        self.BiasButton = make_button('Set Bias', self.set_bias)
+        self.OnButton = make_button('OFF' if self.Device.get_status(self.Channel) else 'ON', self.set_output, size=50, height=DeviceBox.HEIGHT * 2)
+        self.RampButton = make_button('Set Ramp Speed', self.set_ramp_speed)
 
         # Drawing
         self.MaxCurrent = make_spinbox(-1000, 1000, 0, 1)
@@ -55,6 +57,16 @@ class HVBox(DeviceBox):
         self.BiasButton.setEnabled(bool(self.Running.isChecked()))
         self.OnButton.setEnabled(bool(self.Running.isChecked()))
         self.RampButton.setEnabled(bool(self.Running.isChecked()))
+
+    def set_bias(self):
+        self.Device.set_target_bias(int(self.BiasField.text()), self.Channel)
+
+    def set_output(self):
+        self.Device.power_down(self.Channel) if self.Device.get_status(self.Channel) else self.Device.set_output(ON, self.Channel)
+        self.OnButton.setText('ON' if self.Device.get_status(self.Channel) else 'OFF')
+
+    def set_ramp_speed(self):
+        self.Device.set_ramp_speed(float(self.RampField.text()))
 
     def set_status_labels(self):
         self.set_status_label()
@@ -132,15 +144,6 @@ class HVBox(DeviceBox):
 
         def f():
             self.Device.set_ramp_speed(float(self.RampField.text()))
-
-        button.clicked.connect(f)
-        return button
-
-    def create_bias_button(self):
-        button = make_button('Set Bias')
-
-        def f():
-            self.Device.set_target_bias(int(self.BiasField.text()), self.Channel)
 
         button.clicked.connect(f)
         return button
