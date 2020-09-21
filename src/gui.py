@@ -9,7 +9,7 @@ from argparse import ArgumentParser
 from os.path import join
 from sys import exit as end
 from warnings import filterwarnings
-from numpy import ceil
+from numpy import ceil, where
 
 import qdarkstyle
 from PyQt5.QtCore import QTimer, QPoint, Qt
@@ -24,7 +24,7 @@ from src.utils import *
 from src.live_monitor import LiveMonitor
 from src.config import Config
 
-from src.device_box import make_line_edit, make_button
+from src.device_box import make_line_edit, make_button, make_check_box
 
 
 # todo: add auto setting for max/min current
@@ -111,10 +111,10 @@ class Gui(QMainWindow):
     @staticmethod
     def query_devices(config):
         config = Config(config)
-        label = 'Choose active devices from:\n{}'.format('\n'.join('{}: {}'.format(key, value) for key, value in config.get_sections().items()))
-        value = query('Active Devices', label, config.get_active_devices())
-        if value is not None:
-            config.set_active_devices(value)
+        labels = ['{} - {}'.format(key, value) for key, value in config.get_sections().items()]
+        values = query_list('Choose Active Devices', labels, [i in config.get_active_devices() for i in range(len(labels))], checks=True)
+        if values is not None:
+            config.set_active_devices(str(list(where(array(values))[0])))
 
     @staticmethod
     def query_channels(config):
@@ -157,7 +157,7 @@ def query(title, label, init_value='', pos: QPoint = None):
         return q.textValue()
 
 
-def query_list(title, label_names, init_values=None, pos: QPoint = None):
+def query_list(title, label_names, init_values=None, pos: QPoint = None, checks=False):
     q = QDialog()
 
     def done():
@@ -165,16 +165,16 @@ def query_list(title, label_names, init_values=None, pos: QPoint = None):
     q.setWindowTitle(title)
     layout = QGridLayout()
     layout.setContentsMargins(4, 4, 4, 4)
-    line_edits = []
+    widgets = []
     for i, (name, init_value) in enumerate(zip(label_names, choose(init_values, [''] * len(label_names)))):
         layout.addWidget(QLabel(name), i, 0, Qt.AlignRight)
-        line_edits.append(make_line_edit(str(init_value)))
-        layout.addWidget(line_edits[i], i, 1, Qt.AlignLeft)
+        widgets.append(make_line_edit(str(init_value)) if not checks else make_check_box(bool(init_value), size=40))
+        layout.addWidget(widgets[i], i, 1, Qt.AlignLeft)
     layout.addWidget(make_button('Done', done), len(label_names) + 1, 1)
     q.setLayout(layout)
     q.move(choose(pos, QCursor.pos()))
     if q.exec() == QDialog.Accepted:
-        return [edit.text() for edit in line_edits]
+        return [widget.isChecked() if checks else widget.text() for widget in widgets]
 
 
 class MenuBar(object):

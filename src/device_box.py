@@ -86,9 +86,11 @@ def make_button(txt, f=do_nothing, size=None, height=DeviceBox.HEIGHT):
     return but
 
 
-def make_check_box(value=False):
+def make_check_box(value=False, size=None):
     check_box = QCheckBox()
     check_box.setChecked(value)
+    if size is not None:
+        check_box.setStyleSheet('QCheckBox::indicator {{width: {0}px; height: {0}px;}}'.format(size))
     return check_box
 
 
