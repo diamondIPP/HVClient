@@ -119,13 +119,16 @@ class Gui(QMainWindow):
     @staticmethod
     def query_channels(config):
         config = Config(config)
-        sections = ['HV{}'.format(i) for i in config.get_active_devices() if config.get_value('number of channels', int, 'HV{}'.format(i), 1) > 1]
-        if not len(sections):
+        sections = config.get_sections(active=True)
+        xlabels = ['{} - {}'.format(key, value) for key, value in sections.items() if config.get_value('number of channels', int, key, 1) > 1]
+        if not len(xlabels):
             return
-        values = query_list('Channel Numbers', sections, [config.get_active_channels(sec) for sec in sections])
+        ylabels = ['CH{}'.format(i) for i in range(max(config.get_value('number of channels', int, section, 1) for section in sections))]
+        init_values = [[i in config.get_active_channels(section) for i in range(len(ylabels))] for section in sections]
+        values = query_table_checks('Choose Active Channels', xlabels, ylabels, init_values)
         if values is not None:
             for section, value in zip(sections, values):
-                config.set_active_channels(section, value)
+                config.set_active_channels(section, str(list(where(array(value))[0])))
 
     def set_device_names(self):
         labels = ['{} - {}'.format(key, value) for key, value in self.Devices[0].Config.get_sections(active=True).items()]
@@ -175,6 +178,30 @@ def query_list(title, label_names, init_values=None, pos: QPoint = None, checks=
     q.move(choose(pos, QCursor.pos()))
     if q.exec() == QDialog.Accepted:
         return [widget.isChecked() if checks else widget.text() for widget in widgets]
+
+
+def query_table_checks(title, x_labels, y_labels, init_values=None, pos: QPoint = None):
+    q = QDialog()
+
+    def done():
+        q.done(QDialog.Accepted)
+    q.setWindowTitle(title)
+    layout = QGridLayout()
+    layout.setContentsMargins(4, 4, 4, 4)
+    widgets = zeros((len(x_labels), len(y_labels)), dtype=object)
+    init_values = choose(init_values, zeros((len(x_labels), len(y_labels)), dtype=bool))
+    for i, xname in enumerate(x_labels, 0):
+        layout.addWidget(QLabel(xname), i + 1, 0, Qt.AlignRight)
+        for j, yname in enumerate(y_labels):
+            if not i:
+                layout.addWidget(QLabel(yname), 0, j + 1, Qt.AlignCenter)
+            widgets[i, j] = make_check_box(bool(array(init_values)[i, j]), size=40)
+            layout.addWidget(widgets[i, j], i + 1, j + 1, Qt.AlignCenter)
+    layout.addWidget(make_button('Done', done), widgets.shape[0] + 1, widgets.shape[1])
+    q.setLayout(layout)
+    q.move(choose(pos, QCursor.pos()))
+    if q.exec() == QDialog.Accepted:
+        return [[widget.isChecked() for widget in col] for col in widgets]
 
 
 class MenuBar(object):
