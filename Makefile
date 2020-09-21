@@ -20,3 +20,8 @@ $(VENV_NAME)/bin/activate: setup.py
 	${PYTHON} -m pip install -U pip
 	${PYTHON} -m pip install -e .
 	touch $(VENV_NAME)/bin/activate
+
+copy-rules:
+	sudo cp config/88-hv-devices.rules /etc/udev/rules.d/
+	sudo udevadm control --reload-rules
+	sudo udevadm trigger
