@@ -6,3 +6,4 @@ nohup.out
 set_chmod.sh
 .*
 *.log
+*.egg-info
