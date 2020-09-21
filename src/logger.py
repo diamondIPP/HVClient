@@ -21,6 +21,7 @@ class Logger:
     def __init__(self, channel, config, on=True):
 
         self.Dir = dirname(dirname(realpath(__file__)))
+        self.Config = config
 
         self.Name = config.Section
         self.Channel = channel
@@ -30,7 +31,7 @@ class Logger:
         # Config
         self.DeviceName = config.get_value('name')
         self.ModelName = config.get_value('model')
-        self.DUTName = config.get_strings('dut name')[self.Channel]
+        self.DUTName = self.get_dut_name()
 
         # Directories
         self.LoggingDir = join(self.Dir, 'data', config.get('Data', 'directory'))
@@ -54,6 +55,9 @@ class Logger:
         self.FileHandler.setFormatter(Formatter('%(asctime)s %(message)s', '%H:%M:%S'))
         self.Logger.addHandler(self.FileHandler)
 
+    def get_dut_name(self):
+        return self.Config.get_strings('dut name')[self.Channel]
+
     def get_log_file(self, prnt=True):
         """Check if there is already an existing log file for this day, otherwise create a new one."""
         last_file = max(glob(join(self.LogFileDir, '*.log')), default='')
@@ -70,7 +74,7 @@ class Logger:
     def add_entry(self, txt, prnt=False):
         if prnt:
             info('{}\t{}\tCH{}'.format(txt, self.DeviceName, self.Channel))
-        self.Logger.warning('{}\t{}'.format(txt, self.DUTName))
+        self.Logger.warning('{}\t{}'.format(txt, self.get_dut_name()))
 
     def write_log(self, status, bias, current, is_ramping, target_bias, prnt=False):
         if strftime('%d') != self.Day:

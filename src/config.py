@@ -60,8 +60,21 @@ class Config(ConfigParser):
     def get_sections(self):
         return {section: self.get(section, 'name') for section in self.sections() if section.startswith('HV')}
 
+    def get_dut_names(self):
+        return self.get_strings('dut name')
+
     def set_section(self, section):
         self.Section = section
+
+    def set_id(self, value):
+        self.set(self.Section, 'short name', value)
+        self.save()
+
+    def set_dut_name(self, name, channel=0):
+        names = self.get_dut_names()
+        names[channel] = name
+        self.set(self.Section, 'dut name', str(names).replace('\'', ''))
+        self.save()
 
     def set_active_devices(self, values: str):
         if not values:
@@ -82,4 +95,4 @@ class Config(ConfigParser):
 
 if __name__ == '__main__':
 
-    z = Config(section='HV1')
+    z = Config(section='HV0')

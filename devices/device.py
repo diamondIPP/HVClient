@@ -38,7 +38,7 @@ class Device(Thread):
         self.MaxStep = self.Config.get_channel_values('maximum step', float, default=200)
         self.MaxBias = abs(self.Config.get_channel_values('maximum bias', float, default=200))
         self.TargetBias = self.read_target_bias()
-        self.Names = self.Config.get_strings('dut name')
+        self.Names = self.Config.get_dut_names()
 
         self.ModelNumber = self.read_model_number()
 
@@ -195,8 +195,11 @@ class Device(Thread):
                 data[channel] = [0, 0, 0]
         return data
 
+    def get_id(self):
+        return self.Config.get_value('short name', default='')
+
     def get_idname(self, channel=0):
-        return '{}{} - {}'.format(self.Config.get_value('short name', default=''), ', CH{}'.format(channel) if self.NChannels > 1 else '', self.Names[channel])
+        return '{}{} - {}'.format(self.get_id(), ', CH{}'.format(channel) if self.NChannels > 1 else '', self.Config.get_dut_names()[channel])
 
     @staticmethod
     def make_data(string, d):
