@@ -12,13 +12,13 @@ from warnings import filterwarnings
 from numpy import ceil
 
 import qdarkstyle
-from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import QTimer, QPoint
 from PyQt5.QtGui import QIcon, QFont, QCursor
-from PyQt5.QtWidgets import QMainWindow, QApplication, QAction, QFontDialog, QVBoxLayout, QWidget, QHBoxLayout, QInputDialog, QLabel, QDialog, QPushButton, QLineEdit
+from PyQt5.QtWidgets import QMainWindow, QApplication, QAction, QFontDialog, QVBoxLayout, QWidget, QHBoxLayout, QInputDialog, QLabel, QDialog, QPushButton, QLineEdit, QGridLayout
 from serial import SerialException
 
-from src.data_box import DataBox
-from src.device_box import DeviceBox
+from src.display_box import DisplayBox
+from src.hv_box import HVBox
 from src.device_reader import get_devices, get_logging_devices, get_dummies
 from src.utils import *
 from src.live_monitor import LiveMonitor
@@ -88,12 +88,12 @@ class Gui(QMainWindow):
         i = 0
         for device in self.Devices:
             for channel in device.ActiveChannels:
-                box = DeviceBox(device, channel) if not self.FromLogs else DataBox(device, channel)
+                box = HVBox(device, channel) if not self.FromLogs else DisplayBox(device, channel)
                 vboxes[i // 3].addWidget(box)
                 boxes.append(box)
                 i += 1
         while i % 3 != 0 and i > 3:
-            box = DeviceBox() if not self.FromLogs else DataBox()
+            box = HVBox() if not self.FromLogs else DisplayBox()
             vboxes[-1].addWidget(box)
             boxes.append(box)
             i += 1
