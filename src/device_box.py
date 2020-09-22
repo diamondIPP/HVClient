@@ -28,11 +28,11 @@ class DeviceBox(QGroupBox):
         # Canvas
         self.LiveMonitor = LiveMonitor()
         self.set_title()
+        self.setFont(QFont('Ubuntu', 8, QFont.Bold))
+        format_widget(self, color='red')
 
     def set_title(self):
         self.setTitle(self.Device.get_idname(self.Channel))
-        self.setFont(QFont('Ubuntu', 8, QFont.Bold))
-        format_widget(self, color='red')
 
     def set_fonts(self, font):
         for widget in self.Widgets:
