@@ -5,7 +5,7 @@ Client to control and read out several HV supply units
 
 ##Installation:
 
-setting up the environment and installing all required packages:
+setting up the environment and installing all required packages (sudo required):
 ```shell
 make prepare-dev
 source venv/bin/activate
@@ -13,11 +13,10 @@ source venv/bin/activate
 
 required python packages:
  - qdarkstyle, numpy, PyQt5, pyserial, matplotlib, termcolor, pyvisa
- 
-setting up the device rules:
-```shell
-make copy-rules
-```
+
+ - if python3 and virtualenv are installed:
+    - _setting up the device rules:_ ```make copy-rules ```
+    - _create virtual environment:_ ```make venv ```
  - or manually copy config/88-hv-devices.rules to /etc/udev/rules.d and restart udev
 
 
