@@ -3,7 +3,7 @@
 Client to control and read out several HV supply units
 
 
-##Installation:
+## Installation
 
 setting up the environment and installing all required packages (sudo required):
 ```shell
