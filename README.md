@@ -12,12 +12,17 @@ make prepare-dev
 source venv/bin/activate
 ```
 
-required python packages:
+This install python3, virtualenv, and pip other required python packages such as:
  - qdarkstyle, numpy, PyQt5, pyserial, matplotlib, termcolor, pyvisa
 
- - if python3 and virtualenv are installed:
-    - _setting up the device rules:_ ```make copy-rules ```
-    - _create virtual environment:_ ```make venv ```
+If python3, pip and virtualenv are already install installed:
+    - _create virtual environment and install required packages:_ 
+    ```
+    shell
+    make venv
+    source venv/bin/activate
+    ```
+    - _setting up the device rules:_ ```make copy-rules ``` (ToDo: Linux only, what should be done on OSx)
  - or manually copy config/88-hv-devices.rules to /etc/udev/rules.d and restart udev
 
 
