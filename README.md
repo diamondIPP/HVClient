@@ -6,6 +6,7 @@ Client to control and read out several HV supply units
 ## Installation
 
 setting up the environment and installing all required packages (sudo required):
+### on linux
 ```shell
 make prepare-dev
 source venv/bin/activate
