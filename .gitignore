@@ -7,3 +7,4 @@ set_chmod.sh
 .*
 *.log
 *.egg-info
+.idea/
