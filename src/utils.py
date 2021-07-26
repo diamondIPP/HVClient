@@ -210,7 +210,7 @@ def remove_digits(string):
 
 
 def clear_string(data):
-    data = data.translate(None, '\r\n\x00\x13\x11\x10')  # clear strange chars
+    data = data.strip('\r\n\x00\x13\x11\x10')  # clear strange chars
     return data.replace(',', ' ').strip()
 
 

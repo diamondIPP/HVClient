@@ -246,7 +246,7 @@ class ISEG(Device):
         # print 'write: "%s"' % data
         data += self.CommandEndCharacter
         self.last_write = data
-        output = self.Serial.write(data) if self.bOpen else True
+        output = self.Serial.write(str.encode(data)) if self.bOpen else True
         sleep(self.WriteSleepTime)
         return output == len(data)
 
@@ -272,7 +272,7 @@ class ISEG(Device):
         clear_first = False
         while True:
             while self.Serial.inWaiting() > 0 and time() - ts < max_time and not out.endswith(self.CommandEndCharacter):
-                out += self.Serial.read(1)
+                out += self.Serial.read(1).decode()
                 k += 1
             if out == '':
                 break
