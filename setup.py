@@ -17,6 +17,7 @@ setuptools.setup(
 
     # All versions are fixed just for case. Once in while try to check for new versions.
     install_requires=[
+        'ipython',
         'qdarkstyle',
         'numpy',
         'PyQt5',
