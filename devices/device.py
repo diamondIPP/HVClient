@@ -5,9 +5,9 @@ from threading import Thread
 from time import sleep
 from os import SEEK_END
 
-from src.logger import Logger
-from src.utils import *
-from src.config import Config
+from HVClient.src.logger import Logger
+from HVClient.src.utils import *
+from HVClient.src.config import Config
 from numpy import sign
 
 __author__ = 'Michael Reichmann'
