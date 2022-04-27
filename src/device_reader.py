@@ -7,14 +7,14 @@
 
 import signal
 from argparse import ArgumentParser
-from devices.device import *
-from devices.dummy import Dummy
-from devices.ISEG import ISEG
-from devices.Keithley23X import Keithley23X
-from devices.Keithley24XX import Keithley24XX
-from devices.Keithley2657 import Keithley2657
-from devices.Keithley6517B import Keithley6517B
-from src.config import Config
+from HVClient.devices.device import *
+from HVClient.devices.dummy import Dummy
+from HVClient.devices.ISEG import ISEG
+from HVClient.devices.Keithley23X import Keithley23X
+from HVClient.devices.Keithley24XX import Keithley24XX
+from HVClient.devices.Keithley2657 import Keithley2657
+from HVClient.devices.Keithley6517B import Keithley6517B
+from HVClient.src.config import Config
 
 device_dic = {'2400': Keithley24XX,
               '2410': Keithley24XX,
