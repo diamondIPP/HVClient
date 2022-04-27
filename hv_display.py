@@ -4,7 +4,7 @@
 # created on September 17th 2020 by M. Reichmann (remichae@phys.ethz.ch)
 # --------------------------------------------------------
 
-from src.gui import *
+from HVClient.src.gui import *
 
 parser = ArgumentParser()
 parser.add_argument('--config', '-c', help='Config file (name without .cfg)', default='main')
