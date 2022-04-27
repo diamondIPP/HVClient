@@ -7,7 +7,7 @@
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QGroupBox, QLabel, QLineEdit, QPushButton, QSpinBox, QComboBox, QCheckBox, QPlainTextEdit
 from .utils import do, do_nothing
-from src.live_monitor import LiveMonitor
+from HVClient.src.live_monitor import LiveMonitor
 
 
 class DeviceBox(QGroupBox):

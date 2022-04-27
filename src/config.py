@@ -5,7 +5,7 @@
 # --------------------------------------------------------
 
 from os.path import join, getmtime
-from src.utils import *
+from HVClient.src.utils import *
 from typing import Any
 from json import loads
 from configparser import NoOptionError, NoSectionError

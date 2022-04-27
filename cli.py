@@ -4,7 +4,7 @@
 # created on March 17th 2022 by M. Reichmann (remichae@phys.ethz.ch)
 # --------------------------------------------------------
 
-from src.device_reader import *
+from HVClient.src.device_reader import *
 
 parser = ArgumentParser()
 parser.add_argument('--config', '-c', help='Config file', default='main')

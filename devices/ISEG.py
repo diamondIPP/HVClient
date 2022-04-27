@@ -3,7 +3,7 @@
 
 import warnings
 from serial import Serial, PARITY_NONE, STOPBITS_ONE, EIGHTBITS, SerialException
-from devices.device import *
+from HVClient.devices.device import *
 from typing import Any
 
 

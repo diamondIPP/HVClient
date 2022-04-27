@@ -5,7 +5,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib.pyplot as plt
 from matplotlib.dates import DateFormatter, date2num, num2date
 from warnings import filterwarnings, catch_warnings
-from src.utils import *
+from HVClient.src.utils import *
 
 
 times = OrderedDict([('5min', 5 / 60.), ('10min', 10 / 60.), ('20min', 20 / 60.), ('0.5', .5), ('1', 1), ('2', 2), ('4', 4), ('8', 8), ('inf', 1000)])

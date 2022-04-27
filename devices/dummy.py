@@ -7,7 +7,7 @@
 from copy import deepcopy
 from numpy import ones
 from numpy.random import rand, normal, randint
-from devices.device import *
+from HVClient.devices.device import *
 
 
 class Dummy(Device):

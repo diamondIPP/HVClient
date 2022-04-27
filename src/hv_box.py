@@ -8,8 +8,8 @@
 from PyQt5.QtWidgets import QGridLayout
 from PyQt5.QtCore import Qt
 from .live_monitor import times, units
-from src.device_box import *
-from src.utils import ON
+from HVClient.src.device_box import *
+from HVClient.src.utils import ON
 
 
 class HVBox(DeviceBox):

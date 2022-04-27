@@ -7,7 +7,7 @@
 from PyQt5.QtWidgets import QGridLayout
 from PyQt5.QtCore import Qt
 from .live_monitor import LiveMonitor, times, units
-from src.device_box import *
+from HVClient.src.device_box import *
 
 
 class DisplayBox(DeviceBox):

@@ -17,14 +17,14 @@ from PyQt5.QtGui import QIcon, QFont, QCursor
 from PyQt5.QtWidgets import QMainWindow, QApplication, QAction, QFontDialog, QVBoxLayout, QWidget, QHBoxLayout, QInputDialog, QLabel, QDialog, QGridLayout
 from serial import SerialException
 
-from src.display_box import DisplayBox
-from src.hv_box import HVBox
-from src.device_reader import get_devices, get_logging_devices, get_dummies
-from src.utils import *
-from src.live_monitor import LiveMonitor
-from src.config import Config
+from HVClient.src.display_box import DisplayBox
+from HVClient.src.hv_box import HVBox
+from HVClient.src.device_reader import get_devices, get_logging_devices, get_dummies
+from HVClient.src.utils import *
+from HVClient.src.live_monitor import LiveMonitor
+from HVClient.src.config import Config
 
-from src.device_box import make_line_edit, make_button, make_check_box
+from HVClient.src.device_box import make_line_edit, make_button, make_check_box
 
 
 # todo: add auto setting for max/min current

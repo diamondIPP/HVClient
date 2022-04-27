@@ -8,7 +8,7 @@
 
 from logging import getLogger, FileHandler, INFO, Formatter
 from os.path import join, realpath, dirname, basename
-from src.utils import ensure_dir, info, load_config, message
+from HVClient.src.utils import ensure_dir, info, load_config, message
 from time import strftime
 from glob import glob
 from datetime import datetime
