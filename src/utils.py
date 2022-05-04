@@ -147,7 +147,7 @@ def print_table(rows, header=None, footer=None, prnt=True):
 
 def get_base_dir():
     """Returns the directory which is base dir for the directory in which utils.py is located, which is src dir.
-    
+
     For example: if utils.py is in /home/homer/MyHVClient/src/utils.py then it returns /home/homer/MyHVClient
     """
     return dirname(dirname(realpath(__file__)))

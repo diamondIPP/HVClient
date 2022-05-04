@@ -13,13 +13,15 @@ from configparser import NoOptionError, NoSectionError
 
 class Config(ConfigParser):
     
-    def __init__(self, name='main.ini', display=False, section=None):
+    def __init__(self, name='main.ini', display=False, section=None, imported=False):
 
         super().__init__()
         self.Display = display
-
-        self.Dir = join(get_base_dir(), 'config')
-        self.MainFile = join(self.Dir, make_config_name(name))
+        # the following lines are for use directly with HV Client,
+        # if imported = True, then give the full path to the config file
+        if not imported:
+            self.Dir = join(get_base_dir(), 'config')
+            self.MainFile = join(self.Dir, make_config_name(name))
         self.read(self.MainFile)
         self.Section = section
         self.NChannels = self.get_value('number of channels', int, default=1)
