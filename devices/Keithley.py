@@ -180,7 +180,7 @@ class Keithley(Device):
     def write(self, data):
         data += self.commandEndCharacter
         if self.bOpen:
-            output = self.serial.write(data)
+            output = self.serial.write(str.encode(data))
         else:
             output = True
         sleep(self.writeSleepTime)
