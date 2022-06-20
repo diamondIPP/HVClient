@@ -4,7 +4,7 @@ from .Keithley import *
 
 
 class Keithley24XX(Keithley):
-    def __init__(self, device_no, config, hot_start=False):
+    def __init__(self, device_no, config, hot_start=False, print_logs=False):
         Keithley.__init__(self, device_no, config, hot_start)
         self.removeCharacters = '\r\n\x00\x13\x11\x10'
         self.init_keithley(hot_start)
