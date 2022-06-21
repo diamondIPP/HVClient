@@ -198,7 +198,7 @@ class Keithley(Device):
         k = 0
         while True:
             while self.serial.inWaiting() > 0 and time() - ts < max_time and not out.endswith(self.commandEndCharacter):
-                out += self.serial.read(1)
+                out += self.serial.read(1).decode()
                 k += 1
             if out.endswith(self.commandEndCharacter):
                 break
