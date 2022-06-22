@@ -17,10 +17,10 @@ from time import sleep
 
 
 class Keithley2657(Keithley):
-    def __init__(self, device_no, config, hot_start=False):
+    def __init__(self, device_no, config, hot_start=False, print_logs=False):
         Keithley.__init__(self, device_no, config, hot_start)
         self.bOpen = False
-        self.ip_address = self.Config.get_value('ip address')
+        self.ip_address = self.Config.get_value('ip_address')
         self.rm = visa.ResourceManager('@py')
         self.inst = None
         self.identifier = None

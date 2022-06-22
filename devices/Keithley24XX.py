@@ -64,9 +64,11 @@ class Keithley24XX(Keithley):
         except NoOptionError as err:
             print(err)
         if self.output.lower().startswith('rear') or self.output.lower().startswith('back'):
+            print(f'Activating Rear Output')
             return self.write(':ROUT:TERM REAR')
         else:
             self.write(':ROUT:TERM FRONT')
+            print(f'Activating Front Output')
 
     def set_fixed_volt_mode(self):
         return self.write(':SOUR:VOLT:MODE FIX')
