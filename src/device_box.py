@@ -4,8 +4,8 @@
 # created on June 29th 2018 by M. Reichmann (remichae@phys.ethz.ch)
 # --------------------------------------------------------
 
-from PyQt5.QtGui import QFont
-from PyQt5.QtWidgets import QGroupBox, QLabel, QLineEdit, QPushButton, QSpinBox, QComboBox, QCheckBox, QPlainTextEdit
+from PyQt6.QtGui import QFont
+from PyQt6.QtWidgets import QGroupBox, QLabel, QLineEdit, QPushButton, QSpinBox, QComboBox, QCheckBox, QPlainTextEdit
 from .utils import do, do_nothing
 from HVClient.src.live_monitor import LiveMonitor
 

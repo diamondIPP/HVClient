@@ -5,8 +5,8 @@
 # created on June 29th 2018 by M. Reichmann (remichae@phys.ethz.ch)
 # --------------------------------------------------------
 
-from PyQt5.QtWidgets import QGridLayout
-from PyQt5.QtCore import Qt
+from PyQt6.QtWidgets import QGridLayout
+from PyQt6.QtCore import Qt
 from .live_monitor import times, units
 from HVClient.src.device_box import *
 from HVClient.src.utils import ON

@@ -12,9 +12,9 @@ from warnings import filterwarnings
 from numpy import ceil, where
 
 import qdarkstyle
-from PyQt5.QtCore import QTimer, QPoint, Qt
-from PyQt5.QtGui import QIcon, QFont, QCursor
-from PyQt5.QtWidgets import QMainWindow, QApplication, QAction, QFontDialog, QVBoxLayout, QWidget, QHBoxLayout, QInputDialog, QLabel, QDialog, QGridLayout
+from PyQt6.QtCore import QTimer, QPoint, Qt
+from PyQt6.QtGui import QIcon, QFont, QCursor, QAction
+from PyQt6.QtWidgets import QMainWindow, QApplication, QFontDialog, QVBoxLayout, QWidget, QHBoxLayout, QInputDialog, QLabel, QDialog, QGridLayout
 from serial import SerialException
 
 from HVClient.src.display_box import DisplayBox
@@ -164,7 +164,7 @@ def query_list(title, label_names, init_values=None, pos: QPoint = None, checks=
     q = QDialog()
 
     def done():
-        q.done(QDialog.Accepted)
+        q.done(QDialog.DialogCode["Accepted"])
     q.setWindowTitle(title)
     layout = QGridLayout()
     layout.setContentsMargins(4, 4, 4, 4)
@@ -176,7 +176,7 @@ def query_list(title, label_names, init_values=None, pos: QPoint = None, checks=
     layout.addWidget(make_button('Done', done), len(label_names) + 1, 1)
     q.setLayout(layout)
     q.move(choose(pos, QCursor.pos()))
-    if q.exec() == QDialog.Accepted:
+    if q.exec() == QDialog.DialogCode["Accepted"]:
         return [widget.isChecked() if checks else widget.text() for widget in widgets]
 
 
@@ -184,7 +184,7 @@ def query_table_checks(title, x_labels, y_labels, init_values=None, pos: QPoint 
     q = QDialog()
 
     def done():
-        q.done(QDialog.Accepted)
+        q.done(QDialog.DialogCode["Accepted"])
     q.setWindowTitle(title)
     layout = QGridLayout()
     layout.setContentsMargins(4, 4, 4, 4)
@@ -200,7 +200,7 @@ def query_table_checks(title, x_labels, y_labels, init_values=None, pos: QPoint 
     layout.addWidget(make_button('Done', done), widgets.shape[0] + 1, widgets.shape[1])
     q.setLayout(layout)
     q.move(choose(pos, QCursor.pos()))
-    if q.exec() == QDialog.Accepted:
+    if q.exec() == QDialog.DialogCode["Accepted"]:
         return [[widget.isChecked() for widget in col] for col in widgets]
 
 
